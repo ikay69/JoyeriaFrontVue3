@@ -145,7 +145,7 @@ export default {
   created() {
     this.consultar()
   },
-  methods: {
+  methods: { //prueba
     consultar() {
       this.buscar(1)
     },
