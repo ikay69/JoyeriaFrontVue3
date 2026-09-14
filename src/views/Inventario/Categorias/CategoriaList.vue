@@ -84,7 +84,7 @@
             <td>{{ formatearFecha(cat.catFecCreacion) }}</td>
             <td>{{ cat.catcUsuario }}</td>
             <td class="text-center">
-              <v-btn icon="mdi-pencil" size="small" variant="text"  @click="irAEditar(cat.catId)" />
+              <v-btn icon="mdi-pencil" size="small" variant="text"  @click="irAEditar(cat.catEmp,cat.catId)" />
             </td>
           </tr>
         </tbody>
@@ -183,8 +183,8 @@ export default {
       this.$router.push({ name: 'CategoriaNueva' })
     },
    
-    irAEditar(id) {
-      this.$router.push({ name: 'CategoriaEditar', params: { id } })
+    irAEditar(EmpId,CatId) {
+      this.$router.push({ name: 'CategoriaEditar', params: { EmpId,CatId } })
     },
     
     formatearFecha(fecha) {

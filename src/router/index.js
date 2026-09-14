@@ -27,7 +27,7 @@ const routes = [
         component: () => import('@/views/Inventario/Categorias/CategoriaForm.vue')
       },
       {
-        path: 'inventario/categorias/:id/editar',
+        path: 'inventario/categorias/:EmpId/:CatId/editar',
         name: 'CategoriaEditar',
         component: () => import('@/views/Inventario/Categorias/CategoriaForm.vue'),
         props: true

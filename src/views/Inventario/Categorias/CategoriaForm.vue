@@ -14,8 +14,7 @@
           class="mb-2"
         />
 
-        <v-select
-          v-if="esEdicion"
+        <v-select  v-if="esEdicion"
           v-model="estado"
           :items="opcionesEstado"
           item-title="texto"
@@ -64,7 +63,8 @@ export default {
     },
 
     idEmpresa() {
-      return this.authStore.empresaSeleccionada
+      //return this.authStore.empresaSeleccionada
+      return Number(this.$route.params.EmpId)
     },
 
     esEdicion() {
@@ -72,7 +72,7 @@ export default {
     },
 
     idCategoria() {
-      return Number(this.$route.params.id)
+      return Number(this.$route.params.CatId)
     }
   },
 
@@ -86,12 +86,14 @@ export default {
     async cargarCategoria() {
       this.cargando = true
       try {
+        
         const { data } = await categoriaService.getById({
           idEmpresa: this.idEmpresa,
           idCategoria: this.idCategoria
         })
         this.nombre = data.data.catNombre
         this.estado = data.data.catEstado === 1
+
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la categoría'
         await Swal.fire('Error', mensaje, 'error')
