@@ -14,6 +14,8 @@
           class="mb-2"
         />
 
+       
+
         <v-select  v-if="esEdicion"
           v-model="estado"
           :items="opcionesEstado"
@@ -23,6 +25,16 @@
           variant="outlined"
           class="mb-2"
         />
+
+
+         <div v-if="esEdicion && usuario" class="mb-4">
+            <div class="text-caption text-medium-emphasis">
+              Creado por: <strong>{{ usuario }}</strong>
+            </div>
+            <div class="text-caption text-medium-emphasis" style="font-size: 11px;">
+              Fecha creación: {{ fechaCreacionFormateada }}
+            </div>
+         </div>
 
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
@@ -45,6 +57,10 @@ export default {
     return {
       nombre: '',
       estado: true,
+      usuario: '',
+      fechaCreacion: '',
+
+
       cargando: false,
       guardando: false,
       opcionesEstado: [
@@ -63,8 +79,11 @@ export default {
     },
 
     idEmpresa() {
-      //return this.authStore.empresaSeleccionada
-      return Number(this.$route.params.EmpId)
+      if(this.esEdicion){
+        return Number(this.$route.params.EmpId)
+      }else{
+        return this.authStore.empresaSeleccionada
+      }
     },
 
     esEdicion() {
@@ -73,6 +92,18 @@ export default {
 
     idCategoria() {
       return Number(this.$route.params.CatId)
+    },
+
+    fechaCreacionFormateada() {
+      if (!this.fechaCreacion) return ''
+      const fecha = new Date(this.fechaCreacion)
+      return fecha.toLocaleString('es-CO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      })
     }
   },
 
@@ -91,8 +122,11 @@ export default {
           idEmpresa: this.idEmpresa,
           idCategoria: this.idCategoria
         })
+        console.log(data.data)
         this.nombre = data.data.catNombre
         this.estado = data.data.catEstado === 1
+        this.usuario = data.data.catcUsuario
+        this.fechaCreacion = data.data.catFecCreacion 
 
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la categoría'
