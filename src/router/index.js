@@ -35,7 +35,18 @@ const routes = [
       {
         path: 'inventario/unidades-medida',
         name: 'UnidadesMedida',
-        component: () => import('@/views/Inventario/UnidadesMedida/UnidadesMedida.vue')
+        component: () => import('@/views/Inventario/UnidadesMedida/UnidadesMedidaList.vue')
+      },
+      {
+        path: 'inventario/unidades-medida/nueva',
+        name: 'UnidadesMedidaNueva',
+        component: () => import('@/views/Inventario/UnidadesMedida/UnidadesMedidaForm.vue')
+      },
+      {
+        path: 'inventario/unidades-medida/:EmpId/:UniMedId/editar',
+        name: 'UnidadesMedidaEditar',
+        component: () => import('@/views/Inventario/UnidadesMedida/UnidadesMedidaForm.vue'),
+        props: true
       },
       {
         path: 'inventario/propiedades',
