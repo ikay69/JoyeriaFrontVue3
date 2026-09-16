@@ -104,8 +104,17 @@ const routes = [
           import('@/views/Inventario/MovimientosInventario/MovimientosInventario.vue')
       },
 
-      // Terceros
-      { path: 'terceros', name: 'Terceros', component: () => import('@/views/Terceros/Terceros.vue') },
+
+            // Terceros
+      { path: 'terceros', name: 'Terceros', component: () => import('@/views/Terceros/TercerosList.vue') },
+      { path: 'terceros/nuevo', name: 'TercerosNuevo', component: () => import('@/views/Terceros/TercerosForm.vue') },
+      {
+        path: 'terceros/:EmpId/:TerId/editar',
+        name: 'TercerosEditar',
+        component: () => import('@/views/Terceros/TercerosForm.vue'),
+        props: true
+      },
+
 
       // Ventas / Compras / Prestamos / Empenos / Abonos / Gastos
       { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/Ventas.vue') },
