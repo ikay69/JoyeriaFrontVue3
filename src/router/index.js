@@ -144,6 +144,22 @@ const routes = [
         name: 'AsignacionUsuario',
         component: () =>
           import('@/views/Administracion/AsignacionUsuario/AsignacionUsuario.vue')
+      },
+      {
+        path: 'administracion/tipos-documento',
+        name: 'TiposDocumento',
+        component: () => import('@/views/Administracion/TiposDocumento/TiposDocumentoList.vue')
+      },
+      {
+        path: 'administracion/tipos-documento/nuevo',
+        name: 'TiposDocumentoNuevo',
+        component: () => import('@/views/Administracion/TiposDocumento/TiposDocumentoForm.vue')
+      },
+      {
+        path: 'administracion/tipos-documento/:EmpId/:TipDocId/editar',
+        name: 'TiposDocumentoEditar',
+        component: () => import('@/views/Administracion/TiposDocumento/TiposDocumentoForm.vue'),
+        props: true
       }
     ]
   },
