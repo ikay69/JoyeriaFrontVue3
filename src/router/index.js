@@ -32,6 +32,7 @@ const routes = [
         component: () => import('@/views/Inventario/Categorias/CategoriaForm.vue'),
         props: true
       },
+      // UNIDAEDS MEDIDAS
       {
         path: 'inventario/unidades-medida',
         name: 'UnidadesMedida',
@@ -48,11 +49,44 @@ const routes = [
         component: () => import('@/views/Inventario/UnidadesMedida/UnidadesMedidaForm.vue'),
         props: true
       },
+            // PROPIEDAES
       {
         path: 'inventario/propiedades',
         name: 'Propiedades',
-        component: () => import('@/views/Inventario/Propiedades/Propiedades.vue')
+        component: () => import('@/views/Inventario/Propiedades/PropiedadesList.vue')
       },
+      {
+        path: 'inventario/propiedades/nueva',
+        name: 'PropiedadesNueva',
+        component: () => import('@/views/Inventario/Propiedades/PropiedadesForm.vue')
+      },
+      {
+        path: 'inventario/propiedades/:EmpId/:PropId/editar',
+        name: 'PropiedadesEditar',
+        component: () => import('@/views/Inventario/Propiedades/PropiedadesForm.vue'),
+        props: true
+      },
+
+      
+      // TIPO DE PRODUCTO
+      {
+        path: 'inventario/tipo-productos',
+        name: 'TipoProductos',
+        component: () => import('@/views/Inventario/TipoProductos/TipoProductosList.vue')
+      },
+      {
+        path: 'inventario/tipo-productos/nuevo',
+        name: 'TipoProductosNuevo',
+        component: () => import('@/views/Inventario/TipoProductos/TipoProductosFrom.vue')
+      },
+      {
+        path: 'inventario/tipo-productos/:EmpId/:TipProId/editar',
+        name: 'TipoProductosEditar',
+        component: () => import('@/views/Inventario/TipoProductos/TipoProductosFrom.vue'),
+        props: true
+      },
+
+      // PRODUCTO
       {
         path: 'inventario/productos',
         name: 'Productos',

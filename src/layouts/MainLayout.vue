@@ -49,6 +49,7 @@
           <v-list-item :to="{ name: 'CategoriaList' }" title="Categorías" />
           <v-list-item :to="{ name: 'UnidadesMedida' }" title="Unidades de medida" />
           <v-list-item :to="{ name: 'Propiedades' }" title="Propiedades" />
+          <v-list-item :to="{ name: 'TipoProductos' }" title="Tipos de Productos" />
           <v-list-item :to="{ name: 'Productos' }" title="Productos" />
           <v-list-item :to="{ name: 'Articulos' }" title="Artículos" />
           <v-list-item :to="{ name: 'MovimientosInventario' }" title="Movimientos de inventario" />
