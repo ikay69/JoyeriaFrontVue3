@@ -16,5 +16,9 @@ export default {
   update(payload) {
     // payload: { idEmpresa, idUnidadMedida, Nombre, Simbolo, Estado }
     return http.put('/unidadMedida/updateunidadmedida', payload)
-  }
+  },
+    getActivas(payload) {
+    // payload: { idEmpresa }
+    return http.post('/unidadMedida/getunidadesmedidaactivas', payload)
+  },
 }

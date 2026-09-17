@@ -19,5 +19,10 @@ export default {
   update(payload) {
     // payload: { idEmpresa, idCategoria, Nombre, Estado }
     return http.put('/categoria/updatecategoria', payload)
-  }
+  },
+    getActivas(payload) {
+    // payload: { idEmpresa }
+    return http.post('/categoria/getactivascategoria', payload)
+  },
+
 }

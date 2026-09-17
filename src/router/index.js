@@ -86,12 +86,28 @@ const routes = [
         props: true
       },
 
+      // PRODUCTO ANTERIOR 
+
       // PRODUCTO
       {
         path: 'inventario/productos',
         name: 'Productos',
-        component: () => import('@/views/Inventario/Productos/Productos.vue')
+        component: () => import('@/views/Inventario/Productos/ProductosList.vue')
       },
+      {
+        path: 'inventario/productos/nuevo',
+        name: 'ProductosNuevo',
+        component: () => import('@/views/Inventario/Productos/ProductosForm.vue')
+      },
+      {
+        path: 'inventario/productos/:EmpId/:ProdId/editar',
+        name: 'ProductosEditar',
+        component: () => import('@/views/Inventario/Productos/ProductosForm.vue'),
+        props: true
+      },
+
+
+      // PRODUCTO ANTERIOR
       {
         path: 'inventario/articulos',
         name: 'Articulos',
