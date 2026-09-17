@@ -16,5 +16,9 @@ export default {
   update(payload) {
     // payload: { idEmpresa, idTipoProducto, Nombre, Estado }
     return http.put('/tiposproducto/updatetipoproducto', payload)
-  }
+  },
+    getActivas(payload) {
+    // payload: { idEmpresa }
+    return http.post('/tiposproducto/getactivastipoproducto', payload)
+  },
 }
