@@ -104,8 +104,17 @@ const routes = [
           import('@/views/Inventario/MovimientosInventario/MovimientosInventario.vue')
       },
 
-      // Terceros
-      { path: 'terceros', name: 'Terceros', component: () => import('@/views/Terceros/Terceros.vue') },
+
+            // Terceros
+      { path: 'terceros', name: 'Terceros', component: () => import('@/views/Terceros/TercerosList.vue') },
+      { path: 'terceros/nuevo', name: 'TercerosNuevo', component: () => import('@/views/Terceros/TercerosForm.vue') },
+      {
+        path: 'terceros/:EmpId/:TerId/editar',
+        name: 'TercerosEditar',
+        component: () => import('@/views/Terceros/TercerosForm.vue'),
+        props: true
+      },
+
 
       // Ventas / Compras / Prestamos / Empenos / Abonos / Gastos
       { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/Ventas.vue') },
@@ -144,6 +153,22 @@ const routes = [
         name: 'AsignacionUsuario',
         component: () =>
           import('@/views/Administracion/AsignacionUsuario/AsignacionUsuario.vue')
+      },
+      {
+        path: 'administracion/tipos-documento',
+        name: 'TiposDocumento',
+        component: () => import('@/views/Administracion/TiposDocumento/TiposDocumentoList.vue')
+      },
+      {
+        path: 'administracion/tipos-documento/nuevo',
+        name: 'TiposDocumentoNuevo',
+        component: () => import('@/views/Administracion/TiposDocumento/TiposDocumentoForm.vue')
+      },
+      {
+        path: 'administracion/tipos-documento/:EmpId/:TipDocId/editar',
+        name: 'TiposDocumentoEditar',
+        component: () => import('@/views/Administracion/TiposDocumento/TiposDocumentoForm.vue'),
+        props: true
       }
     ]
   },

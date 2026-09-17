@@ -78,6 +78,7 @@
           <v-list-item :to="{ name: 'Usuarios' }" title="Usuarios" />
           <v-list-item :to="{ name: 'Empresas' }" title="Empresas" />
           <v-list-item :to="{ name: 'AsignacionUsuario' }" title="Asignación de usuario" />
+          <v-list-item :to="{ name: 'TiposDocumento' }" title="Tipos de documento" />
         </v-list-group>
       </v-list>
     </v-navigation-drawer>
