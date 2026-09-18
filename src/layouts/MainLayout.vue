@@ -51,32 +51,32 @@
           <v-list-item :to="{ name: 'Propiedades' }" title="Propiedades" />
           <v-list-item :to="{ name: 'TipoProductos' }" title="Tipos de Productos" />
           <v-list-item :to="{ name: 'Productos' }" title="Productos" />
-          <v-list-item :to="{ name: 'Articulos' }" title="Artículos" />
-          <v-list-item :to="{ name: 'MovimientosInventario' }" title="Movimientos de inventario" />
+          <v-list-item :to="{ name: 'Articulos' }" title="Artículos" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'MovimientosInventario' }" title="Movimientos de inventario" class="bg-red text-white"/>
         </v-list-group>
 
         <v-list-item :to="{ name: 'Terceros' }" prepend-icon="mdi-account-group" title="Terceros" />
-        <v-list-item :to="{ name: 'Ventas' }" prepend-icon="mdi-cash-register" title="Ventas" />
-        <v-list-item :to="{ name: 'Compras' }" prepend-icon="mdi-cart" title="Compras" />
-        <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" />
-        <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños" />
-        <v-list-item :to="{ name: 'Abonos' }" prepend-icon="mdi-cash-plus" title="Abonos" />
-        <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos" />
+        <v-list-item :to="{ name: 'Ventas' }" prepend-icon="mdi-cash-register" title="Ventas" class="bg-red text-white"/>
+        <v-list-item :to="{ name: 'Compras' }" prepend-icon="mdi-cart" title="Compras" class="bg-red text-white"/>
+        <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
+        <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños"class="bg-red text-white" />
+        <v-list-item :to="{ name: 'Abonos' }" prepend-icon="mdi-cash-plus" title="Abonos" class="bg-red text-white"/>
+        <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos" class="bg-red text-white"/>
 
         <v-list-group value="contabilidad">
           <template #activator="{ props }">
             <v-list-item v-bind="props" prepend-icon="mdi-book-open-variant" title="Contabilidad" />
           </template>
-          <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" />
-          <v-list-item :to="{ name: 'EstadoCuentaTercero' }" title="Estado de cuenta por tercero" />
+          <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'EstadoCuentaTercero' }" title="Estado de cuenta por tercero" class="bg-red text-white"/>
         </v-list-group>
 
         <v-list-group value="administracion">
           <template #activator="{ props }">
             <v-list-item v-bind="props" prepend-icon="mdi-cog" title="Administración" />
           </template>
-          <v-list-item :to="{ name: 'Usuarios' }" title="Usuarios" />
-          <v-list-item :to="{ name: 'Empresas' }" title="Empresas" />
+          <v-list-item :to="{ name: 'Usuarios' }" title="Usuarios" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'Empresas' }" title="Empresas" class="bg-red text-white"/>
           <v-list-item :to="{ name: 'AsignacionUsuario' }" title="Asignación de usuario" />
           <v-list-item :to="{ name: 'TiposDocumento' }" title="Tipos de documento" />
         </v-list-group>

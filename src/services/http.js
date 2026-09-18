@@ -4,8 +4,8 @@ import { useAuthStore } from '@/stores/auth'
 // La ruta base del backend se toma de la variable de entorno VITE_API_BASE_URL
 // (archivo .env en la raíz del proyecto). Si no existe, usa localhost:3000/api.
 const http = axios.create({
-  //baseURL: import.meta.env.VITE_API_BASE_URL //|| 'http://localhost:3000/api' || "/api"
-  baseURL: "/api"
+  baseURL: import.meta.env.VITE_API_BASE_URL //|| 'http://localhost:3000/api' || "/api"
+  //baseURL: "/api"
 })
 
 // El backend espera el token de sesion en un header literal "token" (no Authorization Bearer)
