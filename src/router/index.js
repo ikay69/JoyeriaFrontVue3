@@ -154,22 +154,37 @@ const routes = [
       },
 
       // Administracion
-      {
-        path: 'administracion/usuarios',
-        name: 'Usuarios',
-        component: () => import('@/views/Administracion/Usuarios/Usuarios.vue')
+      //usuarios
+      { 
+        path: 'administracion/usuarios', 
+        name: 'Usuarios', 
+        component: () => import('@/views/Administracion/Usuarios/UsuarioList.vue')
       },
+
+      { 
+        path: 'administracion/usuarios/nuevo', 
+        name: 'UsuarioNuevo', 
+        component: () => import('@/views/Administracion/Usuarios/UsuarioForm.vue')
+      },
+      { 
+        path: 'administracion/usuarios/:UsuId/editar', 
+        name: 'UsuarioEditar', 
+        component:  () => import('@/views/Administracion/Usuarios/UsuarioForm.vue')
+      },  
+      //empresas
       {
         path: 'administracion/empresas',
         name: 'Empresas',
         component: () => import('@/views/Administracion/Empresas/Empresas.vue')
       },
+      //asingar usuario empresa
       {
         path: 'administracion/asignacion-usuario',
         name: 'AsignacionUsuario',
         component: () =>
           import('@/views/Administracion/AsignacionUsuario/AsignacionUsuario.vue')
       },
+      //tipo documento
       {
         path: 'administracion/tipos-documento',
         name: 'TiposDocumento',

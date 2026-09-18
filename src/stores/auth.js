@@ -35,6 +35,7 @@ export const useAuthStore = defineStore('auth', {
       this.empresas = empresas || []
       this.rol = rol
       this.empresaSeleccionada = this.empresas.length ? this.empresas[0].Id : null
+
       this.persistir()
     },
     setEmpresaSeleccionada(idEmpresa) {
