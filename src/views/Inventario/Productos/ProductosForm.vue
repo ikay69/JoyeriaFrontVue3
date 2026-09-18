@@ -2,102 +2,128 @@
   <v-container fluid class="pa-6">
     <h1 class="text-h5 mb-4">{{ esEdicion ? 'Editar producto' : 'Nuevo producto' }}</h1>
 
-    <v-card class="pa-6" max-width="560" elevation="1">
+    <v-card class="pa-6" max-width="600" elevation="1">
       <v-form ref="form" @submit.prevent="confirmar">
-        <v-text-field
-          v-model="nombre"
-          label="Nombre"
-          maxlength="150"
-          counter="150"
-          :rules="[reglas.requerido]"
-          variant="outlined"
-          class="mb-2"
-        />
+        <v-row dense>
+          <!-- Fila 1: Nombre (Ocupa las dos columnas) -->
+          <v-col cols="12">
+            <v-text-field
+              v-model="nombre"
+              label="Nombre"
+              maxlength="150"
+              counter="150"
+              :rules="[reglas.requerido]"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
 
-        <v-textarea
-          v-model="descripcion"
-          label="Descripción"
-          maxlength="300"
-          counter="300"
-          rows="3"
-          variant="outlined"
-          class="mb-2"
-        />
+          <!-- Fila 2: Descripción (Ocupa las dos columnas) -->
+          <v-col cols="12">
+            <v-textarea
+              v-model="descripcion"
+              label="Descripción"
+              maxlength="300"
+              counter="300"
+              rows="3"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
 
-        <v-select
-          v-model="idTipoProducto"
-          :items="tiposProducto"
-          item-title="tipProNombre"
-          item-value="tipProId"
-          label="Tipo de producto"
-          :rules="[reglas.requerido]"
-          :loading="cargandoListas"
-          variant="outlined"
-          class="mb-2"
-        />
+          <!-- Fila 3: Tipo de producto y Categoría (Cada uno en una columna) -->
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="idTipoProducto"
+              :items="tiposProducto"
+              item-title="tipProNombre"
+              item-value="tipProId"
+              label="Tipo de producto"
+              :rules="[reglas.requerido]"
+              :loading="cargandoListas"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="idCategoria"
+              :items="categorias"
+              item-title="Nombre"
+              item-value="Id"
+              label="Categoría"
+              :rules="[reglas.requerido]"
+              :loading="cargandoListas"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
 
-        <v-select
-          v-model="idCategoria"
-          :items="categorias"
-          item-title="Nombre"
-          item-value="Id"
-          label="Categoría"
-          :rules="[reglas.requerido]"
-          :loading="cargandoListas"
-          variant="outlined"
-          class="mb-2"
-        />
+          <!-- Fila 4: Unidad de medida y Tipo de seguimiento (Cada uno en una columna) -->
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="idUnidadMedida"
+              :items="unidadesMedida"
+              item-title="uniMedNombre"
+              item-value="uniMedId"
+              label="Unidad de medida"
+              :rules="[reglas.requerido]"
+              :loading="cargandoListas"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-select
+              v-model="tipoSeguimiento"
+              :items="opcionesTipoSeguimiento"
+              item-title="texto"
+              item-value="valor"
+              label="Tipo de seguimiento"
+              :rules="[reglas.requerido]"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
 
-        <v-select
-          v-model="idUnidadMedida"
-          :items="unidadesMedida"
-          item-title="uniMedNombre"
-          item-value="uniMedId"
-          label="Unidad de medida"
-          :rules="[reglas.requerido]"
-          :loading="cargandoListas"
-          variant="outlined"
-          class="mb-2"
-        />
+          <!-- Fila 5: Estado (Columna 1 activa, Columna 2 vacía) -->
+          <v-col cols="12" sm="6">
+            <v-select v-if="esEdicion"
+              v-model="estado"
+              :items="opcionesEstado"
+              item-title="texto"
+              item-value="valor"
+              label="Estado"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" v-if="esEdicion"></v-col>
 
-        <v-select
-          v-model="tipoSeguimiento"
-          :items="opcionesTipoSeguimiento"
-          item-title="texto"
-          item-value="valor"
-          label="Tipo de seguimiento"
-          :rules="[reglas.requerido]"
-          variant="outlined"
-          class="mb-2"
-        />
+          <!-- Fila 6: Creado por y Fecha creación (Columna 1 activa, Columna 2 vacía) -->
+          <v-col cols="12" sm="6">
+            <div v-if="esEdicion && usuario" class="mb-4">
+              <div class="text-caption text-medium-emphasis">
+                Creado por: <strong>{{ usuario }}</strong>
+              </div>
+              <div class="text-caption text-medium-emphasis" style="font-size: 11px;">
+                Fecha creación: {{ fechaCreacionFormateada }}
+              </div>
+            </div>
+          </v-col>
+          <v-col cols="12" sm="6" v-if="esEdicion && usuario"></v-col>
 
-        <v-select v-if="esEdicion"
-          v-model="estado"
-          :items="opcionesEstado"
-          item-title="texto"
-          item-value="valor"
-          label="Estado"
-          variant="outlined"
-          class="mb-2"
-        />
-
-        <div v-if="esEdicion && usuario" class="mb-4">
-          <div class="text-caption text-medium-emphasis">
-            Creado por: <strong>{{ usuario }}</strong>
-          </div>
-          <div class="text-caption text-medium-emphasis" style="font-size: 11px;">
-            Fecha creación: {{ fechaCreacionFormateada }}
-          </div>
-        </div>
-
-        <div class="d-flex justify-end ga-2 mt-4">
-          <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
-          <v-btn color="primary" :loading="guardando" type="submit">Confirmar</v-btn>
-        </div>
+          <!-- Fila 7: Botones (Ocupa dos columnas alineados a la derecha) -->
+          <v-col cols="12" class="d-flex justify-end ga-2 mt-2">
+            <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
+            <v-btn color="primary" :loading="guardando" type="submit">Confirmar</v-btn>
+          </v-col>
+        </v-row>
       </v-form>
     </v-card>
   </v-container>
 </template>
+
 
 <script>
 import Swal from 'sweetalert2'
