@@ -108,10 +108,21 @@ const routes = [
 
 
       // PRODUCTO ANTERIOR
-      {
+            {
         path: 'inventario/articulos',
         name: 'Articulos',
-        component: () => import('@/views/Inventario/Articulos/Articulos.vue')
+        component: () => import('@/views/Inventario/Articulos/ArticulosList.vue')
+      },
+      {
+        path: 'inventario/articulos/nuevo',
+        name: 'ArticulosNuevo',
+        component: () => import('@/views/Inventario/Articulos/ArticulosForm.vue')
+      },
+      {
+        path: 'inventario/articulos/:EmpId/:ArtId/editar',
+        name: 'ArticulosEditar',
+        component: () => import('@/views/Inventario/Articulos/ArticulosForm.vue'),
+        props: true
       },
       {
         path: 'inventario/movimientos',
