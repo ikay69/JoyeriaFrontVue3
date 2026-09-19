@@ -16,5 +16,9 @@ export default {
   update(payload) {
     // payload: { idEmpresa, idProducto, Nombre, Descripcion, idTipoProducto, idCategoria, idUnidadMedida, TipoSeguimiento, Estado }
     return http.put('/producto/updateproducto', payload)
-  }
+  },
+    getActivas(payload) {
+    // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro }
+    return http.post('/producto/getactivasproducto', payload)
+  },
 }

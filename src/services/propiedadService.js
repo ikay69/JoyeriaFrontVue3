@@ -16,5 +16,9 @@ export default {
   update(payload) {
     // payload: { idEmpresa, idPropiedad, Nombre, TipoDato, Estado }
     return http.put('/propiedad/updatepropiedad', payload)
-  }
+  },
+    getActivas(payload) {
+    // payload: { idEmpresa }
+    return http.post('/propiedad/getactivaspropiedad', payload)
+  },
 }
