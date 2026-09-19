@@ -60,6 +60,7 @@
             <th>Nombre</th>
             <th>Categoría</th>
             <th>Tipo de producto</th>
+            <th>Propiedades</th>
             <th>Precio</th>
             <th>Vender</th>
             <th>Estado</th>
@@ -79,9 +80,10 @@
           </tr>
           <tr v-for="art in articulos" :key="art.artId">
             <td>{{ art.artSKU }}</td>
-            <td>{{ art.artNombre }}</td>
+            <td>{{ art.artNombre }} </td>
             <td>{{ art.artCategoria }}</td>
             <td>{{ art.artTipoProducto }}</td>
+            <td class="columna-ajustable-text">{{art.artPropiedades}}</td>
             <td>{{ formatearPrecio(art.artPrecio) }}</td>
             <td>
               <v-chip :color="art.artVender === 1 ? 'success' : 'default'" size="small">
@@ -207,3 +209,16 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+  .columna-ajustable-text {
+    /* Establece el ancho fijo que desees */
+    max-width: 200px; 
+    width: 200px;
+    
+    /* Fuerza el salto de línea si el texto es muy largo o no tiene espacios */
+    white-space: normal !important;
+    word-wrap: break-word;
+    word-break: break-word;
+  }
+</style>

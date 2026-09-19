@@ -51,7 +51,7 @@
           <v-list-item :to="{ name: 'Propiedades' }" title="Propiedades" />
           <v-list-item :to="{ name: 'TipoProductos' }" title="Tipos de Productos" />
           <v-list-item :to="{ name: 'Productos' }" title="Productos" />
-          <v-list-item :to="{ name: 'Articulos' }" title="Artículos" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'Articulos' }" title="Artículos" />
           <v-list-item :to="{ name: 'MovimientosInventario' }" title="Movimientos de inventario" class="bg-red text-white"/>
         </v-list-group>
 
