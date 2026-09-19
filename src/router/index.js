@@ -15,6 +15,25 @@ const routes = [
     children: [
       { path: 'inicio', name: 'Inicio', component: () => import('@/views/Inicio/Inicio.vue') },
 
+
+      // BODEGAS
+      {
+        path: 'inventario/bodegas',
+        name: 'Bodegas',
+        component: () => import('@/views/Inventario/Bodegas/BodegasList.vue')
+      },
+      {
+        path: 'inventario/bodegas/nueva',
+        name: 'BodegasNueva',
+        component: () => import('@/views/Inventario/Bodegas/BodegasForm.vue')
+      },
+      {
+        path: 'inventario/bodegas/:EmpId/:BodId/editar',
+        name: 'BodegasEditar',
+        component: () => import('@/views/Inventario/Bodegas/BodegasForm.vue'),
+        props: true
+      },
+      
       // Inventario
       {
         path: 'inventario/categorias',

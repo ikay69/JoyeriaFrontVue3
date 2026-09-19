@@ -46,6 +46,7 @@
               title="Inventario"
             />
           </template>
+          <v-list-item :to="{ name: 'Bodegas' }" title="Bodegas" />
           <v-list-item :to="{ name: 'CategoriaList' }" title="Categorías" />
           <v-list-item :to="{ name: 'UnidadesMedida' }" title="Unidades de medida" />
           <v-list-item :to="{ name: 'Propiedades' }" title="Propiedades" />
