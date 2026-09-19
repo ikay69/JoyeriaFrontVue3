@@ -171,7 +171,6 @@
           <caption class="text-subtitle-2 text-start pa-2">Existencias</caption>
           <thead>
             <tr>
-              <th>Bodega</th>
               <th>Bolsa</th>
               <th>Propietario</th>
               <th>Cantidad</th>
@@ -180,7 +179,6 @@
           </thead>
           <tbody>
             <tr v-for="(ex, i) in existencias" :key="i">
-              <td>{{ ex.existBodegaNombre }}</td>
               <td>{{ ex.existBolsa }}</td>
               <td>{{ ex.existPropietarioNombre || '-' }}</td>
               <td>{{ ex.existCantidad }}</td>
