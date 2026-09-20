@@ -53,8 +53,22 @@
           <v-list-item :to="{ name: 'TipoProductos' }" title="Tipos de Productos" />
           <v-list-item :to="{ name: 'Productos' }" title="Productos" />
           <v-list-item :to="{ name: 'Articulos' }" title="Artículos" />
-          <v-list-item :to="{ name: 'MovimientosInventario' }" title="Movimientos de inventario" class="bg-red text-white"/>
+                    <v-list-item :to="{ name: 'MovimientosInventario' }" title="Movimientos de inventario" />
         </v-list-group>
+
+        <v-list-group value="informesInventario">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-clipboard-text-clock"
+              title="Informes de inventario"
+            />
+          </template>
+          <v-list-item :to="{ name: 'Existencias' }" title="Existencias" />
+          <v-list-item :to="{ name: 'Kardex' }" title="Kardex" />
+          <v-list-item :to="{ name: 'ExistenciaArticulo' }" title="Existencia artículo" />
+        </v-list-group>
+
 
         <v-list-item :to="{ name: 'Terceros' }" prepend-icon="mdi-account-group" title="Terceros" />
         <v-list-item :to="{ name: 'Ventas' }" prepend-icon="mdi-cash-register" title="Ventas" class="bg-red text-white"/>

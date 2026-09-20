@@ -16,5 +16,9 @@ export default {
   update(payload) {
     // payload: { idEmpresa, idBodega, Nombre, Estado }
     return http.put('/bodega/updatebodega', payload)
+  },
+    getActivas(payload) {
+    // payload: { idEmpresa }
+    return http.post('/bodega/getactivasbodega', payload)
   }
 }

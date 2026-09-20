@@ -91,7 +91,7 @@
                 <td>{{ art.artSKU }}</td>
                 <td>
                   {{ art.artNombre }}
-                  <div v-if="art.artDescripcion" class="text-caption text-medium-emphasis">
+                  <div v-if="art.artPropiedades" class="text-caption text-medium-emphasis">
                     {{ art.artPropiedades }}
                   </div>
                 </td>
