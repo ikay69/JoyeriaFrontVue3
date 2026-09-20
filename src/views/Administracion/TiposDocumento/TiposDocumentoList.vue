@@ -146,9 +146,21 @@ export default {
     }
   },
   created() {
+    this.checkToken();
     this.consultar()
   },
   methods: {
+    checkToken(){
+      if(!this.authStore.token){
+        this.authStore.logout();
+        this.$router.push({ name: 'Login' })
+      }
+      console.log(this.authStore.rol)
+      if(this.authStore.rol !=='ADMINISTRADOR'){
+        this.$router.push({ name: 'Inicio' })
+      }
+    },
+
     consultar() {
       this.buscar(1)
     },
