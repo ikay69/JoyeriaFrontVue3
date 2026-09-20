@@ -8,7 +8,7 @@
         <v-btn icon="mdi-arrow-up" variant="tonal" @click="mostrarSelectorArticulo = true" />
         <p v-if="articuloSeleccionado" class="mb-0 flex-grow-1">
           <strong>SKU:</strong> {{ articuloSeleccionado.artSKU }}
-          &nbsp;&nbsp;<strong>Artículo:</strong> {{ articuloSeleccionado.artNombre }}
+          &nbsp;&nbsp;<strong>Artículo:</strong> {{ articuloSeleccionado.artNombre }} - {{ articuloSeleccionado.artPropiedades}} 
         </p>
         <p v-else class="mb-0 flex-grow-1 text-medium-emphasis">
           Seleccione un artículo
@@ -135,6 +135,19 @@ export default {
   components: { ArticulosSeleccionar },
 
   data() {
+
+    // 1. Obtener la fecha actual
+    const fechaActual = new Date();
+    
+    // 2. Formatear a YYYY-MM-DD usando la zona horaria local
+    const year = fechaActual.getFullYear();
+    const month = String(fechaActual.getMonth() + 1).padStart(2, '0'); // Los meses van de 0 a 11
+    const day = String(fechaActual.getDate()).padStart(2, '0');
+    
+    const fechaHoy = `${year}-${month}-${day}`;
+
+
+
     return {
       mostrarSelectorArticulo: false,
       articuloSeleccionado: null,
@@ -149,8 +162,8 @@ export default {
 
       filtros: {
         idBodega: 0,
-        fechaInicio: '',
-        fechaFin: ''
+        fechaInicio: fechaHoy,
+        fechaFin: fechaHoy
       }
     }
   },
