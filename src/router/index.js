@@ -143,12 +143,32 @@ const routes = [
         component: () => import('@/views/Inventario/Articulos/ArticulosForm.vue'),
         props: true
       },
+
       {
         path: 'inventario/movimientos',
         name: 'MovimientosInventario',
         component: () =>
           import('@/views/Inventario/MovimientosInventario/MovimientosInventario.vue')
       },
+
+      // Informes de inventario
+      {
+        path: 'informes-inventario/existencias',
+        name: 'Existencias',
+        component: () => import('@/views/InformesInventario/Existencias.vue')
+      },
+      {
+        path: 'informes-inventario/kardex',
+        name: 'Kardex',
+        component: () => import('@/views/InformesInventario/Kardex.vue')
+      },
+      {
+        path: 'informes-inventario/existencia-articulo',
+        name: 'ExistenciaArticulo',
+        component: () => import('@/views/InformesInventario/ExistenciaArticulo.vue')
+      },
+
+      
 
 
             // Terceros
