@@ -112,6 +112,7 @@ export default {
   },
  
   async created() {
+    this.checkToken();
     if (!this.idEmpresa) {
       Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
       return
@@ -121,6 +122,16 @@ export default {
   },
  
   methods:{
+    checkToken(){
+      if(!this.authStore.token){
+        this.authStore.logout();
+        this.$router.push({ name: 'Login' })
+      }
+      console.log(this.authStore.rol)
+      if(this.authStore.rol !=='ADMINISTRADOR'){
+        this.$router.push({ name: 'Inicio' })
+      }
+    },
     async cargarLista(){
       this.cargandoListas = true
       try {
