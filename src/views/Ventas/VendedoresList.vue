@@ -181,7 +181,6 @@ export default {
 
       this.cargando = true
       try {
-        console.log('linea 183')
         const { data } = await vendedorService.getAll({
           idEmpresa: this.idEmpresa,
           campoOrdenar: this.filtros.campoOrdenar,
@@ -194,7 +193,6 @@ export default {
         this.cantData = data.cantData || 0
         this.pagina = pagina
       } catch (error) {
-        console.log('menasaje de error',error)
         const mensaje = error.response?.data?.msg || 'No se pudo consultar los vendedores'
         Swal.fire('Error', mensaje, 'error')
       } finally {
