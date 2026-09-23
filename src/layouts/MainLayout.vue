@@ -86,9 +86,19 @@
         </v-list-group>
 
 
+        <v-list-group value="compras">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-cart"
+              title="Compras"
+            />
+          </template>
+          <v-list-item :to="{ name: 'Compras' }" title="Compras" class="bg-red text-white"/>
 
+        </v-list-group>
 
-        <v-list-item :to="{ name: 'Compras' }" prepend-icon="mdi-cart" title="Compras" class="bg-red text-white"/>
+        
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
         <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños"class="bg-red text-white" />
         <v-list-item :to="{ name: 'Abonos' }" prepend-icon="mdi-cash-plus" title="Abonos" class="bg-red text-white"/>
