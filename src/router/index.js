@@ -205,8 +205,13 @@ const routes = [
       { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/Ventas.vue') },
 
       
-      // Compras / Prestamos / Empenos / Abonos / Gastos
+      // Compras 
       { path: 'compras', name: 'Compras', component: () => import('@/views/Compras/Compras.vue') },
+
+
+
+
+      // Prestamos / Empenos / Abonos / Gastos
       { path: 'prestamos', name: 'Prestamos', component: () => import('@/views/Prestamos/Prestamos.vue') },
       { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/Empenos.vue') },
       { path: 'abonos', name: 'Abonos', component: () => import('@/views/Abonos/Abonos.vue') },
