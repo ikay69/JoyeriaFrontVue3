@@ -61,7 +61,7 @@
             <v-list-item
               v-bind="props"
               prepend-icon="mdi-clipboard-text-clock"
-              title="Informes de inventario"
+              title="Inf inventario"
             />
           </template>
           <v-list-item :to="{ name: 'Existencias' }" title="Existencias" />
@@ -71,7 +71,23 @@
 
 
         <v-list-item :to="{ name: 'Terceros' }" prepend-icon="mdi-account-group" title="Terceros" />
-        <v-list-item :to="{ name: 'Ventas' }" prepend-icon="mdi-cash-register" title="Ventas" class="bg-red text-white"/>
+
+        <!--<v-list-item :to="{ name: 'Ventas' }" prepend-icon="mdi-cash-register" title="Ventas" class="bg-red text-white"/>-->
+        <v-list-group value="ventas">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-cash-register"
+              title="Ventas"
+            />
+          </template>
+          <v-list-item :to="{ name: 'Vendedores' }" title="Vendedores" />
+          <v-list-item :to="{ name: 'Ventas' }" title="Ventas" class="bg-red text-white" />
+        </v-list-group>
+
+
+
+
         <v-list-item :to="{ name: 'Compras' }" prepend-icon="mdi-cart" title="Compras" class="bg-red text-white"/>
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
         <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños"class="bg-red text-white" />

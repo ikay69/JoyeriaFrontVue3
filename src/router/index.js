@@ -182,8 +182,30 @@ const routes = [
       },
 
 
-      // Ventas / Compras / Prestamos / Empenos / Abonos / Gastos
+      // Ventas 
+      
+      {
+        path: 'ventas/vendedores',
+        name: 'Vendedores',
+        component: () => import('@/views/Ventas/VendedoresList.vue')
+      },
+      {
+        path: 'ventas/vendedores/nuevo',
+        name: 'VendedoresNuevo',
+        component: () => import('@/views/Ventas/VendedoresForm.vue')
+      },
+      {
+        path: 'ventas/vendedores/:EmpId/:VdrId/editar',
+        name: 'VendedoresEditar',
+        component: () => import('@/views/Ventas/VendedoresForm.vue'),
+        props: true
+      },
+
+
       { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/Ventas.vue') },
+
+      
+      // Compras / Prestamos / Empenos / Abonos / Gastos
       { path: 'compras', name: 'Compras', component: () => import('@/views/Compras/Compras.vue') },
       { path: 'prestamos', name: 'Prestamos', component: () => import('@/views/Prestamos/Prestamos.vue') },
       { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/Empenos.vue') },
