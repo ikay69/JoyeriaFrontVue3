@@ -126,6 +126,109 @@
           </v-col>
         </v-row>
 
+        <template v-if="esCredito">
+          <v-divider class="my-4" />
+          <div class="mb-2 text-subtitle-2">Condiciones del crédito</div>
+
+          <v-row dense>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model="fechaCompromiso"
+                label="Fecha de compromiso"
+                type="date"
+                :disabled="fechaCompromisoDeshabilitada"
+                :hint="fechaCompromisoDeshabilitada
+                  ? 'Con más de una cuota las fechas se registran en la tabla'
+                  : 'Obligatoria cuando hay una sola cuota'"
+                persistent-hint
+                variant="outlined"
+                density="comfortable"
+              />
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model.number="numeroCuotas"
+                label="Número de cuotas"
+                type="number"
+                min="1"
+                step="1"
+                variant="outlined"
+                density="comfortable"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model.number="valorCuota"
+                label="Valor de la cuota"
+                type="number"
+                min="0"
+                step="0.01"
+                :disabled="cuotasEditadas"
+                :hint="cuotasEditadas ? 'Las cuotas tienen valores distintos' : ''"
+                persistent-hint
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="sembrarCuotas"
+              />
+              <v-btn
+                v-if="cuotasEditadas"
+                variant="text"
+                size="small"
+                prepend-icon="mdi-undo"
+                class="mt-1"
+                @click="volverAValorUnico"
+              >
+                Volver a un valor único
+              </v-btn>
+            </v-col>
+          </v-row>
+
+          <template v-if="cuotas.length">
+            <div class="mt-2 mb-2 text-subtitle-2">Detalle de las cuotas</div>
+            <p class="text-caption text-medium-emphasis mb-2">
+              Las cuotas las calcula el proveedor con su propio interés: aquí sólo se transcriben.
+              Es normal que sumen más que el saldo.
+            </p>
+            <v-table density="compact" class="mb-4">
+              <thead>
+                <tr>
+                  <th style="width: 80px">N°</th>
+                  <th style="min-width: 150px">Valor</th>
+                  <th style="min-width: 170px">Fecha de pago</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="cuota in cuotas" :key="cuota.NumCuota">
+                  <td>{{ cuota.NumCuota }}</td>
+                  <td>
+                    <v-text-field
+                      v-model.number="cuota.ValorCuota"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      @update:model-value="onValorFilaEditado"
+                    />
+                  </td>
+                  <td>
+                    <v-text-field
+                      v-model="cuota.FechaPago"
+                      type="date"
+                      clearable
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+        </template>
+
         <v-divider class="my-4" />
 
         <div class="d-flex align-center justify-space-between mb-2">
@@ -317,6 +420,14 @@ export default {
       efectivo: 0,
       transaccion: 0,
 
+      fechaCompromiso: null,
+      numeroCuotas: 1,
+      valorCuota: null,
+      cuotas: [],
+      // true en cuanto el usuario edita el valor de UNA fila: a partir de ahi la cabecera deja de
+      // ser "el valor comun" y se manda ValorCuota: null con el desglose (escenario 3).
+      cuotasEditadas: false,
+
       lineas: [],
       bodegas: [],
       guardando: false
@@ -356,6 +467,17 @@ export default {
           (Number(this.efectivo) || 0) -
           (Number(this.transaccion) || 0)
       )
+    },
+
+    esCredito() {
+      return this.tipoCompra === 'CREDITO'
+    },
+
+    // El backend DESCARTA FechaCompromiso cuando NumeroCuotas > 1: con varias cuotas las fechas
+    // son de las cuotas y viven en CompraCuotas. Dejarla editable seria dejar al usuario
+    // escribiendo una fecha que nunca se guarda.
+    fechaCompromisoDeshabilitada() {
+      return Number(this.numeroCuotas) > 1
     }
   },
 
@@ -376,6 +498,32 @@ export default {
       // arreglo recien reconstruido: onArticuloSeleccionado/onArticuloNuevoGuardado explotarian
       // leyendo fila.idArticulo de un fila undefined.
       this.filaActiva = null
+      // Los datos de credito tambien son de la compra en curso, no de la empresa: se limpian por
+      // la misma razon que terceroSeleccionado y lineas, para no arrastrar cuotas de una empresa
+      // ajena al payload de la nueva.
+      this.fechaCompromiso = null
+      this.numeroCuotas = 1
+      this.valorCuota = null
+      this.cuotas = []
+      this.cuotasEditadas = false
+    },
+
+    tipoCompra(valor) {
+      if (valor === 'CONTADO') {
+        // una compra de contado no guarda datos de financiacion: se limpian para que no viajen
+        // restos de un cambio de opinion.
+        this.fechaCompromiso = null
+        this.numeroCuotas = 1
+        this.valorCuota = null
+        this.cuotas = []
+        this.cuotasEditadas = false
+      } else {
+        this.sincronizarCuotas()
+      }
+    },
+
+    numeroCuotas() {
+      this.sincronizarCuotas()
     }
   },
 
@@ -513,7 +661,132 @@ export default {
           return 'El valor cancelado debe cubrir exactamente el total de la compra de contado'
         }
       }
+
+      if (this.tipoCompra === 'CREDITO') {
+        // Espejo de la del contado, del otro lado: alla el saldo debe ser cero, aca positivo.
+        if (!(this.saldo > 0.01)) {
+          return 'Una compra a crédito debe quedar con saldo pendiente; use CONTADO'
+        }
+
+        const numeroCuotas = Number(this.numeroCuotas)
+        // Number.isInteger('3') es false, y un v-text-field puede entregar cadena: de ahi el
+        // Number() antes de comprobar. Tambien atrapa un 3.5 tecleado a mano.
+        if (!Number.isInteger(numeroCuotas) || numeroCuotas < 1) {
+          return 'El número de cuotas debe ser un entero mayor o igual a 1'
+        }
+        if (numeroCuotas === 1 && !this.fechaCompromiso) {
+          return 'La fecha de pago es obligatoria cuando hay una sola cuota'
+        }
+
+        const credito = this.armarCredito()
+        if (!credito.Cuotas && !(Number(credito.ValorCuota) > 0)) {
+          return 'El valor de la cuota es obligatorio cuando no se detallan las cuotas'
+        }
+        if (credito.Cuotas && credito.Cuotas.some((cuota) => !(Number(cuota.ValorCuota) > 0))) {
+          return 'El valor de cada cuota debe ser mayor a cero'
+        }
+      }
       return null
+    },
+
+    // La tabla existe solo con mas de una cuota: con una sola, el monto y la fecha son datos de
+    // la cabecera y no justifican una tabla.
+    sincronizarCuotas() {
+      const cantidad = Number(this.numeroCuotas)
+      if (!Number.isInteger(cantidad) || cantidad < 2) {
+        this.cuotas = []
+        this.cuotasEditadas = false
+        return
+      }
+
+      const anteriores = this.cuotas
+      this.cuotas = Array.from({ length: cantidad }, (unused, i) => {
+        const previa = anteriores[i]
+        if (previa) return previa
+        return {
+          NumCuota: i + 1,
+          ValorCuota: this.cuotasEditadas ? null : this.valorCuota,
+          FechaPago: null
+        }
+      })
+    },
+
+    // El valor de la cabecera es "el valor comun": al escribirlo, siembra todas las filas.
+    sembrarCuotas() {
+      if (this.cuotasEditadas) return
+      this.cuotas.forEach((cuota) => {
+        cuota.ValorCuota = this.valorCuota
+      })
+    },
+
+    // Editar el valor de UNA fila significa que las cuotas no son iguales: la cabecera se vacia y
+    // se deshabilita, y el envio pasa al escenario 3.
+    onValorFilaEditado() {
+      if (this.cuotasEditadas) return
+      this.cuotasEditadas = true
+      this.valorCuota = null
+    },
+
+    // La salida del estado anterior. Sin esto, un valor cambiado por error deja al usuario
+    // encerrado en el escenario 3 y obligado a reescribir las N filas a mano.
+    volverAValorUnico() {
+      this.cuotasEditadas = false
+      this.valorCuota = null
+      this.cuotas.forEach((cuota) => {
+        cuota.ValorCuota = null
+      })
+    },
+
+    // Traduce el estado de la pantalla a los cuatro campos de credito del payload.
+    //
+    // Con NumeroCuotas > 1 el backend descarta FechaCompromiso, asi que se manda null en vez de
+    // arrastrar un valor que se va a ignorar.
+    //
+    // La regla que parece arbitraria y no lo es: validarCuotasCompra exige ValorCuota > 0 en CADA
+    // fila del desglose. Una fila que solo lleva fecha se rechazaria con "El valor de la cuota
+    // debe ser mayor a cero", asi que una fila se envia con su valor sembrado o no se envia.
+    armarCredito() {
+      const numeroCuotas = Number(this.numeroCuotas)
+
+      // Escenario 1: una cuota, un monto, fecha obligatoria en la cabecera.
+      if (numeroCuotas === 1) {
+        return {
+          FechaCompromiso: this.fechaCompromiso || null,
+          NumeroCuotas: numeroCuotas,
+          ValorCuota: Number(this.valorCuota),
+          Cuotas: null
+        }
+      }
+
+      // Escenario 3: valores distintos. La cabecera va NULL y el desglose lleva todas las filas.
+      if (this.cuotasEditadas) {
+        return {
+          FechaCompromiso: null,
+          NumeroCuotas: numeroCuotas,
+          ValorCuota: null,
+          Cuotas: this.cuotas.map((cuota) => ({
+            NumCuota: cuota.NumCuota,
+            ValorCuota: Number(cuota.ValorCuota),
+            FechaPago: cuota.FechaPago || null
+          }))
+        }
+      }
+
+      // Escenario 2: mismo valor. Solo se envian las filas CON fecha, con el valor de la
+      // cabecera. Sin ninguna fecha, el desglose no se envia y el valor vive solo en la cabecera.
+      const conFecha = this.cuotas.filter((cuota) => cuota.FechaPago)
+      return {
+        FechaCompromiso: null,
+        NumeroCuotas: numeroCuotas,
+        ValorCuota: Number(this.valorCuota),
+        Cuotas: conFecha.length
+          ? conFecha.map((cuota) => ({
+              NumCuota: cuota.NumCuota,
+              ValorCuota: Number(this.valorCuota),
+              FechaPago: cuota.FechaPago
+            }))
+          : null
+      }
     },
 
     armarArticulos() {
@@ -562,6 +835,15 @@ export default {
         ValorEfectivo: Number(this.efectivo) || 0,
         ValorTransaccion: Number(this.transaccion) || 0,
         Articulos: this.armarArticulos()
+      }
+
+      if (this.esCredito) {
+        const credito = this.armarCredito()
+        payload.FechaCompromiso = credito.FechaCompromiso
+        payload.NumeroCuotas = credito.NumeroCuotas
+        payload.ValorCuota = credito.ValorCuota
+        // `Cuotas` es opcional: solo se manda si hay desglose que mandar.
+        if (credito.Cuotas) payload.Cuotas = credito.Cuotas
       }
 
       this.guardando = true
