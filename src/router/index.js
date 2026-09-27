@@ -182,9 +182,43 @@ const routes = [
       },
 
 
-      // Ventas / Compras / Prestamos / Empenos / Abonos / Gastos
+      // Ventas 
+      
+      {
+        path: 'ventas/vendedores',
+        name: 'Vendedores',
+        component: () => import('@/views/Ventas/VendedoresList.vue')
+      },
+      {
+        path: 'ventas/vendedores/nuevo',
+        name: 'VendedoresNuevo',
+        component: () => import('@/views/Ventas/VendedoresForm.vue')
+      },
+      {
+        path: 'ventas/vendedores/:EmpId/:VdrId/editar',
+        name: 'VendedoresEditar',
+        component: () => import('@/views/Ventas/VendedoresForm.vue'),
+        props: true
+      },
+
+
       { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/Ventas.vue') },
-      { path: 'compras', name: 'Compras', component: () => import('@/views/Compras/Compras.vue') },
+
+      
+      // Compras 
+      { path: 'compras', name: 'ComprasList', component: () => import('@/views/Compras/ComprasList.vue') },
+      { path: 'compras/nueva', name: 'CompraNueva', component: () => import('@/views/Compras/CompraForm.vue') },
+      {
+        path: 'compras/:EmpId/:ComId/detalle',
+        name: 'CompraDetalle',
+        component: () => import('@/views/Compras/CompraDetalle.vue'),
+        props: true
+      },
+
+
+
+
+      // Prestamos / Empenos / Abonos / Gastos
       { path: 'prestamos', name: 'Prestamos', component: () => import('@/views/Prestamos/Prestamos.vue') },
       { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/Empenos.vue') },
       { path: 'abonos', name: 'Abonos', component: () => import('@/views/Abonos/Abonos.vue') },
