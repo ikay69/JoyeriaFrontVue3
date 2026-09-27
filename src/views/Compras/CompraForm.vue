@@ -151,6 +151,7 @@
                 label="Número de cuotas"
                 type="number"
                 min="1"
+                max="60"
                 step="1"
                 variant="outlined"
                 density="comfortable"
@@ -674,6 +675,9 @@ export default {
         if (!Number.isInteger(numeroCuotas) || numeroCuotas < 1) {
           return 'El número de cuotas debe ser un entero mayor o igual a 1'
         }
+        if (numeroCuotas > 60) {
+          return 'El número de cuotas no puede superar 60'
+        }
         if (numeroCuotas === 1 && !this.fechaCompromiso) {
           return 'La fecha de pago es obligatoria cuando hay una sola cuota'
         }
@@ -692,12 +696,30 @@ export default {
     // La tabla existe solo con mas de una cuota: con una sola, el monto y la fecha son datos de
     // la cabecera y no justifican una tabla.
     sincronizarCuotas() {
+      // Un campo vacio es un tecleo a mitad de camino (borrar "12" para escribir "3"), no una
+      // instruccion de descartar el desglose ya cargado: se deja la tabla como esta.
+      // validarCabecera ya bloquea el guardado mientras numeroCuotas no sea un entero valido, asi
+      // que no hace falta reaccionar a cada estado intermedio invalido.
+      if (this.numeroCuotas === '' || this.numeroCuotas === null || this.numeroCuotas === undefined) {
+        return
+      }
+
       const cantidad = Number(this.numeroCuotas)
-      if (!Number.isInteger(cantidad) || cantidad < 2) {
+      if (!Number.isInteger(cantidad)) return
+
+      // Escenario 1 genuino: una sola cuota, sin tabla. A diferencia del campo vacio de arriba,
+      // aca hay un valor real y es el que colapsa la tabla a proposito.
+      if (cantidad === 1) {
         this.cuotas = []
         this.cuotasEditadas = false
         return
       }
+
+      // Cualquier otro valor fuera de [2, 60] (0, negativos, o un exceso pegado/tecleado de mas)
+      // tampoco justifica reconstruir: sin este tope, un "12" pasando por "123" al escribir, o un
+      // valor pegado, armaria miles de filas y de v-text-field antes de que validarCabecera
+      // pueda rechazarlo al guardar. Se deja la tabla previa hasta que el numero sea valido.
+      if (cantidad < 2 || cantidad > 60) return
 
       const anteriores = this.cuotas
       this.cuotas = Array.from({ length: cantidad }, (unused, i) => {
