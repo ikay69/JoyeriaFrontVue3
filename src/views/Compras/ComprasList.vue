@@ -8,6 +8,97 @@
     </div>
 
     <v-card class="pa-4">
+      <v-row dense align="center" class="mb-2">
+        <v-col cols="12" sm="3">
+          <v-text-field
+            v-model="filtros.textoFiltro"
+            label="Buscar"
+            maxlength="100"
+            :disabled="filtros.campoOrdenar === 5"
+            :hint="filtros.campoOrdenar === 5 ? 'No aplica al ordenar por fecha de creación' : ''"
+            persistent-hint
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details="auto"
+          />
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-select
+            v-model="filtros.campoOrdenar"
+            :items="opcionesCampoOrdenar"
+            item-title="texto"
+            item-value="valor"
+            label="Ordenar por"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="6" sm="2">
+          <v-select
+            v-model="filtros.orden"
+            :items="opcionesOrden"
+            item-title="texto"
+            item-value="valor"
+            label="Orden"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="4">
+          <div class="d-flex ga-1 align-center">
+            <v-btn icon="mdi-account-search" variant="tonal" size="small" @click="dialogTercero = true" />
+            <v-text-field
+              :model-value="terceroSeleccionado ? terceroSeleccionado.Nombre : ''"
+              label="Tercero"
+              placeholder="Todos"
+              readonly
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+            <v-btn
+              v-if="terceroSeleccionado"
+              icon="mdi-close"
+              variant="text"
+              size="small"
+              title="Quitar el filtro de tercero"
+              @click="limpiarTercero"
+            />
+          </div>
+        </v-col>
+      </v-row>
+
+      <v-row dense align="center" class="mb-2">
+        <v-col cols="6" sm="3">
+          <v-text-field
+            v-model="filtros.fechaInicio"
+            label="Desde"
+            type="date"
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-text-field
+            v-model="filtros.fechaFin"
+            label="Hasta"
+            type="date"
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="2">
+          <v-btn color="primary" variant="tonal" block @click="consultar">Consultar</v-btn>
+        </v-col>
+      </v-row>
+
       <div style="overflow-x: auto;">
         <v-table density="compact">
           <thead>
@@ -74,6 +165,12 @@
         <v-btn v-if="pagina < totalPaginas" variant="outlined" @click="irPagina(pagina + 1)">Siguiente</v-btn>
       </div>
     </v-card>
+
+    <TercerosSeleccionar
+      v-model="dialogTercero"
+      :id-empresa="idEmpresa"
+      @seleccionar="onTerceroSeleccionado"
+    />
   </v-container>
 </template>
 
@@ -81,9 +178,12 @@
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
 import { useAuthStore } from '@/stores/auth'
+import TercerosSeleccionar from '@/views/Terceros/TercerosSeleccionar.vue'
 
 export default {
   name: 'ComprasList',
+
+  components: { TercerosSeleccionar },
 
   data() {
     return {
@@ -91,12 +191,32 @@ export default {
       compras: [],
       cantData: 0,
       pagina: 1,
+      dialogTercero: false,
+      terceroSeleccionado: null,
       filtros: {
+        textoFiltro: '',
         // campoOrdenar es OBLIGATORIO: sin el, getallcompra responde 400. Arranca en 5
         // (FechaCreacion) con DESC para mostrar lo ultimo comprado primero.
         campoOrdenar: 5,
-        orden: 'DESC'
-      }
+        orden: 'DESC',
+        // 0 significa "todos los terceros". NUNCA null: el backend responde 400 con null y con
+        // cualquier negativo. No existe el caso -1 ("sin tercero") de Ventas, porque
+        // Compras.TerceroId es NOT NULL.
+        idTercero: 0,
+        fechaInicio: null,
+        fechaFin: null
+      },
+      opcionesCampoOrdenar: [
+        { valor: 1, texto: 'Documento soporte' },
+        { valor: 2, texto: 'Tipo doc. tercero' },
+        { valor: 3, texto: 'N° doc. tercero' },
+        { valor: 4, texto: 'Nombre del tercero' },
+        { valor: 5, texto: 'Fecha de creación' }
+      ],
+      opcionesOrden: [
+        { valor: 'ASC', texto: 'Ascendente' },
+        { valor: 'DESC', texto: 'Descendente' }
+      ]
     }
   },
 
@@ -137,7 +257,15 @@ export default {
           idEmpresa: this.idEmpresa,
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
-          pagina
+          pagina,
+          textoFiltro: this.filtros.textoFiltro || '',
+          // `|| 0` cubre el null que deja el clearable y el undefined inicial: el backend
+          // responde 400 Tercero invalido con null, y 0 es "todos".
+          idTercero: this.filtros.idTercero || 0,
+          // ausente, vacio o null es "sin cota por ese lado", y las dos cotas son
+          // independientes: se puede mandar solo una.
+          fechaInicio: this.filtros.fechaInicio || null,
+          fechaFin: this.filtros.fechaFin || null
         })
         this.compras = data.data || []
         this.cantData = data.cantData || 0
@@ -148,6 +276,19 @@ export default {
       } finally {
         this.cargando = false
       }
+    },
+
+    onTerceroSeleccionado(tercero) {
+      this.terceroSeleccionado = tercero
+      this.filtros.idTercero = tercero.Id
+      this.consultar()
+    },
+
+    limpiarTercero() {
+      this.terceroSeleccionado = null
+      // 0, no null: null es 400 Tercero invalido.
+      this.filtros.idTercero = 0
+      this.consultar()
     },
 
     irDetalle(com) {
