@@ -244,6 +244,17 @@ export default {
     }
   },
 
+  watch: {
+    // El selector de empresa vive en un v-app-bar persistente que NO navega, asi que esta pantalla
+    // no se remonta al cambiar de empresa: sin este watch el grid sigue mostrando las compras de la
+    // empresa anterior. Tambien se limpia el filtro de tercero, que es un id de la empresa vieja.
+    idEmpresa() {
+      this.terceroSeleccionado = null
+      this.filtros.idTercero = 0
+      this.consultar()
+    }
+  },
+
   created() {
     this.consultar()
   },

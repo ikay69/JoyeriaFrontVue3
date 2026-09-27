@@ -363,7 +363,7 @@
 
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
-          <v-btn color="primary" prepend-icon="mdi-content-save" :loading="guardando" type="submit">
+          <v-btn color="primary" prepend-icon="mdi-content-save" :loading="guardando" :disabled="guardando" type="submit">
             Guardar
           </v-btn>
         </div>
@@ -385,7 +385,7 @@
     <ArticuloNuevoDialog
       v-model="dialogArticuloNuevo"
       :id-empresa="idEmpresa"
-      :valor-inicial="filaActiva !== null ? lineas[filaActiva].articuloNuevo : null"
+      :valor-inicial="filaActiva !== null && lineas[filaActiva] ? lineas[filaActiva].articuloNuevo : null"
       @guardar="onArticuloNuevoGuardado"
     />
   </v-container>
@@ -582,6 +582,9 @@ export default {
 
     quitarLinea(index) {
       this.lineas.splice(index, 1)
+      // Tras el splice el indice puede apuntar fuera del arreglo o a otra fila, y la plantilla lo
+      // dereferencia al renderizar: dejarlo puesto revienta el render de todo el formulario.
+      this.filaActiva = null
     },
 
     abrirSelectorArticulo(index) {
@@ -830,6 +833,12 @@ export default {
     },
 
     async confirmar() {
+      // Guarda de reentrada, lo primero de todo: el boton es type="submit" y v-form renderiza un
+      // <form> real, asi que Enter en cualquier campo llama aqui directamente, sin pasar por el
+      // boton ni por su pointer-events de carga. Una compra no se puede editar ni deshacer, asi
+      // que un doble envio mueve existencias dos veces y recalcula el costo promedio dos veces.
+      if (this.guardando) return
+
       const { valid } = await this.$refs.form.validate()
       if (!valid) return
 
