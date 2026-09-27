@@ -86,17 +86,7 @@
         </v-list-group>
 
 
-        <v-list-group value="compras">
-          <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-cart"
-              title="Compras"
-            />
-          </template>
-          <v-list-item :to="{ name: 'ComprasList' }" title="Compras" />
-
-        </v-list-group>
+        <v-list-item :to="{ name: 'ComprasList' }" prepend-icon="mdi-cart" title="Compras" />
 
         
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
