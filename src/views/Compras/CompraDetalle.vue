@@ -551,12 +551,16 @@ export default {
     },
 
     imprimir() {
-      generarPdfCompra({
-        cabecera: this.compra,
-        lineas: this.lineas,
-        cuotas: this.cuotas,
-        nombreEmpresa: this.nombreEmpresa
-      })
+      try {
+        generarPdfCompra({
+          cabecera: this.compra,
+          lineas: this.lineas,
+          cuotas: this.cuotas,
+          nombreEmpresa: this.nombreEmpresa
+        })
+      } catch (error) {
+        Swal.fire('Error', error.message || 'No se pudo generar el PDF de la compra', 'error')
+      }
     },
 
     totalLinea(linea) {

@@ -20,6 +20,19 @@ const formatearFecha = (valor) => {
 
 const etiquetaEstadoCuota = (estado) => (estado === 'CANCELADA' ? 'Pagada' : 'Pendiente')
 
+const MARGEN_SUPERIOR = 18
+const MARGEN_INFERIOR = 20
+
+// Los doc.text() sueltos NO paginan solos: solo autoTable pagina sus propias filas. Sin esta
+// guarda, un bloque escrito justo despues de una tabla que termino al pie de la pagina se
+// dibuja encima del margen o directamente fuera del papel.
+const asegurarEspacio = (doc, y, altoNecesario) => {
+  const limite = doc.internal.pageSize.getHeight() - MARGEN_INFERIOR
+  if (y + altoNecesario <= limite) return y
+  doc.addPage()
+  return MARGEN_SUPERIOR
+}
+
 export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
   const doc = new jsPDF()
   const margen = 14
@@ -83,6 +96,9 @@ export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
   })
 
   y = doc.lastAutoTable.finalY + 8
+  // Cuatro lineas al paso de 5mm que usa este bloque: si no caben las cuatro antes del margen
+  // inferior, se arranca pagina nueva en vez de dibujarlas encimadas con el pie o fuera del papel.
+  y = asegurarEspacio(doc, y, 20)
 
   const totales = [
     ['Subtotal', formatearMoneda(cabecera.compraSubtotal)],
@@ -99,6 +115,8 @@ export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
   y += 5
 
   if (cabecera.compraTipoCompra === 'CREDITO') {
+    // Hasta tres lineas de 5mm mas el espacio final de 3mm que deja este bloque.
+    y = asegurarEspacio(doc, y, 18)
     doc.setFontSize(9)
     doc.text(`Número de cuotas: ${cabecera.compraNumeroCuotas ?? '-'}`, margen, y)
     y += 5
@@ -115,6 +133,9 @@ export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
     y += 3
 
     if ((cuotas || []).length) {
+      // Espacio para el encabezado de la tabla y al menos un par de filas antes de dejar que
+      // autoTable pagine el resto por su cuenta.
+      y = asegurarEspacio(doc, y, 30)
       autoTable(doc, {
         startY: y,
         head: [['N°', 'Valor', 'Fecha de pago', 'Estado']],
@@ -132,9 +153,17 @@ export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
     }
   }
 
-  doc.setFontSize(7)
-  doc.setTextColor(120, 120, 120)
-  doc.text(`Impreso el ${new Date().toLocaleString('es-CO')}`, margen, 290)
+  // El pie se dibuja en CADA pagina, no solo en la que quedo activa al terminar: una vez que
+  // asegurarEspacio puede meter un addPage(), escribirlo una sola vez deja las paginas
+  // anteriores sin pie.
+  const totalPaginas = doc.internal.getNumberOfPages()
+  for (let pagina = 1; pagina <= totalPaginas; pagina++) {
+    doc.setPage(pagina)
+    doc.setFontSize(7)
+    doc.setTextColor(120, 120, 120)
+    doc.text(`Impreso el ${new Date().toLocaleString('es-CO')}`, margen, doc.internal.pageSize.getHeight() - 7)
+    doc.text(`Página ${pagina} de ${totalPaginas}`, 196, doc.internal.pageSize.getHeight() - 7, { align: 'right' })
+  }
 
   doc.save(`compra-${cabecera.compraId}.pdf`)
 }
