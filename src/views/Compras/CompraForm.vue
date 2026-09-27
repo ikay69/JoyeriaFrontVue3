@@ -319,7 +319,15 @@ export default {
     },
 
     subtotal() {
-      const total = this.lineas.reduce((acc, fila) => acc + this.totalLinea(fila), 0)
+      // Se redondea UNA sola vez sobre la suma cruda, igual que
+      // calcularSubtotalCompra en el backend: sumar los totales de linea ya
+      // redondeados da un resultado distinto cuando un producto tiene mas de dos
+      // decimales (Cantidad puede ser fraccionaria), y con muchas lineas la
+      // diferencia supera la tolerancia de un centavo del contado.
+      const total = this.lineas.reduce(
+        (acc, fila) => acc + (Number(fila.Cantidad) || 0) * (Number(fila.CostoUnidad) || 0),
+        0
+      )
       return this.redondear(total)
     },
 
@@ -330,6 +338,22 @@ export default {
           (Number(this.efectivo) || 0) -
           (Number(this.transaccion) || 0)
       )
+    }
+  },
+
+  watch: {
+    // El indice por empresa del store de catalogos es necesario pero no suficiente: esta pantalla
+    // vive dentro de un v-app-bar persistente (MainLayout.vue) cuyo selector de empresa NO navega,
+    // solo llama authStore.setEmpresaSeleccionada. Sin este watch, cambiar de empresa con el
+    // formulario abierto deja el combo de bodega mostrando las de la empresa anterior, las lineas
+    // ya elegidas con un idBodega/idArticulo ajeno y terceroSeleccionado con un idTercero ajeno,
+    // mientras que payload.idEmpresa pasa a ser la empresa NUEVA: una escritura silenciosa contra
+    // una empresa equivocada. Por eso se resetea todo lo que dependia de la empresa anterior.
+    idEmpresa() {
+      this.terceroSeleccionado = null
+      this.lineas = []
+      this.agregarLinea()
+      this.cargarBodegas()
     }
   },
 
@@ -470,15 +494,18 @@ export default {
       const { valid } = await this.$refs.form.validate()
       if (!valid) return
 
-      const errorCabecera = this.validarCabecera()
-      if (errorCabecera) {
-        Swal.fire('Atención', errorCabecera, 'warning')
-        return
-      }
-
+      // validarLineas() va primero: si no hay lineas, subtotal es 0 y la rama CONTADO de
+      // validarCabecera() dispararia un mensaje de dinero en vez de "Debe registrar al menos
+      // un articulo", que quedaria inalcanzable.
       const errorLineas = this.validarLineas()
       if (errorLineas) {
         Swal.fire('Atención', errorLineas, 'warning')
+        return
+      }
+
+      const errorCabecera = this.validarCabecera()
+      if (errorCabecera) {
+        Swal.fire('Atención', errorCabecera, 'warning')
         return
       }
 
