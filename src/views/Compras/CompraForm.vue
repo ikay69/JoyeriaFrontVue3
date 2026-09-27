@@ -180,8 +180,9 @@
                     icon="mdi-book-plus"
                     size="small"
                     variant="text"
-                    disabled
-                    title="Dar de alta un artículo nuevo (pendiente)"
+                    color="secondary"
+                    title="Dar de alta un artículo nuevo"
+                    @click="abrirArticuloNuevo(i)"
                   />
                 </td>
                 <td class="text-center">
@@ -206,6 +207,14 @@
                 <td>
                   <span v-if="fila.articuloNombre">{{ fila.articuloNombre }}</span>
                   <span v-else class="text-medium-emphasis">Sin artículo</span>
+                  <!-- v-chip con su propio v-if, deliberadamente DESPUES del par v-if/v-else de
+                  arriba: si fuera entre medio, el compilador de Vue empareja v-else con el
+                  sibling anterior que tenga v-if, que pasaria a ser este chip en vez del primer
+                  span, y "Sin artículo" se mostraria en cualquier fila sin articuloNuevo (es
+                  decir, en toda fila con articulo EXISTENTE). -->
+                  <v-chip v-if="fila.articuloNuevo" size="x-small" color="secondary" variant="tonal" class="ml-1">
+                    Nuevo
+                  </v-chip>
                   <div v-if="fila.articuloSKU" class="text-caption text-medium-emphasis">
                     {{ fila.articuloSKU }}
                   </div>
@@ -268,6 +277,13 @@
       :id-empresa="idEmpresa"
       @seleccionar="onArticuloSeleccionado"
     />
+
+    <ArticuloNuevoDialog
+      v-model="dialogArticuloNuevo"
+      :id-empresa="idEmpresa"
+      :valor-inicial="filaActiva !== null ? lineas[filaActiva].articuloNuevo : null"
+      @guardar="onArticuloNuevoGuardado"
+    />
   </v-container>
 </template>
 
@@ -276,18 +292,20 @@ import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
 import TercerosSeleccionar from '@/views/Terceros/TercerosSeleccionar.vue'
 import ArticulosSeleccionar from '@/views/Inventario/Articulos/ArticulosSeleccionar.vue'
+import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 
 export default {
   name: 'CompraForm',
 
-  components: { TercerosSeleccionar, ArticulosSeleccionar },
+  components: { TercerosSeleccionar, ArticulosSeleccionar, ArticuloNuevoDialog },
 
   data() {
     return {
       dialogTercero: false,
       dialogArticulo: false,
+      dialogArticuloNuevo: false,
       // fila para la que se abrio el selector de articulo: sin esto, el @seleccionar no sabria
       // a que linea pertenece el articulo elegido.
       filaActiva: null,
@@ -354,6 +372,10 @@ export default {
       this.lineas = []
       this.agregarLinea()
       this.cargarBodegas()
+      // Sin esto, filaActiva quedaria apuntando a un indice de las lineas viejas, mas alla del
+      // arreglo recien reconstruido: onArticuloSeleccionado/onArticuloNuevoGuardado explotarian
+      // leyendo fila.idArticulo de un fila undefined.
+      this.filaActiva = null
     }
   },
 
@@ -431,6 +453,26 @@ export default {
       this.filaActiva = null
     },
 
+    async abrirArticuloNuevo(index) {
+      this.filaActiva = index
+      // `valor-inicial` se calcula a partir de filaActiva: hay que dejar que la prop se
+      // propague antes de abrir, o el watcher del dialogo puede leer la fila anterior.
+      await this.$nextTick()
+      this.dialogArticuloNuevo = true
+    },
+
+    onArticuloNuevoGuardado(articuloNuevo) {
+      if (this.filaActiva === null) return
+      const fila = this.lineas[this.filaActiva]
+      fila.articuloNuevo = articuloNuevo
+      fila.articuloNombre = articuloNuevo.Nombre
+      fila.articuloSKU = ''
+      // Cada linea trae idArticulo O ArticuloNuevo, nunca ambos: el backend responde 400 con las
+      // dos cosas. Dar de alta un articulo descarta el existente de ESTA fila.
+      fila.idArticulo = null
+      this.filaActiva = null
+    },
+
     // Devuelve un mensaje de error, o null si las lineas estan bien.
     validarLineas() {
       if (!this.lineas.length) return 'Debe registrar al menos un artículo'
@@ -482,7 +524,9 @@ export default {
           CostoUnidad: Number(fila.CostoUnidad)
         }
         if (fila.articuloNuevo) {
-          linea.ArticuloNuevo = fila.articuloNuevo
+          // `_producto` es solo para poder reabrir el dialogo: no viaja al backend.
+          const { _producto, ...articuloNuevo } = fila.articuloNuevo
+          linea.ArticuloNuevo = articuloNuevo
         } else {
           linea.idArticulo = Number(fila.idArticulo)
         }
