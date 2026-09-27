@@ -138,7 +138,19 @@
       </v-card>
 
       <v-card v-if="esCredito" class="pa-6 mb-4" elevation="1">
-        <div class="text-subtitle-2 mb-3">Cuotas</div>
+        <div class="d-flex align-center justify-space-between mb-3">
+          <span class="text-subtitle-2">Cuotas</span>
+          <v-btn
+            v-if="esActiva && numerosCuotaDisponibles.length"
+            color="primary"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-plus"
+            @click="abrirCuotaNueva"
+          >
+            Agregar cuota
+          </v-btn>
+        </div>
         <v-table density="compact">
           <thead>
             <tr>
@@ -146,11 +158,12 @@
               <th class="text-end">Valor</th>
               <th>Fecha de pago</th>
               <th class="text-center">Estado</th>
+              <th v-if="esActiva" class="text-center" style="width: 100px">Acciones</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!cuotas.length">
-              <td colspan="4" class="text-center py-6 text-medium-emphasis">
+              <td :colspan="esActiva ? 5 : 4" class="text-center py-6 text-medium-emphasis">
                 No hay cuotas registradas
               </td>
             </tr>
@@ -166,6 +179,16 @@
                 >
                   {{ etiquetaEstadoCuota(cuota.cuoEstado) }}
                 </v-chip>
+              </td>
+              <td v-if="esActiva" class="text-center">
+                <v-btn
+                  icon="mdi-pencil" size="small" variant="text"
+                  title="Editar esta cuota" @click="abrirCuotaEdicion(cuota)"
+                />
+                <v-btn
+                  icon="mdi-delete" size="small" variant="text"
+                  title="Borrar esta cuota" @click="borrarCuota(cuota)"
+                />
               </td>
             </tr>
           </tbody>
@@ -194,6 +217,78 @@
         </v-row>
       </v-card>
     </template>
+
+    <v-dialog v-model="dialogCuota" max-width="520">
+      <v-card class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <span class="text-h6">{{ cuotaEnEdicion ? 'Editar cuota' : 'Agregar cuota' }}</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogCuota = false" />
+        </div>
+
+        <v-select
+          v-if="!cuotaEnEdicion"
+          v-model="formCuota.NumCuota"
+          :items="numerosCuotaDisponibles"
+          label="Número de cuota"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Sólo se ofrecen los números que aún no están registrados"
+          persistent-hint
+        />
+        <v-text-field
+          v-else
+          :model-value="formCuota.NumCuota"
+          label="Número de cuota"
+          readonly
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <v-text-field
+          v-model.number="formCuota.ValorCuota"
+          label="Valor de la cuota"
+          type="number"
+          min="0"
+          step="0.01"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <v-text-field
+          v-model="formCuota.FechaPago"
+          label="Fecha de pago"
+          type="date"
+          clearable
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Vaciarla borra la fecha registrada"
+          persistent-hint
+        />
+
+        <v-select
+          v-model="formCuota.Estado"
+          :items="opcionesEstadoCuota"
+          item-title="texto"
+          item-value="valor"
+          label="Estado"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn variant="outlined" @click="dialogCuota = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoCuota" @click="guardarCuota">Guardar</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -210,7 +305,18 @@ export default {
       anulando: false,
       compra: null,
       lineas: [],
-      cuotas: []
+      cuotas: [],
+      dialogCuota: false,
+      guardandoCuota: false,
+      // null = estamos agregando; con valor = estamos editando esa cuota
+      cuotaEnEdicion: null,
+      formCuota: { NumCuota: null, ValorCuota: null, FechaPago: null, Estado: 'PENDIENTE' },
+      // 'CANCELADA' significa PAGADA. Al backend viajan los valores del contrato; el usuario lee
+      // la palabra de la derecha.
+      opcionesEstadoCuota: [
+        { valor: 'PENDIENTE', texto: 'Pendiente' },
+        { valor: 'CANCELADA', texto: 'Pagada' }
+      ]
     }
   },
 
@@ -230,6 +336,17 @@ export default {
     },
     esCredito() {
       return this.compra?.compraTipoCompra === 'CREDITO'
+    },
+    // Sólo se ofrecen los numeros que faltan: asi el 400 "esa cuota ya esta registrada" no puede
+    // ocurrir por descuido.
+    numerosCuotaDisponibles() {
+      const total = Number(this.compra?.compraNumeroCuotas) || 0
+      const usados = new Set(this.cuotas.map((cuota) => Number(cuota.cuoNumCuota)))
+      const libres = []
+      for (let numero = 1; numero <= total; numero++) {
+        if (!usados.has(numero)) libres.push(numero)
+      }
+      return libres
     }
   },
 
@@ -308,6 +425,108 @@ export default {
     // pantalla, asi que el front traduce: al backend siguen viajando PENDIENTE y CANCELADA.
     etiquetaEstadoCuota(estado) {
       return estado === 'CANCELADA' ? 'Pagada' : 'Pendiente'
+    },
+
+    // El backend manda '2026-10-15T00:00:00.000Z' y el input type="date" necesita 'YYYY-MM-DD'.
+    // Se corta la cadena en vez de pasar por new Date(): convertir a Date local corre la fecha un
+    // dia en cualquier zona al oeste de UTC, y la cuota aparecería con la fecha del dia anterior.
+    aFechaInput(valor) {
+      if (!valor) return null
+      return String(valor).slice(0, 10)
+    },
+
+    abrirCuotaNueva() {
+      this.cuotaEnEdicion = null
+      this.formCuota = {
+        NumCuota: this.numerosCuotaDisponibles[0] ?? null,
+        ValorCuota: null,
+        FechaPago: null,
+        Estado: 'PENDIENTE'
+      }
+      this.dialogCuota = true
+    },
+
+    abrirCuotaEdicion(cuota) {
+      this.cuotaEnEdicion = cuota
+      this.formCuota = {
+        NumCuota: cuota.cuoNumCuota,
+        ValorCuota: Number(cuota.cuoValorCuota),
+        FechaPago: this.aFechaInput(cuota.cuoFechaPago),
+        Estado: cuota.cuoEstado || 'PENDIENTE'
+      }
+      this.dialogCuota = true
+    },
+
+    async guardarCuota() {
+      if (!this.formCuota.NumCuota) {
+        Swal.fire('Atención', 'Elija el número de la cuota', 'warning')
+        return
+      }
+      if (!(Number(this.formCuota.ValorCuota) > 0)) {
+        Swal.fire('Atención', 'El valor de la cuota debe ser mayor a cero', 'warning')
+        return
+      }
+
+      this.guardandoCuota = true
+      try {
+        if (this.cuotaEnEdicion) {
+          // Se envian los cuatro campos siempre. El endpoint conserva lo que no venga, pero
+          // mandarlo todo hace que vaciar la fecha llegue como FechaPago: null —que SI es un
+          // cambio, es como se borra una fecha ya puesta— y que un campo intacto viaje con su
+          // propio valor, que es un no-op.
+          const { data } = await compraService.updateCuota({
+            idEmpresa: this.idEmpresa,
+            idCuota: this.cuotaEnEdicion.cuoId,
+            NumCuota: Number(this.formCuota.NumCuota),
+            ValorCuota: Number(this.formCuota.ValorCuota),
+            FechaPago: this.formCuota.FechaPago || null,
+            Estado: this.formCuota.Estado
+          })
+          await Swal.fire('Éxito', data.msg || 'Cuota actualizada', 'success')
+        } else {
+          const { data } = await compraService.createCuota({
+            idEmpresa: this.idEmpresa,
+            idCompra: this.idCompra,
+            NumCuota: Number(this.formCuota.NumCuota),
+            ValorCuota: Number(this.formCuota.ValorCuota),
+            FechaPago: this.formCuota.FechaPago || null,
+            Estado: this.formCuota.Estado
+          })
+          await Swal.fire('Éxito', data.msg || 'Cuota agregada', 'success')
+        }
+        this.dialogCuota = false
+        await this.cargar()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo guardar la cuota'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.guardandoCuota = false
+      }
+    },
+
+    async borrarCuota(cuota) {
+      const { isConfirmed } = await Swal.fire({
+        title: `¿Borrar la cuota ${cuota.cuoNumCuota}?`,
+        // Es el unico DELETE real del proyecto: esta tabla no tiene estado de fila y sus datos no
+        // son contables. Decirlo evita que alguien lo trate como un "inactivar".
+        text: 'Se borra de forma definitiva y no hay forma de recuperarla.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Borrar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c62828'
+      })
+      if (!isConfirmed) return
+
+      try {
+        // Responde 204 SIN cuerpo: no hay data.msg que leer, el mensaje es propio.
+        await compraService.deleteCuota({ idEmpresa: this.idEmpresa, idCuota: cuota.cuoId })
+        await Swal.fire('Éxito', 'Cuota borrada', 'success')
+        await this.cargar()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo borrar la cuota'
+        Swal.fire('Error', mensaje, 'error')
+      }
     },
 
     totalLinea(linea) {
