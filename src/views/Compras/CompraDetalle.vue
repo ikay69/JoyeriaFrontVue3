@@ -20,6 +20,14 @@
         </p>
       </div>
       <v-btn
+        v-if="compra"
+        variant="tonal"
+        prepend-icon="mdi-printer"
+        @click="imprimir"
+      >
+        Imprimir
+      </v-btn>
+      <v-btn
         v-if="compra && esActiva"
         color="error"
         variant="flat"
@@ -295,6 +303,8 @@
 <script>
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
+import { generarPdfCompra } from '@/utils/compraPdf'
+import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'CompraDetalle',
@@ -321,6 +331,17 @@ export default {
   },
 
   computed: {
+    authStore() {
+      return useAuthStore()
+    },
+
+    // La empresa del detalle sale de la URL y puede NO ser la seleccionada en la barra superior,
+    // asi que el nombre se busca por ese Id en vez de usar empresaActual.
+    nombreEmpresa() {
+      const empresa = this.authStore.empresas.find((emp) => emp.Id === this.idEmpresa)
+      return empresa ? empresa.Nombre : ''
+    },
+
     // La empresa sale de la URL, NO del store. Si el usuario cambia de empresa en la barra
     // superior con el detalle abierto, anularcompra y las cuotas tienen que seguir apuntando a
     // la compra correcta. Por eso el :EmpId de la ruta no es decorativo.
@@ -527,6 +548,15 @@ export default {
         const mensaje = error.response?.data?.msg || 'No se pudo borrar la cuota'
         Swal.fire('Error', mensaje, 'error')
       }
+    },
+
+    imprimir() {
+      generarPdfCompra({
+        cabecera: this.compra,
+        lineas: this.lineas,
+        cuotas: this.cuotas,
+        nombreEmpresa: this.nombreEmpresa
+      })
     },
 
     totalLinea(linea) {

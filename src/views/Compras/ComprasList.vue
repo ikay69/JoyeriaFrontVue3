@@ -153,6 +153,14 @@
                   title="Ver detalle"
                   @click="irDetalle(com)"
                 />
+                <v-btn
+                  icon="mdi-printer"
+                  size="small"
+                  variant="text"
+                  :loading="imprimiendoId === com.compraId"
+                  title="Imprimir el comprobante en PDF"
+                  @click="imprimir(com)"
+                />
               </td>
             </tr>
           </tbody>
@@ -178,6 +186,7 @@
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
 import { useAuthStore } from '@/stores/auth'
+import { generarPdfCompra } from '@/utils/compraPdf'
 import TercerosSeleccionar from '@/views/Terceros/TercerosSeleccionar.vue'
 
 export default {
@@ -193,6 +202,9 @@ export default {
       pagina: 1,
       dialogTercero: false,
       terceroSeleccionado: null,
+      // id de la compra que se esta imprimiendo: el spinner va en el boton de ESA fila, no en
+      // toda la tabla.
+      imprimiendoId: null,
       filtros: {
         textoFiltro: '',
         // campoOrdenar es OBLIGATORIO: sin el, getallcompra responde 400. Arranca en 5
@@ -296,6 +308,28 @@ export default {
         name: 'CompraDetalle',
         params: { EmpId: this.idEmpresa, ComId: com.compraId }
       })
+    },
+
+    async imprimir(com) {
+      this.imprimiendoId = com.compraId
+      try {
+        // El listado no trae las lineas ni las cuotas: hace falta el detalle completo.
+        const { data } = await compraService.getById({
+          idEmpresa: this.idEmpresa,
+          idCompra: com.compraId
+        })
+        generarPdfCompra({
+          cabecera: data.data,
+          lineas: data.data.lineas || [],
+          cuotas: data.data.cuotas || [],
+          nombreEmpresa: this.authStore.empresaActual?.Nombre || ''
+        })
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo generar el PDF de la compra'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.imprimiendoId = null
+      }
     },
 
     formatearMoneda(valor) {
