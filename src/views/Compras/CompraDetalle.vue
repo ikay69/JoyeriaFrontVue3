@@ -503,7 +503,9 @@ export default {
             FechaPago: this.formCuota.FechaPago || null,
             Estado: this.formCuota.Estado
           })
+          this.dialogCuota = false
           await Swal.fire('Éxito', data.msg || 'Cuota actualizada', 'success')
+         
         } else {
           const { data } = await compraService.createCuota({
             idEmpresa: this.idEmpresa,
@@ -522,6 +524,7 @@ export default {
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.guardandoCuota = false
+        
       }
     },
 
