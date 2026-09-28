@@ -206,7 +206,14 @@ const routes = [
 
       
       // Compras 
-      { path: 'compras', name: 'Compras', component: () => import('@/views/Compras/Compras.vue') },
+      { path: 'compras', name: 'ComprasList', component: () => import('@/views/Compras/ComprasList.vue') },
+      { path: 'compras/nueva', name: 'CompraNueva', component: () => import('@/views/Compras/CompraForm.vue') },
+      {
+        path: 'compras/:EmpId/:ComId/detalle',
+        name: 'CompraDetalle',
+        component: () => import('@/views/Compras/CompraDetalle.vue'),
+        props: true
+      },
 
 
 
