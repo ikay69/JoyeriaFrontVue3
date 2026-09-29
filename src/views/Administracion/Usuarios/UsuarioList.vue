@@ -85,21 +85,10 @@ export default {
   },
 
   created() {
-    this.checkToken();
     this.buscar(1)
   },
 
   methods: {
-    checkToken(){
-      if(!this.authStore.token){
-        this.authStore.logout();
-        this.$router.push({ name: 'Login' })
-      }
-      console.log(this.authStore.rol)
-      if(this.authStore.rol !=='ADMINISTRADOR'){
-        this.$router.push({ name: 'Inicio' })
-      }
-    },
     irPagina(pagina) {
       this.buscar(pagina)
     },
@@ -131,6 +120,7 @@ export default {
       if (!fecha) return ''
       return new Date(fecha).toLocaleDateString('es-CO')
     }
+    
   }
 }
 </script>
