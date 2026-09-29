@@ -256,11 +256,21 @@ const routes = [
         component:  () => import('@/views/Administracion/Usuarios/UsuarioForm.vue')
       },  
       //empresas
+   
       {
         path: 'administracion/empresas',
         name: 'Empresas',
-        component: () => import('@/views/Administracion/Empresas/Empresas.vue')
+        component: () => import('@/views/Administracion/Empresas/EmpresaList.vue')
       },
+      {
+        path: 'administracion/empresas/:EmpId/editar',
+        name: 'EmpresaEditar',
+        component: () => import('@/views/Administracion/Empresas/EmpresaForm.vue'),
+        props: true
+      },
+
+
+
       //asingar usuario empresa
       {
         path: 'administracion/asignacion-usuario',
