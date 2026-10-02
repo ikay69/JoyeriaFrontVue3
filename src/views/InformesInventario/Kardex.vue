@@ -126,7 +126,7 @@
 import Swal from 'sweetalert2'
 import movimientoService from '@/services/movimientoService'
 import bodegaService from '@/services/bodegaService'
-import ArticulosSeleccionar from '@/views/Inventario/Articulos/ArticulosSeleccionar.vue'
+import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import { useAuthStore } from '@/stores/auth'
 
 export default {

@@ -187,7 +187,7 @@ import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
 import { useAuthStore } from '@/stores/auth'
 import { generarPdfCompra } from '@/utils/compraPdf'
-import TercerosSeleccionar from '@/views/Terceros/TercerosSeleccionar.vue'
+import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 
 export default {
   name: 'ComprasList',

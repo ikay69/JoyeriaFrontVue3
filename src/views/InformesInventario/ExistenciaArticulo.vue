@@ -65,7 +65,7 @@
 <script>
 import Swal from 'sweetalert2'
 import existenciaService from '@/services/existenciaService'
-import ArticulosSeleccionar from '@/views/Inventario/Articulos/ArticulosSeleccionar.vue'
+import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
