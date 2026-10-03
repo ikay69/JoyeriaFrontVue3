@@ -1,6 +1,15 @@
 <template>
   <v-container fluid class="pa-6">
-    <h1 class="text-h5 mb-4">Existencias</h1>
+    <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-2">
+      <h1 class="text-h5">Existencias</h1>
+      <v-btn
+        color="primary"
+        prepend-icon="mdi-plus"
+        @click="$router.push({ name: 'AjusteNuevo' })"
+      >
+        Nuevo ajuste
+      </v-btn>
+    </div>
 
     <v-card class="pa-4 mb-4" elevation="1">
       <v-row dense align="center">
@@ -75,7 +84,12 @@
           <tr v-for="ex in existencias" :key="ex.existId">
             <td>{{ ex.existBodegaNombre }}</td>
             <td>{{ ex.existSKU }}</td>
-            <td>{{ ex.existArticuloNombre }}</td>
+            <td>
+              {{ ex.existArticuloNombre }}
+              <div v-if="ex.existArticuloNombre" class="text-caption text-medium-emphasis">
+                {{ ex.existPropiedades }}
+              </div>
+            </td>
             <td>{{ formatearBolsa(ex.existBolsa) }}</td>
             <td>{{ ex.existPropietarioNombre || '-' }}</td>
             <td>{{ ex.existCantidad }}</td>

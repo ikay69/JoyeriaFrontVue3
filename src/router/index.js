@@ -167,6 +167,11 @@ const routes = [
         name: 'ExistenciaArticulo',
         component: () => import('@/views/InformesInventario/ExistenciaArticulo.vue')
       },
+      {
+        path: 'informes-inventario/ajustes/nuevo',
+        name: 'AjusteNuevo',
+        component: () => import('@/views/InformesInventario/AjusteForm.vue')
+      },
 
       
 
@@ -293,6 +298,23 @@ const routes = [
         path: 'administracion/tipos-documento/:EmpId/:TipDocId/editar',
         name: 'TiposDocumentoEditar',
         component: () => import('@/views/Administracion/TiposDocumento/TiposDocumentoForm.vue'),
+        props: true
+      },
+      //tipo gasto
+      {
+        path: 'administracion/tipos-gastos',
+        name: 'TiposGastos',
+        component: () => import('@/views/Administracion/TiposGastos/TiposGastosList.vue')
+      },
+      {
+        path: 'administracion/tipos-gastos/nuevo',
+        name: 'TiposGastosNuevo',
+        component: () => import('@/views/Administracion/TiposGastos/TiposGastosForm.vue')
+      },
+      {
+        path: 'administracion/tipos-gastos/:EmpId/:TipGasId/editar',
+        name: 'TiposGastosEditar',
+        component: () => import('@/views/Administracion/TiposGastos/TiposGastosForm.vue'),
         props: true
       }
     ]

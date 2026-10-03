@@ -394,8 +394,8 @@
 <script>
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
-import TercerosSeleccionar from '@/views/Terceros/TercerosSeleccionar.vue'
-import ArticulosSeleccionar from '@/views/Inventario/Articulos/ArticulosSeleccionar.vue'
+import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
+import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
