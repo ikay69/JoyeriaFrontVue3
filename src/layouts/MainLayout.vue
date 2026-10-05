@@ -53,7 +53,6 @@
           <v-list-item :to="{ name: 'TipoProductos' }" title="Tipos de Productos" />
           <v-list-item :to="{ name: 'Productos' }" title="Productos" />
           <v-list-item :to="{ name: 'Articulos' }" title="Artículos" />
-                    <v-list-item :to="{ name: 'MovimientosInventario' }" title="Movimientos de inventario" />
         </v-list-group>
 
         <v-list-group value="informesInventario">
@@ -107,7 +106,7 @@
           <template #activator="{ props }">
             <v-list-item v-bind="props" prepend-icon="mdi-book-open-variant" title="Contabilidad" />
           </template>
-          <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" />
           <v-list-item :to="{ name: 'EstadoCuentaTercero' }" title="Estado de cuenta por tercero" class="bg-red text-white"/>
         </v-list-group>
 
