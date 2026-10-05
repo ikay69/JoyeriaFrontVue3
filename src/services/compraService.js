@@ -15,6 +15,13 @@ export default {
     //            Cuotas, Articulos }
     return http.post('/compra/newcompra', payload)
   },
+  updateCredito(payload) {
+    // payload: { idEmpresa, idCompra, NumeroCuotas, ValorCuota }
+    // Los dos ultimos admiten null, y null NO significa "dejalo como esta": pone el campo en
+    // NULL. ValorCuota null es un estado real de la cabecera, el que la pantalla muestra como
+    // "Valores distintos (ver detalle)".
+    return http.put('/compra/updatecreditocompra', payload)
+  },
   anular(payload) {
     // payload: { idEmpresa, idCompra, MotivoAnulacion }
     return http.put('/compra/anularcompra', payload)

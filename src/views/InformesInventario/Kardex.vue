@@ -88,7 +88,7 @@
             <td>{{ formatearFecha(mov.movFecha) }}</td>
             <td>
               <v-chip :color="mov.movTipo === 'ENTRADA' ? 'success' : 'error'" size="small">
-                {{ mov.movTipo }}
+                {{ mov.movTipo === 'ENTRADA' ? 'E' : 'S' }}
               </v-chip>
             </td>
             <td>{{ mov.movBodegaNombre }}</td>

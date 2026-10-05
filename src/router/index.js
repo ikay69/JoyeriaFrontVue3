@@ -144,13 +144,6 @@ const routes = [
         props: true
       },
 
-      {
-        path: 'inventario/movimientos',
-        name: 'MovimientosInventario',
-        component: () =>
-          import('@/views/Inventario/MovimientosInventario/MovimientosInventario.vue')
-      },
-
       // Informes de inventario
       {
         path: 'informes-inventario/existencias',
@@ -230,10 +223,23 @@ const routes = [
       { path: 'gastos', name: 'Gastos', component: () => import('@/views/Gastos/Gastos.vue') },
 
       // Contabilidad
+      // Las tres rutas de Movimiento en caja NO son las del patron List + Form: la tercera es
+      // un DETALLE, no un editar. Un movimiento de caja no se edita nunca, solo se anula.
       {
         path: 'contabilidad/movimiento-caja',
         name: 'MovimientoCaja',
-        component: () => import('@/views/Contabilidad/MovimientoCaja/MovimientoCaja.vue')
+        component: () => import('@/views/Contabilidad/MovimientoCaja/MovimientoCajaList.vue')
+      },
+      {
+        path: 'contabilidad/movimiento-caja/nuevo',
+        name: 'MovimientoCajaNuevo',
+        component: () => import('@/views/Contabilidad/MovimientoCaja/MovimientoCajaForm.vue')
+      },
+      {
+        path: 'contabilidad/movimiento-caja/:EmpId/:MovId',
+        name: 'MovimientoCajaDetalle',
+        component: () => import('@/views/Contabilidad/MovimientoCaja/MovimientoCajaDetalle.vue'),
+        props: true
       },
       {
         path: 'contabilidad/estado-cuenta-tercero',
