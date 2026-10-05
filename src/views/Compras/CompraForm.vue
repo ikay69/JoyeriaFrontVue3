@@ -186,7 +186,13 @@
           </v-row>
 
           <template v-if="cuotas.length">
-            <div class="mt-2 mb-2 text-subtitle-2">Detalle de las cuotas</div>
+            <div class="mt-2 mb-2 d-flex align-center justify-space-between ga-4">
+              <span class="text-subtitle-2">Detalle de las cuotas</span>
+              <span class="text-subtitle-2">
+                Total cuotas:
+                <span class="font-weight-medium">{{ formatearMoneda(totalCuotas) }}</span>
+              </span>
+            </div>
             <p class="text-caption text-medium-emphasis mb-2">
               Las cuotas las calcula el proveedor con su propio interés: aquí sólo se transcriben.
               Es normal que sumen más que el saldo.
@@ -479,6 +485,16 @@ export default {
     // escribiendo una fecha que nunca se guarda.
     fechaCompromisoDeshabilitada() {
       return Number(this.numeroCuotas) > 1
+    },
+
+    // Se suma crudo y se redondea UNA sola vez al final, igual que subtotal: sumar valores ya
+    // redondeados arrastra el centavo cuando alguna cuota se teclea con mas de dos decimales.
+    // No se compara nunca contra el saldo: las cuotas las calcula el proveedor con su propio
+    // interes y es normal que sumen mas, como ya avisa el texto de la tabla.
+    totalCuotas() {
+      return this.redondear(
+        this.cuotas.reduce((acc, cuota) => acc + (Number(cuota.ValorCuota) || 0), 0)
+      )
     }
   },
 

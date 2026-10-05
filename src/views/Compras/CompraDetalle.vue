@@ -28,6 +28,14 @@
         Imprimir
       </v-btn>
       <v-btn
+        v-if="compra && esCredito && esActiva"
+        variant="tonal"
+        prepend-icon="mdi-cash-sync"
+        @click="abrirCredito"
+      >
+        Cambiar cuota
+      </v-btn>
+      <v-btn
         v-if="compra && esActiva"
         color="error"
         variant="flat"
@@ -149,7 +157,7 @@
         <div class="d-flex align-center justify-space-between mb-3">
           <span class="text-subtitle-2">Cuotas</span>
           <v-btn
-            v-if="esActiva && numerosCuotaDisponibles.length"
+            v-if="esActiva && numerosParaCrear.length"
             color="primary"
             variant="tonal"
             size="small"
@@ -226,37 +234,31 @@
       </v-card>
     </template>
 
-    <v-dialog v-model="dialogCuota" max-width="520">
+    <!-- Dos dialogos y no uno con v-if: crear y editar van a endpoints distintos
+         (newcompracuota / updatecompracuota), piden campos distintos (idCompra vs idCuota) y
+         validan NumCuota contra topes distintos. Con un solo dialogo cada una de esas tres cosas
+         era un ternario sobre "estoy editando", y el formulario compartido era la via por la que
+         un resto del flujo anterior viajaba en el payload del siguiente. -->
+    <v-dialog v-model="dialogNueva" max-width="520">
       <v-card class="pa-4">
         <div class="d-flex align-center justify-space-between mb-4">
-          <span class="text-h6">{{ cuotaEnEdicion ? 'Editar cuota' : 'Agregar cuota' }}</span>
-          <v-btn icon="mdi-close" variant="text" @click="dialogCuota = false" />
+          <span class="text-h6">Agregar cuota</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogNueva = false" />
         </div>
 
         <v-select
-          v-if="!cuotaEnEdicion"
-          v-model="formCuota.NumCuota"
-          :items="numerosCuotaDisponibles"
+          v-model="formNueva.NumCuota"
+          :items="numerosParaCrear"
           label="Número de cuota"
           variant="outlined"
           density="comfortable"
           class="mb-2"
-          hint="Sólo se ofrecen los números que aún no están registrados"
+          hint="Sólo los números que aún no están registrados, hasta una cuota más de las pactadas"
           persistent-hint
-        />
-        <v-text-field
-          v-else
-          :model-value="formCuota.NumCuota"
-          label="Número de cuota"
-          readonly
-          variant="outlined"
-          density="comfortable"
-          class="mb-2"
-          hide-details
         />
 
         <v-text-field
-          v-model.number="formCuota.ValorCuota"
+          v-model.number="formNueva.ValorCuota"
           label="Valor de la cuota"
           type="number"
           min="0"
@@ -268,19 +270,19 @@
         />
 
         <v-text-field
-          v-model="formCuota.FechaPago"
+          v-model="formNueva.FechaPago"
           label="Fecha de pago"
           type="date"
           clearable
           variant="outlined"
           density="comfortable"
           class="mb-2"
-          hint="Vaciarla borra la fecha registrada"
+          hint="Puede quedar vacía"
           persistent-hint
         />
 
         <v-select
-          v-model="formCuota.Estado"
+          v-model="formNueva.Estado"
           :items="opcionesEstadoCuota"
           item-title="texto"
           item-value="valor"
@@ -292,11 +294,119 @@
         />
 
         <div class="d-flex justify-end ga-2 mt-4">
-          <v-btn variant="outlined" @click="dialogCuota = false">Cancelar</v-btn>
-          <v-btn color="primary" :loading="guardandoCuota" @click="guardarCuota">Guardar</v-btn>
+          <v-btn variant="outlined" @click="dialogNueva = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoNueva" @click="crearCuota">Guardar</v-btn>
         </div>
       </v-card>
     </v-dialog>
+
+    <v-dialog v-model="dialogEdicion" max-width="520">
+      <v-card class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <span class="text-h6">Editar cuota</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogEdicion = false" />
+        </div>
+
+        <v-select
+          v-model="formEdicion.NumCuota"
+          :items="numerosParaEditar"
+          label="Número de cuota"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Los números libres de las cuotas pactadas, más el que la cuota ya tiene"
+          persistent-hint
+        />
+
+        <v-text-field
+          v-model.number="formEdicion.ValorCuota"
+          label="Valor de la cuota"
+          type="number"
+          min="0"
+          step="0.01"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <v-text-field
+          v-model="formEdicion.FechaPago"
+          label="Fecha de pago"
+          type="date"
+          clearable
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Vaciarla borra la fecha registrada"
+          persistent-hint
+        />
+
+        <v-select
+          v-model="formEdicion.Estado"
+          :items="opcionesEstadoCuota"
+          item-title="texto"
+          item-value="valor"
+          label="Estado"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn variant="outlined" @click="dialogEdicion = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoEdicion" @click="editarCuota">Guardar</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
+    <v-dialog v-model="dialogCredito" max-width="520">
+      <v-card class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <span class="text-h6">Cambiar cuota</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogCredito = false" />
+        </div>
+
+        <p class="text-caption text-medium-emphasis mb-4">
+          Cambia el plan de cuotas de la cabecera: cuántas son y por cuánto. No toca las cuotas ya
+          registradas en la tabla de abajo, ni mueve caja, ni recalcula el saldo.
+        </p>
+
+        <v-text-field
+          v-model="formCredito.NumeroCuotas"
+          label="Número de cuotas"
+          type="number"
+          min="1"
+          step="1"
+          clearable
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Vaciarlo deja la cabecera sin número de cuotas"
+          persistent-hint
+        />
+
+        <v-text-field
+          v-model="formCredito.ValorCuota"
+          label="Valor de la cuota"
+          type="number"
+          min="0"
+          step="0.01"
+          clearable
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Vaciarlo lo deja como «valores distintos»: cada cuota con el suyo"
+          persistent-hint
+        />
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn variant="outlined" @click="dialogCredito = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoCredito" @click="guardarCredito">Guardar</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
+
   </v-container>
 </template>
 
@@ -316,11 +426,35 @@ export default {
       compra: null,
       lineas: [],
       cuotas: [],
-      dialogCuota: false,
-      guardandoCuota: false,
-      // null = estamos agregando; con valor = estamos editando esa cuota
-      cuotaEnEdicion: null,
-      formCuota: { NumCuota: null, ValorCuota: null, FechaPago: null, Estado: 'PENDIENTE' },
+      // Crear y editar no comparten dialogo, ni formulario, ni bandera de guardado: son dos
+      // operaciones con endpoint, payload y validacion distintos. Con un formulario unico el modo
+      // se deducia de una variable centinela, y un dato del flujo anterior podia viajar en el
+      // payload del siguiente.
+      dialogNueva: false,
+      guardandoNueva: false,
+      formNueva: { NumCuota: null, ValorCuota: null, FechaPago: null, Estado: 'PENDIENTE' },
+
+      dialogEdicion: false,
+      guardandoEdicion: false,
+      // idCuota va DENTRO del formulario y no en una referencia a la fila: a updatecompracuota
+      // solo le hace falta ese numero, y guardar el objeto entero deja una referencia viva a un
+      // elemento de `cuotas` que cargar() reemplaza por otro distinto al recargar.
+      formEdicion: {
+        idCuota: null, NumCuota: null, ValorCuota: null, FechaPago: null, Estado: 'PENDIENTE'
+      },
+      // El numero con el que se abrio el dialogo de edicion. Una cuota puede nacer en N+1, y
+      // entonces su propio numero esta por encima del tope de edicion: se recuerda para poder
+      // ofrecerselo y aceptarlo, y no dejarla atrapada sin ningun valor elegible.
+      numCuotaOriginal: null,
+
+      dialogCredito: false,
+      guardandoCredito: false,
+      // Los dos campos son opcionales y vaciarlos es una operacion con sentido, no un olvido:
+      // viaja null y el backend pone el campo en NULL. Se guardan como texto, sin .number, para
+      // poder distinguir "vacio" de "cero": con v-model.number un clearable vaciado y un 0
+      // tecleado llegan iguales, y uno significa NULL y el otro es un valor que el backend
+      // rechaza.
+      formCredito: { NumeroCuotas: null, ValorCuota: null },
       // 'CANCELADA' significa PAGADA. Al backend viajan los valores del contrato; el usuario lee
       // la palabra de la derecha.
       opcionesEstadoCuota: [
@@ -358,14 +492,41 @@ export default {
     esCredito() {
       return this.compra?.compraTipoCompra === 'CREDITO'
     },
+    // Las cuotas pactadas en la cabecera. Es el tope del que salen los dos rangos de abajo.
+    cuotasPactadas() {
+      return Number(this.compra?.compraNumeroCuotas) || 0
+    },
+
+    // Al crear se admite UNA cuota mas de las pactadas (N+1): es la cuota extra que aparece
+    // cuando el proveedor refinancia. Editar no llega ahi, ver numerosParaEditar.
     // Sólo se ofrecen los numeros que faltan: asi el 400 "esa cuota ya esta registrada" no puede
     // ocurrir por descuido.
-    numerosCuotaDisponibles() {
-      const total = Number(this.compra?.compraNumeroCuotas) || 0
+    numerosParaCrear() {
       const usados = new Set(this.cuotas.map((cuota) => Number(cuota.cuoNumCuota)))
       const libres = []
-      for (let numero = 1; numero <= total; numero++) {
+      for (let numero = 1; numero <= this.cuotasPactadas + 1; numero++) {
         if (!usados.has(numero)) libres.push(numero)
+      }
+      return libres
+    },
+
+    // Editar topa en las pactadas, no en N+1: a la cuota extra se llega creandola a proposito, no
+    // empujando hacia arriba una que ya existia. La unica excepcion es su propio numero, que se
+    // ofrece siempre aunque pase el tope; sin eso una cuota nacida en N+1 abriria el dialogo sin
+    // ningun valor elegible y no habria forma de guardarla, solo de borrarla.
+    numerosParaEditar() {
+      const usadosPorOtras = new Set(
+        this.cuotas
+          .filter((cuota) => cuota.cuoId !== this.formEdicion.idCuota)
+          .map((cuota) => Number(cuota.cuoNumCuota))
+      )
+      const libres = []
+      for (let numero = 1; numero <= this.cuotasPactadas; numero++) {
+        if (!usadosPorOtras.has(numero)) libres.push(numero)
+      }
+      if (this.numCuotaOriginal !== null && !libres.includes(this.numCuotaOriginal)) {
+        libres.push(this.numCuotaOriginal)
+        libres.sort((a, b) => a - b)
       }
       return libres
     }
@@ -457,74 +618,210 @@ export default {
     },
 
     abrirCuotaNueva() {
-      this.cuotaEnEdicion = null
-      this.formCuota = {
-        NumCuota: this.numerosCuotaDisponibles[0] ?? null,
+      this.formNueva = {
+        NumCuota: this.numerosParaCrear[0] ?? null,
         ValorCuota: null,
         FechaPago: null,
         Estado: 'PENDIENTE'
       }
-      this.dialogCuota = true
+      this.dialogNueva = true
     },
 
     abrirCuotaEdicion(cuota) {
-      this.cuotaEnEdicion = cuota
-      this.formCuota = {
-        NumCuota: cuota.cuoNumCuota,
+      this.numCuotaOriginal = Number(cuota.cuoNumCuota)
+      this.formEdicion = {
+        idCuota: cuota.cuoId,
+        NumCuota: Number(cuota.cuoNumCuota),
         ValorCuota: Number(cuota.cuoValorCuota),
         FechaPago: this.aFechaInput(cuota.cuoFechaPago),
         Estado: cuota.cuoEstado || 'PENDIENTE'
       }
-      this.dialogCuota = true
+      this.dialogEdicion = true
     },
 
-    async guardarCuota() {
-      if (!this.formCuota.NumCuota) {
+    // POST /compra/newcompracuota. Es el unico sitio que lo llama: no comparte nada con
+    // editarCuota salvo el service.
+    async crearCuota() {
+      const numero = Number(this.formNueva.NumCuota)
+      // Se revalida aqui aunque el v-select ya acote los valores: cuando no queda ningun numero
+      // libre el select se queda vacio y, sin esta guarda, Guardar mandaria NumCuota null.
+      if (!Number.isInteger(numero) || numero < 1) {
         Swal.fire('Atención', 'Elija el número de la cuota', 'warning')
         return
       }
-      if (!(Number(this.formCuota.ValorCuota) > 0)) {
+      const tope = this.cuotasPactadas + 1
+      if (numero > tope) {
+        Swal.fire(
+          'Atención',
+          `El número de cuota no puede pasar de ${tope}: la compra tiene ${this.cuotasPactadas} ` +
+            'cuotas pactadas y sólo se admite una más.',
+          'warning'
+        )
+        return
+      }
+      if (!(Number(this.formNueva.ValorCuota) > 0)) {
         Swal.fire('Atención', 'El valor de la cuota debe ser mayor a cero', 'warning')
         return
       }
 
-      this.guardandoCuota = true
+      this.guardandoNueva = true
       try {
-        if (this.cuotaEnEdicion) {
-          // Se envian los cuatro campos siempre. El endpoint conserva lo que no venga, pero
-          // mandarlo todo hace que vaciar la fecha llegue como FechaPago: null —que SI es un
-          // cambio, es como se borra una fecha ya puesta— y que un campo intacto viaje con su
-          // propio valor, que es un no-op.
-          const { data } = await compraService.updateCuota({
-            idEmpresa: this.idEmpresa,
-            idCuota: this.cuotaEnEdicion.cuoId,
-            NumCuota: Number(this.formCuota.NumCuota),
-            ValorCuota: Number(this.formCuota.ValorCuota),
-            FechaPago: this.formCuota.FechaPago || null,
-            Estado: this.formCuota.Estado
-          })
-          this.dialogCuota = false
-          await Swal.fire('Éxito', data.msg || 'Cuota actualizada', 'success')
-         
-        } else {
-          const { data } = await compraService.createCuota({
-            idEmpresa: this.idEmpresa,
-            idCompra: this.idCompra,
-            NumCuota: Number(this.formCuota.NumCuota),
-            ValorCuota: Number(this.formCuota.ValorCuota),
-            FechaPago: this.formCuota.FechaPago || null,
-            Estado: this.formCuota.Estado
-          })
-          await Swal.fire('Éxito', data.msg || 'Cuota agregada', 'success')
-        }
-        this.dialogCuota = false
+        const { data } = await compraService.createCuota({
+          idEmpresa: this.idEmpresa,
+          idCompra: this.idCompra,
+          NumCuota: numero,
+          ValorCuota: Number(this.formNueva.ValorCuota),
+          // Vacia viaja como null, que el endpoint acepta: una cuota puede no tener fecha aun.
+          FechaPago: this.formNueva.FechaPago || null,
+          Estado: this.formNueva.Estado
+        })
+        this.dialogNueva = false
+        await Swal.fire('Éxito', data.msg || 'Cuota registrada', 'success')
         await this.cargar()
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo guardar la cuota'
+        const mensaje = error.response?.data?.msg || 'No se pudo agregar la cuota'
         Swal.fire('Error', mensaje, 'error')
       } finally {
-        this.guardandoCuota = false
-        
+        this.guardandoNueva = false
+      }
+    },
+
+    // PUT /compra/updatecompracuota. Esta ruta ya solo actualiza: el alta tiene la suya.
+    async editarCuota() {
+      const numero = Number(this.formEdicion.NumCuota)
+      if (!Number.isInteger(numero) || numero < 1) {
+        Swal.fire('Atención', 'Elija el número de la cuota', 'warning')
+        return
+      }
+      // El tope son las pactadas, con la excepcion del numero con el que se abrio el dialogo: una
+      // cuota que ya vivia en N+1 puede quedarse ahi, pero ninguna puede SUBIR sobre el tope.
+      if (numero > this.cuotasPactadas && numero !== this.numCuotaOriginal) {
+        Swal.fire(
+          'Atención',
+          `El número de cuota no puede pasar de ${this.cuotasPactadas}, que son las cuotas ` +
+            'pactadas en la compra.',
+          'warning'
+        )
+        return
+      }
+      if (!(Number(this.formEdicion.ValorCuota) > 0)) {
+        Swal.fire('Atención', 'El valor de la cuota debe ser mayor a cero', 'warning')
+        return
+      }
+
+      this.guardandoEdicion = true
+      try {
+        // Se envian los cuatro campos siempre. El endpoint conserva lo que no venga, pero
+        // mandarlo todo hace que vaciar la fecha llegue como FechaPago: null —que SI es un
+        // cambio, es como se borra una fecha ya puesta— y que un campo intacto viaje con su
+        // propio valor, que es un no-op.
+        const { data } = await compraService.updateCuota({
+          idEmpresa: this.idEmpresa,
+          idCuota: this.formEdicion.idCuota,
+          NumCuota: numero,
+          ValorCuota: Number(this.formEdicion.ValorCuota),
+          FechaPago: this.formEdicion.FechaPago || null,
+          Estado: this.formEdicion.Estado
+        })
+        this.dialogEdicion = false
+        await Swal.fire('Éxito', data.msg || 'Cuota actualizada', 'success')
+        await this.cargar()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo actualizar la cuota'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.guardandoEdicion = false
+      }
+    },
+
+    // Vacio es null de verdad; cualquier otra cosa pasa por Number. Un NaN se devuelve tal cual,
+    // para que lo rechacen las validaciones de guardarCredito y no se confunda con un vacio.
+    // Hace falta porque Number('') es 0: sin esto, vaciar un campo viajaria como 0 y el backend
+    // lo rechazaria por "mayor a cero" en vez de entenderlo como "ponlo en NULL".
+    aNumeroONulo(valor) {
+      if (valor === '' || valor === null || valor === undefined) return null
+      return Number(valor)
+    },
+
+    abrirCredito() {
+      // Precargado con lo que hay hoy: el usuario tiene que ver de que valores parte antes de
+      // cambiarlos. compraValorCuota puede venir null —es el estado "valores distintos"— y
+      // entonces el campo abre vacio, que es exactamente lo que representa.
+      this.formCredito = {
+        NumeroCuotas: this.compra.compraNumeroCuotas ?? null,
+        ValorCuota:
+          this.compra.compraValorCuota === null || this.compra.compraValorCuota === undefined
+            ? null
+            : Number(this.compra.compraValorCuota)
+      }
+      this.dialogCredito = true
+    },
+
+    async guardarCredito() {
+      const numeroCuotas = this.aNumeroONulo(this.formCredito.NumeroCuotas)
+      const valorCuota = this.aNumeroONulo(this.formCredito.ValorCuota)
+
+      if (numeroCuotas !== null && !(Number.isInteger(numeroCuotas) && numeroCuotas > 0)) {
+        Swal.fire(
+          'Atención',
+          'El número de cuotas debe ser un entero mayor a cero, o quedar vacío',
+          'warning'
+        )
+        return
+      }
+      if (valorCuota !== null && !(valorCuota > 0)) {
+        Swal.fire(
+          'Atención',
+          'El valor de la cuota debe ser mayor a cero, o quedar vacío',
+          'warning'
+        )
+        return
+      }
+
+      // Se bloquea en vez de avisar: dejar cuotas registradas por encima del plan es un estado
+      // que ninguna otra pantalla sabe representar, y las cuotas sobrantes no se borran solas.
+      // Vaciar NumeroCuotas cae en la misma regla, porque vacio es un plan de cero cuotas y
+      // entonces cualquier cuota registrada queda fuera.
+      const tope = numeroCuotas ?? 0
+      const sobrantes = this.cuotas
+        .map((cuota) => Number(cuota.cuoNumCuota))
+        .filter((numero) => numero > tope)
+        .sort((a, b) => a - b)
+      if (sobrantes.length) {
+        const unaSola = sobrantes.length === 1
+        Swal.fire(
+          'Atención',
+          `${unaSola ? 'La cuota' : 'Las cuotas'} ${sobrantes.join(', ')} ` +
+            `${unaSola ? 'quedaría' : 'quedarían'} fuera de un plan de ` +
+            `${numeroCuotas === null ? 'cero cuotas' : numeroCuotas + ' cuotas'}. ` +
+            `${unaSola ? 'Bórrela' : 'Bórrelas'} primero desde la tabla de cuotas.`,
+          'warning'
+        )
+        return
+      }
+
+      this.guardandoCredito = true
+      try {
+        const { data } = await compraService.updateCredito({
+          idEmpresa: this.idEmpresa,
+          idCompra: this.idCompra,
+          NumeroCuotas: numeroCuotas,
+          // decimal(12,2): se redondea aqui para que el valor que quede guardado sea el que el
+          // usuario escribio, y no uno con mas decimales que la columna recorta por su cuenta.
+          ValorCuota: valorCuota === null ? null : Math.round(valorCuota * 100) / 100
+        })
+        this.dialogCredito = false
+        await Swal.fire('Éxito', data.msg || 'Crédito de la compra actualizado', 'success')
+        // Recarga, no parche local: compraNumeroCuotas es justo lo que alimenta cuotasPactadas y
+        // con ella los rangos de numerosParaCrear y numerosParaEditar. Si el front se lo
+        // inventara, los dos dialogos de cuota quedarian ofreciendo numeros de un plan viejo.
+        await this.cargar()
+      } catch (error) {
+        const mensaje =
+          error.response?.data?.msg || 'No se pudo actualizar el crédito de la compra'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.guardandoCredito = false
       }
     },
 
