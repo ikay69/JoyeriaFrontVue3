@@ -26,6 +26,8 @@
           />
         </div>
 
+         
+
         <v-row dense class="mb-2">
           <v-col cols="12" sm="4">
             <v-text-field
@@ -47,6 +49,10 @@
               hide-details
             />
           </v-col>
+
+        </v-row>
+
+        <v-row dense class="mb-2">
           <v-col cols="12" sm="4">
             <v-text-field
               v-model="documentoSoporte"
@@ -79,8 +85,9 @@
             />
           </v-col>
           <v-col cols="12" sm="4" md="2">
-            <v-text-field
+            <v-number-input
               v-model.number="descuento"
+              control-variant="hidden"
               label="Descuento"
               type="number"
               min="0"
@@ -91,8 +98,9 @@
             />
           </v-col>
           <v-col cols="12" sm="4" md="2">
-            <v-text-field
+            <v-number-input
               v-model.number="efectivo"
+              control-variant="hidden"
               label="Pago en efectivo"
               type="number"
               min="0"
@@ -103,15 +111,17 @@
             />
           </v-col>
           <v-col cols="12" sm="4" md="3">
-            <v-text-field
+           
+            <v-number-input
               v-model.number="transaccion"
+              control-variant="hidden"
               label="Pago en transacción"
-              type="number"
               min="0"
-              step="0.01"
+              :step="0.01"
               variant="outlined"
               density="comfortable"
               hide-details
+              :precision="2"
             />
           </v-col>
           <v-col cols="12" sm="4" md="3">
@@ -146,7 +156,8 @@
               />
             </v-col>
             <v-col cols="12" sm="4">
-              <v-text-field
+              <v-number-input
+                control-variant="hidden"
                 v-model.number="numeroCuotas"
                 label="Número de cuotas"
                 type="number"
@@ -159,7 +170,8 @@
               />
             </v-col>
             <v-col cols="12" sm="4">
-              <v-text-field
+              <v-number-input
+                control-variant="hidden"
                 v-model.number="valorCuota"
                 label="Valor de la cuota"
                 type="number"
@@ -197,7 +209,7 @@
               Las cuotas las calcula el proveedor con su propio interés: aquí sólo se transcriben.
               Es normal que sumen más que el saldo.
             </p>
-            <v-table density="compact" class="mb-4">
+            <v-table density="compact" class="mb-4 tabla-listado">
               <thead>
                 <tr>
                   <th style="width: 80px">N°</th>
@@ -209,7 +221,8 @@
                 <tr v-for="cuota in cuotas" :key="cuota.NumCuota">
                   <td>{{ cuota.NumCuota }}</td>
                   <td>
-                    <v-text-field
+                    <v-number-input
+                      control-variant="hidden"
                       v-model.number="cuota.ValorCuota"
                       type="number"
                       min="0"
@@ -253,7 +266,7 @@
         </div>
 
         <div style="overflow-x: auto;">
-          <v-table density="compact" class="mb-2">
+          <v-table density="compact" class="mb-2 tabla-listado">
             <thead>
               <tr>
                 <th style="min-width: 160px">Bodega</th>
@@ -330,7 +343,8 @@
                   </div>
                 </td>
                 <td>
-                  <v-text-field
+                  <v-number-input
+                    control-variant="hidden"
                     v-model.number="fila.Cantidad"
                     type="number"
                     min="0"
@@ -341,7 +355,8 @@
                   />
                 </td>
                 <td>
-                  <v-text-field
+                  <v-number-input
+                    control-variant="hidden"
                     v-model.number="fila.CostoUnidad"
                     type="number"
                     min="0"
@@ -912,3 +927,26 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* El encabezado toma el mismo primary del tema definido en src/plugins/vuetify.js */
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:first-child) {
+  border-top-left-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
+  border-top-right-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
+  background-color: rgba(var(--v-theme-primary), 0.06);
+}
+</style>

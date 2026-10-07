@@ -1,6 +1,6 @@
 # Handoff — frontend joyeriacompraventa (Vue 3)
 
-Fecha: 2026-09-23 · última actualización: 2026-10-05 (§8 — movimiento en caja · §2 — la regla del `EmpId` · §4 — Empresas estaba mal dada por pendiente)
+Fecha: 2026-09-23 · última actualización: 2026-10-06 (§10 — convenciones de UI: la tabla de listado y los campos numéricos · §9 — orden de producción · §2 — el censo del `EmpId`, ahora once pantallas)
 Documento **del front**. El backend tiene el suyo, aparte, en el worktree del repo `joyeriacompraventa` (`.claude/worktrees/nucleo-inventario/handoff.md`). Los dos proyectos son repos distintos, con remotos distintos.
 
 Este primer documento **no cierra una fase**: es el levantamiento del proyecto tal como está hoy, escrito para que quien retome no tenga que deducir el patrón leyendo diez archivos.
@@ -12,7 +12,7 @@ Este primer documento **no cierra una fase**: es el levantamiento del proyecto t
 Lo mínimo para no romper nada:
 
 - **Todo el CRUD sigue un patrón de dos archivos: `XxxList.vue` + `XxxForm.vue`.** Está descrito entero en §2, con Categorías como referencia. **Para un módulo nuevo se copia Categorías y se cambian los nombres** (receta paso a paso en §7). No hay componente compartido de lista ni de formulario: es copia-pega deliberado.
-- **Hay cinco excepciones al patrón**, y todas son a propósito: `UsuarioForm` (segundo formulario para la contraseña), `AsignacionUsuario` (no tiene List/Form) y `UsuarioList` (el backend solo le da `pagina`), en §3; más **Compras** (§5) y **Movimiento en caja** (§8), donde el «editar» del patrón es un **detalle** porque el registro no se edita, sólo se anula.
+- **Hay seis excepciones al patrón**, y todas son a propósito: `UsuarioForm` (segundo formulario para la contraseña), `AsignacionUsuario` (no tiene List/Form) y `UsuarioList` (el backend solo le da `pagina`), en §3; más **Compras** (§5), **Movimiento en caja** (§8) y **Orden de producción** (§9), donde el «editar» del patrón es un **detalle** porque el registro no se edita. En las tres el backend no tiene endpoint de edición, y no es un olvido.
 - **Trabajo sin commitear ahora mismo:** el módulo **Vendedores completo está sin rastrear** (`VendedorService.js`, `VendedoresList.vue`, `VendedoresForm.vue`) y hay cambios reales en `MainLayout.vue`, `router/index.js` y `ArticulosForm.vue`. Lo primero al retomar es decidir si eso se commitea. Ver §6.
 - **Hay cambios de cuotas sin commitear en Compras** (2026-10-04): el total de las cuotas en el alta, un diálogo separado para crear y para editar, y el botón «Cambiar cuota» que edita el plan de crédito de la cabecera. Ver §5.
 - **`git status` miente: dice 32 archivos modificados y solo 3 lo están.** Los otros 29 son ruido de fin de línea. Ver §6 antes de asustarte o de hacer `checkout --` sobre algo.
@@ -20,7 +20,8 @@ Lo mínimo para no romper nada:
 - **Hay 8 `console.log` olvidados y un botón que dice «Agregar 1».** Lista en §4. Limpieza de cinco minutos.
 - **Compras ya está construida**, y es la pantalla más compleja del proyecto: una compra **no se edita, solo se anula**, una línea puede dar de alta un artículo que no existe, y las cuotas tienen su propio CRUD. Todo el contexto en §5. **Leerlo entero antes de tocarla.**
 - **Movimiento en caja está construido** (2026-10-05): es la primera pantalla de Contabilidad, y la quinta excepción al patrón List + Form. Contexto en §8. Dos cosas que parecen fallos y no lo son: los totales de caja **sólo** dependen de las fechas, y el Form **sólo** da de alta ajustes.
-- **Al navegar a un detalle o a una edición, el `EmpId` de la URL sale de la FILA, no del selector de empresa.** Es la regla que más veces se ha roto en este proyecto. Diez pantallas la cumplen y tres no (`ArticulosList`, `TercerosList`, `ComprasList`). La regla, el motivo y el censo están en §2; qué hace falta para arreglar las tres, en la deuda 10 de §4.
+- **Orden de producción está construido** (2026-10-06): un alta con **dos tablas** —lo consumido y lo producido— y un detalle de solo lectura. Contexto en §9. Lo que no se adivina: su listado **no acepta `campoOrdenar` ni `orden`**, así que la pantalla sale con tres filtros y no cinco, a propósito.
+- **Al navegar a un detalle o a una edición, el `EmpId` de la URL sale de la FILA, no del selector de empresa.** Es la regla que más veces se ha roto en este proyecto. Once pantallas la cumplen y tres no (`ArticulosList`, `TercerosList`, `ComprasList`). La regla, el motivo y el censo están en §2; qué hace falta para arreglar las tres, en la deuda 10 de §4.
 - **El despliegue es manual y a propósito.** Se compila y el usuario copia `dist/` a la carpeta `Public/` del backend. Las dos carpetas no tienen relación en disco y **así se quedan**: es política de seguridad, no una tarea pendiente. No apuntes `build.outDir` al backend.
 
 **Correr el proyecto:** `npm run dev` (Vite, puerto 5173). `npm run build` deja el resultado en `dist/`, que **no** está versionado.
@@ -139,11 +140,11 @@ Así, si el usuario cambia de empresa en la barra superior mientras tiene abiert
 
 El motivo es el mismo que el del Form, un paso antes: **el selector de empresa vive en un `v-app-bar` persistente que no navega.** Leerlo del store al construir la URL mete en el parámetro la empresa que estaba seleccionada en ese instante, y basta con que el usuario la cambie —o con que un `watch` recargue la pantalla— para que el destino opere contra la empresa equivocada leyendo una URL que *parece* correcta. Es el mismo error de la lista de §7, solo que cometido en el List en vez de en el Form, y ahí es más difícil de ver porque el `EmpId` llega como argumento de una función y el nombre del parámetro no delata su origen.
 
-**Censo al 2026-10-05 — diez pantallas la cumplen, tres no:**
+**Censo al 2026-10-06 — once pantallas la cumplen, tres no:**
 
 | | |
 |---|---|
-| **Cumplen** (empresa de la fila) | Categorías, Bodegas, Productos, Propiedades, Tipos de producto, Unidades de medida, Tipos de documento, Tipos de gastos, Vendedores, Movimiento en caja |
+| **Cumplen** (empresa de la fila) | Categorías, Bodegas, Productos, Propiedades, Tipos de producto, Unidades de medida, Tipos de documento, Tipos de gastos, Vendedores, Movimiento en caja, Orden de producción |
 | **No la cumplen** (empresa del store) | `ArticulosList` (`irAEditar(idEmpresa, …)`), `TercerosList` (`irAEditar(idEmpresa, …)`), `ComprasList` (`EmpId: this.idEmpresa`) |
 | **No aplica** | `EmpresaList` (el registro *es* la empresa), `UsuarioList` (los usuarios son globales) |
 
@@ -155,7 +156,7 @@ Cuatro bloques, siempre en este orden:
 
 1. **Encabezado** — `<h1>` con el título y botón **Agregar** a la derecha, que hace `$router.push({ name: 'XxxNueva' })`.
 2. **Tarjeta de filtros** — `textoFiltro` (`v-text-field`), `campoOrdenar` (`v-select`), `orden` (`v-select` ASC/DESC) y botón **Consultar**. Los `v-select` usan siempre `item-title="texto"` / `item-value="valor"` sobre arreglos `{ valor, texto }` definidos en `data`.
-3. **Tabla** — `v-table` cruda (no `v-data-table`), con tres estados en el `<tbody>`: cargando (`v-progress-circular`), vacío («No hay registros para mostrar») y filas. Última columna: botón lápiz que navega a editar pasando **empresa e id**.
+3. **Tabla** — `v-table` cruda (no `v-data-table`), **siempre con `class="tabla-listado"`** y su bloque de estilos (§10), con tres estados en el `<tbody>`: cargando (`v-progress-circular`), vacío («No hay registros para mostrar») y filas. Última columna: botón lápiz que navega a editar pasando **empresa e id**.
 4. **Paginado** — Anterior / `Página X de Y` / Siguiente, debajo de la tabla, dentro de la misma tarjeta.
 
 El script:
@@ -311,6 +312,7 @@ Por dentro repiten los filtros y el paginado del List, dentro de un `v-dialog`. 
 | **Compras** | **Completo**: List con filtros completos + Form de alta (contado y crédito) + Detalle con anulación, CRUD de cuotas (un diálogo para crear y otro para editar) y cambio del plan de crédito + PDF del comprobante. Ver §5 |
 | Empresas | List + Form completos — **la tabla de este handoff decía hasta el 2026-10-05 que estaba en construcción, y era falso**: la ruta `Empresas` carga `EmpresaList.vue` y el menú no está en rojo. Lo que engaña es que `views/Administracion/Empresas/Empresas.vue` sigue ahí con el cartel `EnConstruccion`, huérfano y sin que nadie lo importe |
 | **Movimiento en caja** (Contabilidad) | **Completo**: List con filtros, totales de caja y paginado + Form de alta de ajuste + Detalle con anulación y salto al documento de origen. Ver §8 |
+| **Orden de producción** | **Completo**: List con tres filtros y paginado + Form de alta con dos tablas (consumido y producido) + Detalle de solo lectura. Ver §9 |
 | **Préstamos · Empeños · Abonos · Gastos · Estado de cuenta por tercero** | `EnConstruccion` |
 
 Las pendientes están marcadas **en rojo en el menú** (`class="bg-red text-white"` en `MainLayout.vue`). Mantener ese semáforo al día: es lo primero que se mira.
@@ -532,8 +534,8 @@ Suponiendo que el endpoint del backend ya existe:
 
 1. **Mirar la respuesta real del endpoint** (Postman o `docs/endpoints.md` del backend) y **anotar los alias**. No adivinarlos.
 2. **`src/services/xxxService.js`** — copiar `categoriaService.js`, cambiar rutas y comentar el payload de cada método en la misma línea.
-3. **`src/views/<Modulo>/XxxList.vue`** — copiar `CategoriaList.vue`. Cambiar título, `opcionesCampoOrdenar` (los valores los define el backend), columnas de la tabla, los alias y los nombres de ruta.
-4. **`src/views/<Modulo>/XxxForm.vue`** — copiar `CategoriaForm.vue`. Campos con `maxlength`/`counter` **iguales a los que valida el backend**; Estado solo en edición.
+3. **`src/views/<Modulo>/XxxList.vue`** — copiar `CategoriaList.vue`. Cambiar título, `opcionesCampoOrdenar` (los valores los define el backend), columnas de la tabla, los alias y los nombres de ruta. La tabla va con `class="tabla-listado"` y su `<style scoped>` (§10).
+4. **`src/views/<Modulo>/XxxForm.vue`** — copiar `CategoriaForm.vue`. Campos con `maxlength`/`counter` **iguales a los que valida el backend**; Estado solo en edición. **Los campos numéricos usan `v-number-input`, no `v-text-field type="number"`** (§10).
 5. **Tres rutas en `router/index.js`**, con el bloque de comentario del módulo. La de edición lleva `:EmpId/:XxxId` y `props: true`.
 6. **Una entrada en `MainLayout.vue`**, y si la pantalla queda a medias, con `class="bg-red text-white"`.
 7. **Probar:** crear, editar, cambiar de página, filtrar por texto, ordenar por los dos sentidos, y **cambiar de empresa en la barra superior teniendo un registro abierto en edición** — ahí es donde se nota si `idEmpresa` se resolvió bien.
@@ -625,3 +627,166 @@ Una de esas comprobaciones vale la pena repetirla al agregar Ventas: **lee `rout
 - Que el salto a la compra y la flecha de volver devuelvan al **detalle del movimiento**, no al grid.
 - Que el backend acepte `estadoFiltro: 0` y los dos arreglos vacíos tal como se mandan.
 - Si `MotivoAnulacion` admite 255 o 300 caracteres: la doc del endpoint dice las dos cosas en sitios distintos y el front puso **255**, el más estricto. Si son 300, es un número en dos archivos (List y Detalle).
+
+---
+
+## 9. Orden de producción — construido el 2026-10-06
+
+Convierte unos artículos en otros: consume material y produce piezas, todo en un solo movimiento de inventario. Endpoints base `/api/produccion`.
+
+| Archivo | Qué es |
+|---|---|
+| `src/services/produccionService.js` | los tres endpoints |
+| `src/views/OrdenProduccion/OrdenProduccionList.vue` | grid con tres filtros y paginado |
+| `src/views/OrdenProduccion/OrdenProduccionForm.vue` | **sólo alta**, con las dos tablas |
+| `src/views/OrdenProduccion/OrdenProduccionDetalle.vue` | detalle de **solo lectura** |
+
+| Método | Ruta | Para qué |
+|---|---|---|
+| POST | `/produccion/getallordenes` | listado paginado |
+| POST | `/produccion/getidorden` | cabecera + `movimientos` |
+| POST | `/produccion/nuevaorden` | alta |
+
+**No hay endpoint de editar ni de anular, y por eso el detalle no tiene botones.** Es la sexta excepción al patrón List + Form: la tercera ruta es un detalle, no un editar. El día que aparezca un `anularorden`, el sitio donde va el botón es la cabecera del Detalle, como en Compras y en Movimiento en caja.
+
+**La especificación con la que se construyó traía las dos rutas cruzadas** —`nuevaorden` emparejada con el cuerpo del listado y `getallordenes` con el de la creación—. Se confirmó antes de escribir nada y la tabla de arriba es la correcta. Se deja dicho porque el error es fácil de repetir leyendo la especificación vieja.
+
+### Las tres rutas
+
+```js
+{ path: 'orden-produccion',                   name: 'OrdenProduccionList',     component: …List },
+{ path: 'orden-produccion/nueva',             name: 'OrdenProduccionNueva',    component: …Form },
+{ path: 'orden-produccion/:EmpId/:OrdId',     name: 'OrdenProduccionDetalle',  component: …Detalle, props: true }
+```
+
+En el menú es un ítem de nivel superior, `mdi-hammer-wrench`, entre el grupo de Compras y Préstamos. Sin la clase roja: la pantalla está hecha.
+
+### Lo que no se deduce del contrato
+
+**1. `getallordenes` NO acepta `campoOrdenar` ni `orden`.** Es el único listado del proyecto al que le faltan los dos, así que la pantalla tiene **tres filtros** —buscar, fecha inicio, fecha fin— y no los cinco del patrón. **No es un olvido al copiar Categorías**, y está comentado en el archivo: poner esos dos `v-select` mostraría controles que no viajan en la petición. Arranca con el mes en curso.
+
+**2. `ordEmpId` sí existe en el listado, aunque la especificación no lo mencionaba.** Se preguntó antes de escribir y se confirmó que faltaba por olvido. De ahí sale el `EmpId` de la URL del detalle, cumpliendo la regla de §2. Es otro caso de lo mismo que avisa §7: **mirar la respuesta real del endpoint, no la documentación**.
+
+**3. `idPropietario` sólo existe con `BolsaEstado: 'RECIBIDO_DE_TALLER'`.** Es el dueño del oro que el taller devolvió. Con `DISPONIBLE` el material ya es de la casa y el campo **viaja como `null`**:
+
+| `BolsaEstado` | `idPropietario` | En pantalla |
+|---|---|---|
+| `DISPONIBLE` | `null` | la celda dice «No aplica» |
+| `RECIBIDO_DE_TALLER` | **obligatorio** | botón de `TercerosSeleccionar` y el nombre |
+
+**Y al cambiar la bolsa de `RECIBIDO_DE_TALLER` a `DISPONIBLE` hay que borrar el propietario ya elegido** (`onBolsaCambiada`). El `map` del payload ya lo fuerza a `null`, así que no es un bug de datos; sin el borrado lo que queda mal es la **pantalla**, mostrando un nombre de tercero en una fila cuya columna dice «No aplica».
+
+**4. `producidos` lleva tres llaves y ninguna más:** `idArticulo`, `idBodega`, `Cantidad`. **Sin `BolsaEstado` y sin propietario** — lo que sale del taller entra siempre como material de la casa. Las dos tablas no son simétricas y no hay que igualarlas.
+
+**5. El formulario exige al menos una fila en CADA tabla.** Una orden que no consume nada, o que no produce nada, no es una orden. La validación está en el front para poder decir *qué* fila de *qué* tabla está mal; el backend sólo diría que el payload es inválido.
+
+### El selector de artículos con dos tablas
+
+Hay **un solo** `ArticulosSeleccionar` y **un solo** `TercerosSeleccionar` para toda la pantalla. A dónde devuelven la selección lo dice `filaActiva`, que aquí **no es un índice sino `{ tabla, indice }`**: con dos tablas el índice por sí solo es ambiguo y la selección acabaría en la fila equivocada de la otra tabla. (En `CompraForm`, que tiene una sola tabla, `filaActiva` sí es un número — no copies de ahí sin mirar.)
+
+Igual que en `CompraForm`, `quitarFila` limpia `filaActiva`: tras el `splice` el índice puede apuntar fuera del arreglo, y los callbacks de los diálogos lo dereferencian.
+
+**Y el `watch` sobre `idEmpresa` vacía las dos tablas y recarga las bodegas.** Misma razón que en Compras: el selector de empresa vive en un `v-app-bar` que no navega, así que la pantalla no se remonta, y sin el reset las filas ya elegidas llevarían un `idBodega`, `idArticulo` e `idPropietario` de la empresa anterior mientras el `idEmpresa` del payload sería ya la nueva.
+
+### El detalle
+
+El backend devuelve las ENTRADAS y las SALIDAS **mezcladas en un solo arreglo `movimientos`**. La pantalla las parte en dos tarjetas, **producido (ENTRADA) arriba y consumido (SALIDA) abajo**, con el costo por fila y un total al pie de cada una. Separarlas cumple el orden pedido y además dice qué es cada bloque, que una sola tabla ordenada no dice. Los totales se suman en crudo y **se redondean una sola vez al final**, igual que en Compras y por la misma razón.
+
+**La columna Bodega lee `movBodegaNombre`, que todavía NO viene en la respuesta.** Hoy sale vacía a propósito: el backend lo va a agregar y entonces se llena sola, sin tocar el front. Si aparece vacía, no es un bug de la pantalla — es que el campo aún no llega.
+
+### Cómo se verificó, y qué falta
+
+`vite build` compila. Sin runner de tests (deuda 8), la lógica se **extrajo de los archivos ya escritos** y se ejecutó contra **56 escenarios**, todos verdes. Dos que conviene repetir si se toca:
+
+- **`confirmar()` se ejecutó con el service y Swal simulados, capturando el payload real.** Fija que con `DISPONIBLE` el `idPropietario` sale `null` *aunque la fila lo tuviera puesto*, que los ids de los `v-select` llegan como número y no como `"1"`, que `producidos` lleva exactamente sus tres llaves, y que una validación fallida **no llama al service**.
+- **Se leyó `router/index.js` y `MainLayout.vue`** para confirmar que los tres nombres de ruta que las pantallas empujan existen de verdad y que el path del detalle declara `:EmpId/:OrdId`. Un nombre de ruta equivocado no se nota hasta que alguien pulsa el botón.
+
+**Sin comprobación manual en el navegador**, como el resto del proyecto. Las dos preguntas abiertas para cuando se pruebe contra el servidor:
+
+- ¿`nuevaorden` acepta `idPropietario: null` en las filas `DISPONIBLE`, o hay que **omitir la llave**? Si hay que omitirla, es una línea en el `map` de `confirmar()`.
+- ¿`ordEmpId` llega de verdad en el listado? De ahí sale el `EmpId` del detalle; sin él, el `|| this.idEmpresa` de respaldo lo deja caer en el store y se rompe la regla de §2 en silencio.
+
+---
+
+## 10. Convenciones de UI — vigentes desde el 2026-10-06
+
+Dos patrones que **ya no se deciden por pantalla**: toda tabla y todo campo numérico que se escriba de aquí en adelante usa esto. No son sugerencias de estilo, son el default del proyecto.
+
+### La tabla de listado
+
+Cada `v-table` lleva la clase `tabla-listado`, y el archivo lleva este bloque al final:
+
+```vue
+<v-table class="tabla-listado">
+```
+
+```css
+<style scoped>
+/* El encabezado toma el mismo primary del tema definido en src/plugins/vuetify.js */
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:first-child) {
+  border-top-left-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
+  border-top-right-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
+  background-color: rgba(var(--v-theme-primary), 0.06);
+}
+</style>
+```
+
+**El color no se escribe a mano en ningún lado.** Sale de `rgb(var(--v-theme-primary))`, la variable que Vuetify genera a partir de `primary: '#6a7aef'` en `src/plugins/vuetify.js`. Es la misma que usa el `color="primary"` del `v-app-bar` en `MainLayout.vue`, así que encabezado y barra superior cambian juntos si algún día se cambia el hex. El texto usa `--v-theme-on-primary`, el color de contraste que Vuetify calcula solo: tampoco se pone `white` a mano, porque con otro primary dejaría de leerse.
+
+**Cuatro cosas que no se deducen del CSS:**
+
+1. **La clase se suma, no reemplaza.** Donde ya había `density="compact"` o `class="mb-2"` se conserva: `class="mb-2 tabla-listado"`. Las tablas internas de los formularios siguen siendo compactas.
+2. **El selector largo es a propósito.** `:deep(.v-table__wrapper > table > thead > tr > th)` iguala la especificidad del selector propio de Vuetify; con `.tabla-listado th` a secas el estilo del tema gana y no se ve nada. Por eso no hace falta ningún `!important`.
+3. **El bloque está duplicado en los 23 archivos, a propósito.** Se evaluó moverlo a un CSS global importado desde `main.js` y se decidió no hacerlo por ahora. Si alguna vez se mueve, es borrar el bloque de los 23 y dejar la clase; el marcado no cambia.
+4. **`ArticulosList.vue` es la excepción de forma:** ya tenía su propio `<style scoped>` con `.columna-ajustable-text`, así que las reglas se metieron *dentro* de ese bloque en vez de abrir uno segundo. Ojo que esa clase trae `white-space: normal !important` y gana sobre el `nowrap` del encabezado donde esté aplicada.
+
+**Un efecto visual que sorprende:** las tablas de formulario que tienen `<th>` vacíos para las columnas de botones (OrdenProduccionForm, CompraForm) ahora muestran esos huecos como bloques morados. Antes no se notaban sobre fondo blanco. Está así a propósito; si molesta, se pinta solo los `th` con texto.
+
+**Quedan nueve `v-table` sin la clase**, todas internas de diálogos y formularios: `ArticulosSeleccionar`, `TercerosSeleccionar`, `UsuarioForm`, `ArticuloNuevoDialog` (2), `ArticulosForm` (3) y `OrdenProduccionDetalle`. No es deuda urgente — se fueron aplicando pantalla por pantalla, a pedido.
+
+### Los campos numéricos
+
+Todo input de número usa `v-number-input`, con esta forma:
+
+```vue
+<v-number-input
+  v-model.number="transaccion"
+  control-variant="hidden"
+  label="Pago en transacción"
+  type="number"
+  min="0"
+  step="0.01"
+  variant="outlined"
+  density="comfortable"
+  hide-details
+/>
+```
+
+Lo que importa de ese bloque, pieza por pieza:
+
+- **`v-model.number`** — sin el modificador el valor viaja como string y el backend recibe `"150"` donde espera `150`. Es el mismo error que ya documentó §7 con los ids de los `v-select`.
+- **`control-variant="hidden"`** — oculta las flechitas de incremento. Se escribe el número, no se pulsa cien veces.
+- **`min="0"` y `step="0.01"`** — montos y cantidades, nunca negativos, dos decimales.
+- **`variant="outlined"` + `density="comfortable"`** — es lo que usan los formularios del proyecto; mezclarlo con `density="compact"` dentro del mismo `v-row` se nota.
+- **`hide-details`** — sin reservar el espacio del mensaje de error debajo. Si el campo lleva `:rules`, hay que quitarlo o el mensaje no se ve.
+
+`v-number-input` es componente estable desde Vuetify 3.8 y aquí corre 3.13.4, así que lo registra el `import * as components from 'vuetify/components'` que ya está en `vuetify.js`. **No hay que importarlo de `vuetify/labs`** — lo pide la documentación vieja y falla.
+
+**Dos cosas pendientes, para quien siga:**
+
+- **`CompraForm.vue:109` ya se desvía del patrón:** usa `:step="0.01"` y `:precision="2"` enlazados, sin `type="number"`. Funciona, pero es la tercera variante en el mismo archivo. Conviene alinearlo.
+- **Quedan 13 `v-text-field type="number"`** que deberían migrar: `CompraDetalle` (4), `CompraForm` (5), `AjusteForm` (2), `MovimientoCajaForm` (1) y `ArticulosForm` (1). Migrarlos no es solo cambiar la etiqueta: hay que revisar que el `v-model` lleve `.number` y que el campo no dependa de `:rules` + mensaje visible.

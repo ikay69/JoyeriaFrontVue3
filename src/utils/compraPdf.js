@@ -65,7 +65,9 @@ export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
     `Fecha: ${formatearFecha(cabecera.compraFecha)}`,
     `Documento soporte: ${cabecera.compraDocumentoSoporte || '-'}`,
     `Tipo: ${cabecera.compraTipoCompra}`,
-    `Tercero: ${cabecera.compraTercero} (${cabecera.compraTerceroTipoDoc || ''} ${cabecera.compraTerceroNumeroDoc || ''})`
+    `Tercero: ${cabecera.compraTercero} (${cabecera.compraTerceroTipoDoc || ''} ${cabecera.compraTerceroNumeroDoc || ''})`,
+    `Estado de pago: ${cabecera.compraEstadoPago}`,
+    `Estado de inventario: ${cabecera.compraEstadoInventario}`,
   ]
   datos.forEach((linea) => {
     doc.text(linea, margen, y)

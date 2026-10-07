@@ -8,6 +8,83 @@
     </div>
 
     <v-card class="pa-4">
+      
+      <v-row dense align="center" class="mb-2">
+        <v-col cols="12" sm="12">
+          <div class="d-flex align-center">
+            <v-btn icon="mdi-account-search" variant="tonal" size="small" @click="dialogTercero = true" />
+            <v-text-field
+              :model-value="terceroSeleccionado ? terceroSeleccionado.Nombre : ''"
+              label="Tercero"
+              placeholder="Todos"
+              readonly
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+            <v-btn
+              v-if="terceroSeleccionado"
+              icon="mdi-close"
+              variant="text"
+              size="small"
+              title="Quitar el filtro de tercero"
+              @click="limpiarTercero"
+            />
+          </div>
+        </v-col>
+      </v-row>
+
+      
+
+      <v-row dense align="center" class="mb-2">
+        <v-col cols="6" sm="3">
+          <v-text-field
+            v-model="filtros.fechaInicio"
+            label="Desde"
+            type="date"
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-text-field
+            v-model="filtros.fechaFin"
+            label="Hasta"
+            type="date"
+            clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-select
+            v-model="filtros.EstadoPago"
+            :items="opcionesPago"
+            item-title="texto"
+            item-value="valor"
+            label="Filtar Pago"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="6" sm="3">
+          <v-select
+            v-model="filtros.EstadoInventario"
+            :items="opcionesInventario"
+            item-title="texto"
+            item-value="valor"
+            label="Filtrar Inventario"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+      </v-row>
+
       <v-row dense align="center" class="mb-2">
         <v-col cols="12" sm="3">
           <v-text-field
@@ -35,7 +112,7 @@
             hide-details
           />
         </v-col>
-        <v-col cols="6" sm="2">
+        <v-col cols="6" sm="3">
           <v-select
             v-model="filtros.orden"
             :items="opcionesOrden"
@@ -47,70 +124,22 @@
             hide-details
           />
         </v-col>
-        <v-col cols="12" sm="4">
-          <div class="d-flex ga-1 align-center">
-            <v-btn icon="mdi-account-search" variant="tonal" size="small" @click="dialogTercero = true" />
-            <v-text-field
-              :model-value="terceroSeleccionado ? terceroSeleccionado.Nombre : ''"
-              label="Tercero"
-              placeholder="Todos"
-              readonly
-              density="compact"
-              variant="outlined"
-              hide-details
-            />
-            <v-btn
-              v-if="terceroSeleccionado"
-              icon="mdi-close"
-              variant="text"
-              size="small"
-              title="Quitar el filtro de tercero"
-              @click="limpiarTercero"
-            />
-          </div>
-        </v-col>
-      </v-row>
-
-      <v-row dense align="center" class="mb-2">
-        <v-col cols="6" sm="3">
-          <v-text-field
-            v-model="filtros.fechaInicio"
-            label="Desde"
-            type="date"
-            clearable
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-        </v-col>
-        <v-col cols="6" sm="3">
-          <v-text-field
-            v-model="filtros.fechaFin"
-            label="Hasta"
-            type="date"
-            clearable
-            density="compact"
-            variant="outlined"
-            hide-details
-          />
-        </v-col>
-        <v-col cols="12" sm="2">
+        <v-col cols="12" sm="3">
           <v-btn color="primary" variant="tonal" block @click="consultar">Consultar</v-btn>
         </v-col>
       </v-row>
 
       <div style="overflow-x: auto;">
-        <v-table density="compact">
+        <v-table class="tabla-listado" density="compact">
           <thead>
             <tr>
               <th>Fecha</th>
               <th>Documento</th>
               <th>Tercero</th>
               <th>Tipo</th>
-              <th class="text-end">Subtotal</th>
-              <th class="text-end">Descuento</th>
-              <th class="text-end">Cancelado</th>
-              <th class="text-end">Saldo</th>
+              <th>Pago</th>
+              <th>Inventario</th>
+              <th class="text-end">Sub Total</th>
               <th class="text-center">Estado</th>
               <th class="text-center">Acciones</th>
             </tr>
@@ -136,10 +165,9 @@
                 </div>
               </td>
               <td>{{ com.compraTipoCompra }}</td>
+              <td>{{ com.compraEstadoPago}}</td>
+              <td>{{com.compraEstadoInventario}}</td>
               <td class="text-end">{{ formatearMoneda(com.compraSubtotal) }}</td>
-              <td class="text-end">{{ formatearMoneda(com.compraDescuento) }}</td>
-              <td class="text-end">{{ formatearMoneda(com.compraCancelado) }}</td>
-              <td class="text-end">{{ formatearMoneda(com.compraSaldo) }}</td>
               <td class="text-center">
                 <v-chip :color="com.compraEstado === 1 ? 'success' : 'error'" size="small" variant="tonal">
                   {{ com.compraEstado === 1 ? 'Activa' : 'Anulada' }}
@@ -207,16 +235,13 @@ export default {
       imprimiendoId: null,
       filtros: {
         textoFiltro: '',
-        // campoOrdenar es OBLIGATORIO: sin el, getallcompra responde 400. Arranca en 5
-        // (FechaCreacion) con DESC para mostrar lo ultimo comprado primero.
         campoOrdenar: 5,
         orden: 'DESC',
-        // 0 significa "todos los terceros". NUNCA null: el backend responde 400 con null y con
-        // cualquier negativo. No existe el caso -1 ("sin tercero") de Ventas, porque
-        // Compras.TerceroId es NOT NULL.
         idTercero: 0,
         fechaInicio: null,
-        fechaFin: null
+        fechaFin: null,
+        EstadoPago:'',
+        EstadoInventario:''
       },
       opcionesCampoOrdenar: [
         { valor: 1, texto: 'Documento soporte' },
@@ -228,6 +253,17 @@ export default {
       opcionesOrden: [
         { valor: 'ASC', texto: 'Ascendente' },
         { valor: 'DESC', texto: 'Descendente' }
+      ],
+      opcionesPago:[
+        { valor: '', texto: 'Todos' },
+        { valor: 'PENDIENTE', texto: 'Pago pendiente' },
+        { valor: 'PARCIAL', texto: 'Pago parcial' },
+        { valor: 'COMPLETO', texto: 'Pago completo' }
+      ],
+      opcionesInventario:[
+        { valor: '', texto: 'Todos' },
+        { valor: 'PENDIENTE', texto: 'Pendiente agregar al inventario' },
+        { valor: 'COMPLETO', texto: 'Completo agregado al inventario' }
       ]
     }
   },
@@ -276,19 +312,18 @@ export default {
 
       this.cargando = true
       try {
+        console.log(this.EstadoPago)
         const { data } = await compraService.getAll({
           idEmpresa: this.idEmpresa,
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
           pagina,
           textoFiltro: this.filtros.textoFiltro || '',
-          // `|| 0` cubre el null que deja el clearable y el undefined inicial: el backend
-          // responde 400 Tercero invalido con null, y 0 es "todos".
           idTercero: this.filtros.idTercero || 0,
-          // ausente, vacio o null es "sin cota por ese lado", y las dos cotas son
-          // independientes: se puede mandar solo una.
           fechaInicio: this.filtros.fechaInicio || null,
-          fechaFin: this.filtros.fechaFin || null
+          fechaFin: this.filtros.fechaFin || null,
+          EstadoPago: this.filtros.EstadoPago,
+          EstadoInventario:this.filtros.EstadoInventario
         })
         this.compras = data.data || []
         this.cantData = data.cantData || 0
@@ -356,3 +391,26 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* El encabezado toma el mismo primary del tema definido en src/plugins/vuetify.js */
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:first-child) {
+  border-top-left-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
+  border-top-right-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
+  background-color: rgba(var(--v-theme-primary), 0.06);
+}
+</style>
