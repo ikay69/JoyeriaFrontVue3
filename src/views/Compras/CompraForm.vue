@@ -12,22 +12,36 @@
 
     <v-card class="pa-6 mt-4" elevation="1">
       <v-form ref="form" @submit.prevent="confirmar">
-        <div class="mb-1 text-subtitle-2">Tercero</div>
+        <div class="mb-1 text-subtitle-2">Proveedor</div>
         <div class="d-flex ga-2 mb-2">
-          <v-btn icon="mdi-arrow-right" variant="tonal" @click="dialogTercero = true" />
+          <v-btn icon="mdi-account-search" variant="tonal" @click="dialogTercero = true" />
           <v-text-field
             :model-value="terceroSeleccionado ? terceroSeleccionado.Nombre : ''"
             readonly
-            placeholder="Seleccione un tercero"
+            placeholder="Seleccione un proveedor"
             variant="outlined"
             density="comfortable"
             hide-details
             class="flex-grow-1"
           />
         </div>
-
-         
-
+        
+        <!--
+        <div class="d-flex align-center ga-2 mb-4">
+        <span class="text-body-1 font-weight-medium text-no-wrap">
+          Documento de soporte:
+        </span>
+        <v-text-field
+          v-model="documentoSoporte"
+          maxlength="50"
+          variant="underlined"
+          density="compact"
+          hide-details
+          style="max-width: 250px;"
+        />
+      </div>
+      -->
+      
         <v-row dense class="mb-2">
           <v-col cols="12" sm="4">
             <v-text-field
@@ -49,10 +63,6 @@
               hide-details
             />
           </v-col>
-
-        </v-row>
-
-        <v-row dense class="mb-2">
           <v-col cols="12" sm="4">
             <v-text-field
               v-model="documentoSoporte"
