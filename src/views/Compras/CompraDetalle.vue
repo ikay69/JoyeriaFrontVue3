@@ -523,6 +523,7 @@ export default {
       // entonces su propio numero esta por encima del tope de edicion: se recuerda para poder
       // ofrecerselo y aceptarlo, y no dejarla atrapada sin ningun valor elegible.
       numCuotaOriginal: null,
+      
 
       dialogCredito: false,
       guardandoCredito: false,
