@@ -53,7 +53,7 @@
     </v-card>
 
     <v-card elevation="1">
-      <v-table>
+      <v-table class="tabla-listado">
         <thead>
           <tr>
             <th>Nombre</th>
@@ -194,3 +194,26 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* El encabezado toma el mismo primary del tema definido en src/plugins/vuetify.js */
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:first-child) {
+  border-top-left-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
+  border-top-right-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
+  background-color: rgba(var(--v-theme-primary), 0.06);
+}
+</style>

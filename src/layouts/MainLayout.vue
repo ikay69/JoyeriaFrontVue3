@@ -97,6 +97,7 @@
         </v-list-group>
 
         
+        <v-list-item :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Orden de producción" />
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
         <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños"class="bg-red text-white" />
         <v-list-item :to="{ name: 'Abonos' }" prepend-icon="mdi-cash-plus" title="Abonos" class="bg-red text-white"/>
