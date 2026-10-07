@@ -34,6 +34,17 @@ export default {
     // payload: { idEmpresa, idCuota, NumCuota, ValorCuota, FechaPago, Estado }
     return http.put('/compra/updatecompracuota', payload)
   },
+
+  updateEstadoPago(payload) {
+    // payload: { idEmpresa, idCompra, EstadoPago}
+    return http.put('/compra/updateestadopagocompra', payload)
+  },
+
+  updateEstadoInventario(payload) {
+    // payload: { idEmpresa, idCompra, EstadoInventario }
+    return http.put('/compra/updateestadoinventariocompra', payload)
+  },
+
   deleteCuota(payload) {
     // payload: { idEmpresa, idCuota }
     // OJO: axios manda el cuerpo de un DELETE en la propiedad `data` de la config, NO como
