@@ -216,6 +216,26 @@ const routes = [
 
 
 
+      // Orden de produccion
+      // Tres rutas, pero la tercera es un DETALLE y no un editar: una orden de produccion no
+      // se edita ni se anula, el backend solo tiene alta y consulta.
+      {
+        path: 'orden-produccion',
+        name: 'OrdenProduccionList',
+        component: () => import('@/views/OrdenProduccion/OrdenProduccionList.vue')
+      },
+      {
+        path: 'orden-produccion/nueva',
+        name: 'OrdenProduccionNueva',
+        component: () => import('@/views/OrdenProduccion/OrdenProduccionForm.vue')
+      },
+      {
+        path: 'orden-produccion/:EmpId/:OrdId',
+        name: 'OrdenProduccionDetalle',
+        component: () => import('@/views/OrdenProduccion/OrdenProduccionDetalle.vue'),
+        props: true
+      },
+
       // Prestamos / Empenos / Abonos / Gastos
       { path: 'prestamos', name: 'Prestamos', component: () => import('@/views/Prestamos/Prestamos.vue') },
       { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/Empenos.vue') },

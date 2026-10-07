@@ -47,6 +47,7 @@
       </v-btn>
     </div>
 
+
     <div v-if="cargando" class="text-center py-12">
       <v-progress-circular indeterminate color="primary" size="48" />
     </div>
@@ -54,78 +55,88 @@
     <template v-else-if="compra">
       <v-card class="pa-6 mb-4" elevation="1">
         <div class="text-subtitle-2 mb-3">Cabecera</div>
+
         <v-row dense>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Fecha</div>
-            <div>{{ formatearFecha(compra.compraFecha) }}</div>
+          <v-col cols="12" md="6">
+            <div class="campo">
+              <span class="campo-rotulo">Fecha:</span>
+              <span>{{ formatearFecha(compra.compraFecha) }}</span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Documento de soporte:</span>
+              <span>{{ compra.compraDocumentoSoporte || '-' }}</span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Tipo de compra:</span>
+              <span>{{ compra.compraTipoCompra }}</span>
+            </div>
           </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Documento soporte</div>
-            <div>{{ compra.compraDocumentoSoporte || '-' }}</div>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Tipo de compra</div>
-            <div>{{ compra.compraTipoCompra }}</div>
-          </v-col>
-          <v-col cols="12" sm="8">
-            <div class="text-caption text-medium-emphasis">Tercero</div>
-            <div>
-              {{ compra.compraTercero }}
-              <span class="text-medium-emphasis">
-                ({{ compra.compraTerceroTipoDoc || '' }} {{ compra.compraTerceroNumeroDoc || '' }})
-              </span>
+          <v-col cols="12" md="6">
+            <div class="campo">
+              <span class="campo-rotulo">Estado de pago:</span>
+              <span>{{ compra.compraEstadoPago }}</span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Estado de inventario:</span>
+              <span>{{ compra.compraEstadoInventario }}</span>
             </div>
           </v-col>
         </v-row>
 
         <v-divider class="my-4" />
 
-        <v-row dense>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis">Subtotal</div>
-            <div>{{ formatearMoneda(compra.compraSubtotal) }}</div>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis">Descuento</div>
-            <div>{{ formatearMoneda(compra.compraDescuento) }}</div>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis">Cancelado</div>
-            <div>{{ formatearMoneda(compra.compraCancelado) }}</div>
-          </v-col>
-          <v-col cols="6" sm="3">
-            <div class="text-caption text-medium-emphasis">Saldo</div>
-            <div class="font-weight-medium">{{ formatearMoneda(compra.compraSaldo) }}</div>
-          </v-col>
-        </v-row>
+        <div class="campo">
+          <span class="campo-rotulo">Tercero:</span>
+          <span>{{ terceroCompleto }}</span>
+        </div>
 
-        <template v-if="esCredito">
-          <v-divider class="my-4" />
-          <v-row dense>
-            <v-col cols="6" sm="4">
-              <div class="text-caption text-medium-emphasis">Número de cuotas</div>
-              <div>{{ compra.compraNumeroCuotas ?? '-' }}</div>
-            </v-col>
-            <v-col cols="6" sm="4">
-              <div class="text-caption text-medium-emphasis">Valor de la cuota</div>
-              <div>
+        <v-divider class="my-4" />
+
+        <v-row dense>
+          <v-col cols="12" md="6">
+            <div class="campo">
+              <span class="campo-rotulo">Subtotal:</span>
+              <span>{{ formatearMoneda(compra.compraSubtotal) }}</span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Descuento:</span>
+              <span>{{ formatearMoneda(compra.compraDescuento) }}</span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Cancelado:</span>
+              <span>{{ formatearMoneda(compra.compraCancelado) }}</span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Saldo:</span>
+              <span class="font-weight-medium">{{ formatearMoneda(compra.compraSaldo) }}</span>
+            </div>
+          </v-col>
+          <!-- Las cuotas solo existen en CREDITO; en CONTADO la columna no se dibuja. -->
+          <v-col v-if="esCredito" cols="12" md="6">
+            <div class="campo">
+              <span class="campo-rotulo">Número cuotas:</span>
+              <span>{{ compra.compraNumeroCuotas ?? '-' }}</span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Valor cuota:</span>
+              <span>
                 {{ compra.compraValorCuota === null || compra.compraValorCuota === undefined
                   ? 'Valores distintos (ver detalle)'
                   : formatearMoneda(compra.compraValorCuota) }}
-              </div>
-            </v-col>
-            <v-col cols="6" sm="4">
-              <div class="text-caption text-medium-emphasis">Fecha de compromiso</div>
-              <div>{{ compra.compraFechaCompromiso ? formatearFecha(compra.compraFechaCompromiso) : '-' }}</div>
-            </v-col>
-          </v-row>
-        </template>
+              </span>
+            </div>
+            <div class="campo">
+              <span class="campo-rotulo">Fecha compromiso:</span>
+              <span>{{ compra.compraFechaCompromiso ? formatearFecha(compra.compraFechaCompromiso) : '-' }}</span>
+            </div>
+          </v-col>
+        </v-row>
       </v-card>
 
       <v-card class="pa-6 mb-4" elevation="1">
         <div class="text-subtitle-2 mb-3">Artículos comprados</div>
         <div style="overflow-x: auto;">
-          <v-table density="compact">
+          <v-table density="compact" class="tabla-listado">
             <thead>
               <tr>
                 <th>Artículo</th>
@@ -167,7 +178,7 @@
             Agregar cuota
           </v-btn>
         </div>
-        <v-table density="compact">
+        <v-table density="compact" class="tabla-listado">
           <thead>
             <tr>
               <th style="width: 80px">N°</th>
@@ -426,10 +437,6 @@ export default {
       compra: null,
       lineas: [],
       cuotas: [],
-      // Crear y editar no comparten dialogo, ni formulario, ni bandera de guardado: son dos
-      // operaciones con endpoint, payload y validacion distintos. Con un formulario unico el modo
-      // se deducia de una variable centinela, y un dato del flujo anterior podia viajar en el
-      // payload del siguiente.
       dialogNueva: false,
       guardandoNueva: false,
       formNueva: { NumCuota: null, ValorCuota: null, FechaPago: null, Estado: 'PENDIENTE' },
@@ -476,9 +483,6 @@ export default {
       return empresa ? empresa.Nombre : ''
     },
 
-    // La empresa sale de la URL, NO del store. Si el usuario cambia de empresa en la barra
-    // superior con el detalle abierto, anularcompra y las cuotas tienen que seguir apuntando a
-    // la compra correcta. Por eso el :EmpId de la ruta no es decorativo.
     idEmpresa() {
       return Number(this.$route.params.EmpId)
     },
@@ -491,6 +495,16 @@ export default {
     },
     esCredito() {
       return this.compra?.compraTipoCompra === 'CREDITO'
+    },
+    // El mockup pide "CC 1234 PEPE GARNCA": tipo de documento, numero y nombre, en ese orden.
+    terceroCompleto() {
+      if (!this.compra) return '-'
+      const partes = [
+        this.compra.compraTerceroTipoDoc,
+        this.compra.compraTerceroNumeroDoc,
+        this.compra.compraTercero
+      ].filter(Boolean)
+      return partes.length ? partes.join(' ') : '-'
     },
     // Las cuotas pactadas en la cabecera. Es el tope del que salen los dos rangos de abajo.
     cuotasPactadas() {
@@ -602,9 +616,7 @@ export default {
       }
     },
 
-    // cuoEstado 'CANCELADA' significa PAGADA (sentido coloquial de "cancelar una cuota"), mientras
-    // compraEstado 0 significa ANULADA. Son opuestos con nombres parecidos y en la misma
-    // pantalla, asi que el front traduce: al backend siguen viajando PENDIENTE y CANCELADA.
+    
     etiquetaEstadoCuota(estado) {
       return estado === 'CANCELADA' ? 'Pagada' : 'Pendiente'
     },
@@ -639,8 +651,6 @@ export default {
       this.dialogEdicion = true
     },
 
-    // POST /compra/newcompracuota. Es el unico sitio que lo llama: no comparte nada con
-    // editarCuota salvo el service.
     async crearCuota() {
       const numero = Number(this.formNueva.NumCuota)
       // Se revalida aqui aunque el v-select ya acote los valores: cuando no queda ningun numero
@@ -734,10 +744,7 @@ export default {
       }
     },
 
-    // Vacio es null de verdad; cualquier otra cosa pasa por Number. Un NaN se devuelve tal cual,
-    // para que lo rechacen las validaciones de guardarCredito y no se confunda con un vacio.
-    // Hace falta porque Number('') es 0: sin esto, vaciar un campo viajaria como 0 y el backend
-    // lo rechazaria por "mayor a cero" en vez de entenderlo como "ponlo en NULL".
+    
     aNumeroONulo(valor) {
       if (valor === '' || valor === null || valor === undefined) return null
       return Number(valor)
@@ -806,15 +813,10 @@ export default {
           idEmpresa: this.idEmpresa,
           idCompra: this.idCompra,
           NumeroCuotas: numeroCuotas,
-          // decimal(12,2): se redondea aqui para que el valor que quede guardado sea el que el
-          // usuario escribio, y no uno con mas decimales que la columna recorta por su cuenta.
           ValorCuota: valorCuota === null ? null : Math.round(valorCuota * 100) / 100
         })
         this.dialogCredito = false
         await Swal.fire('Éxito', data.msg || 'Crédito de la compra actualizado', 'success')
-        // Recarga, no parche local: compraNumeroCuotas es justo lo que alimenta cuotasPactadas y
-        // con ella los rangos de numerosParaCrear y numerosParaEditar. Si el front se lo
-        // inventara, los dos dialogos de cuota quedarian ofreciendo numeros de un plan viejo.
         await this.cargar()
       } catch (error) {
         const mensaje =
@@ -828,8 +830,6 @@ export default {
     async borrarCuota(cuota) {
       const { isConfirmed } = await Swal.fire({
         title: `¿Borrar la cuota ${cuota.cuoNumCuota}?`,
-        // Es el unico DELETE real del proyecto: esta tabla no tiene estado de fila y sus datos no
-        // son contables. Decirlo evita que alguien lo trate como un "inactivar".
         text: 'Se borra de forma definitiva y no hay forma de recuperarla.',
         icon: 'warning',
         showCancelButton: true,
@@ -881,3 +881,47 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+/* El encabezado toma el mismo primary del tema definido en src/plugins/vuetify.js */
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:first-child) {
+  border-top-left-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
+  border-top-right-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
+  background-color: rgba(var(--v-theme-primary), 0.06);
+}
+
+/* Cabecera: rotulo a la izquierda y valor alineado en columna, como el mockup. */
+.campo {
+  display: grid;
+  grid-template-columns: 190px 1fr;
+  column-gap: 12px;
+  padding: 3px 0;
+  align-items: baseline;
+}
+
+.campo-rotulo {
+  color: rgba(var(--v-theme-on-surface), var(--v-medium-emphasis-opacity));
+}
+
+/* En pantalla angosta el rotulo de 190px no cabe: se apila. */
+@media (max-width: 599px) {
+  .campo {
+    grid-template-columns: 1fr;
+    column-gap: 0;
+  }
+}
+</style>
