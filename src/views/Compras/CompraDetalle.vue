@@ -19,32 +19,75 @@
           Una compra no se edita: la única operación correctiva es anularla.
         </p>
       </div>
-      <v-btn
-        v-if="compra"
-        variant="tonal"
-        prepend-icon="mdi-printer"
-        @click="imprimir"
-      >
-        Imprimir
-      </v-btn>
-      <v-btn
-        v-if="compra && esCredito && esActiva"
-        variant="tonal"
-        prepend-icon="mdi-cash-sync"
-        @click="abrirCredito"
-      >
-        Cambiar cuota
-      </v-btn>
-      <v-btn
-        v-if="compra && esActiva"
-        color="error"
-        variant="flat"
-        prepend-icon="mdi-cancel"
-        :loading="anulando"
-        @click="anular"
-      >
-        Anular compra
-      </v-btn>
+
+    </div>
+
+    <div class="d-flex align-center ga-3 mb-4">
+      <v-row dense>
+        <v-col cols="12" md="4">
+          <v-btn
+            v-if="compra"
+            variant="tonal"
+            prepend-icon="mdi-printer"
+            @click="imprimir"
+          >
+            Imprimir
+          </v-btn>
+        </v-col>
+      
+        <v-col cols="12" md="4">
+          <v-btn
+            v-if="compra && esCredito && esActiva"
+            variant="tonal"
+            prepend-icon="mdi-cash-sync"
+            @click="abrirCredito"
+          >
+            Cambiar cuota
+          </v-btn>
+        </v-col>
+
+        <v-col cols="12" md="4">
+          <v-btn
+            v-if="compra && esActiva"
+            color="error"
+            variant="flat"
+            prepend-icon="mdi-cancel"
+            :loading="anulando"
+            @click="anular"
+          >
+            Anular compra
+          </v-btn>
+        </v-col>
+      </v-row>
+          
+     
+    </div>
+
+    <div class="d-flex align-center ga-3 mb-4">
+       <v-row dense>
+        <v-col cols="12" md="4">
+          <v-btn
+            v-if="compra && esActiva"
+            variant="tonal"
+            prepend-icon="mdi-cash-multiple"
+            @click="abrirEstadoPago"
+          >
+            Cambiar Estado Pago
+          </v-btn>
+        </v-col>
+
+        <v-col cols="12" md="4">
+          <v-btn
+            v-if="compra  && esActiva"
+            variant="tonal"
+            prepend-icon="mdi-invoice-send"
+            @click="abrirEstadoInventario"
+          >
+            Cambiar Estado inventario
+          </v-btn>
+        </v-col>
+
+      </v-row>
     </div>
 
 
@@ -245,11 +288,7 @@
       </v-card>
     </template>
 
-    <!-- Dos dialogos y no uno con v-if: crear y editar van a endpoints distintos
-         (newcompracuota / updatecompracuota), piden campos distintos (idCompra vs idCuota) y
-         validan NumCuota contra topes distintos. Con un solo dialogo cada una de esas tres cosas
-         era un ternario sobre "estoy editando", y el formulario compartido era la via por la que
-         un resto del flujo anterior viajaba en el payload del siguiente. -->
+   
     <v-dialog v-model="dialogNueva" max-width="520">
       <v-card class="pa-4">
         <div class="d-flex align-center justify-space-between mb-4">
@@ -332,9 +371,7 @@
         <v-text-field
           v-model.number="formEdicion.ValorCuota"
           label="Valor de la cuota"
-          type="number"
-          min="0"
-          step="0.01"
+          type="number" min="0" step="0.01"
           variant="outlined"
           density="comfortable"
           class="mb-2"
@@ -371,6 +408,7 @@
         </div>
       </v-card>
     </v-dialog>
+
     <v-dialog v-model="dialogCredito" max-width="520">
       <v-card class="pa-4">
         <div class="d-flex align-center justify-space-between mb-4">
@@ -386,13 +424,9 @@
         <v-text-field
           v-model="formCredito.NumeroCuotas"
           label="Número de cuotas"
-          type="number"
-          min="1"
-          step="1"
+          type="number" min="1" step="1"
           clearable
-          variant="outlined"
-          density="comfortable"
-          class="mb-2"
+          class="mb-2" variant="outlined" density="comfortable"
           hint="Vaciarlo deja la cabecera sin número de cuotas"
           persistent-hint
         />
@@ -400,13 +434,9 @@
         <v-text-field
           v-model="formCredito.ValorCuota"
           label="Valor de la cuota"
-          type="number"
-          min="0"
-          step="0.01"
+          type="number"  min="0" step="0.01"
           clearable
-          variant="outlined"
-          density="comfortable"
-          class="mb-2"
+          class="mb-2" variant="outlined" density="comfortable"
           hint="Vaciarlo lo deja como «valores distintos»: cada cuota con el suyo"
           persistent-hint
         />
@@ -415,6 +445,46 @@
           <v-btn variant="outlined" @click="dialogCredito = false">Cancelar</v-btn>
           <v-btn color="primary" :loading="guardandoCredito" @click="guardarCredito">Guardar</v-btn>
         </div>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialogEstadoPago" max-width="520">
+      <v-card class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <span class="text-h6">Cambiar estado de pago</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogEstadoPago = false" />
+        </div>
+
+        <p class="text-caption text-medium-emphasis mb-4">
+          Cambiar el estado de pago de PENDIENTE por pagar a pago COMPLETO <br />
+          Cambiar el estado de pago de PENDIENTE por pagar a pago PARCIAL <br />
+          Cambiar el estado de pago de PARCIAL a pago COMPLETO
+        </p>
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn variant="outlined" @click="dialogEstadoPago = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoCredito" @click="guardarCredito">Guardar</v-btn>
+        </div>
+
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialogEstadoInvetario" max-width="520">
+      <v-card class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <span class="text-h6">Cambiar estado de inventario</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogEstadoInvetario = false" />
+        </div>
+
+        <p class="text-caption text-medium-emphasis mb-4">
+          Cambia el estado de inventario de PENDIENTE a COMPLETO se registran los artículos al sistema
+        </p>
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn variant="outlined" @click="dialogEstadoInvetario = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoCredito" @click="guardarCredito">Guardar</v-btn>
+        </div>
+
       </v-card>
     </v-dialog>
 
@@ -453,9 +523,12 @@ export default {
       // entonces su propio numero esta por encima del tope de edicion: se recuerda para poder
       // ofrecerselo y aceptarlo, y no dejarla atrapada sin ningun valor elegible.
       numCuotaOriginal: null,
+      
 
       dialogCredito: false,
       guardandoCredito: false,
+      dialogEstadoPago: false,
+      dialogEstadoInvetario: false,
       // Los dos campos son opcionales y vaciarlos es una operacion con sentido, no un olvido:
       // viaja null y el backend pone el campo en NULL. Se guardan como texto, sin .number, para
       // poder distinguir "vacio" de "cero": con v-model.number un clearable vaciado y un 0
@@ -751,9 +824,6 @@ export default {
     },
 
     abrirCredito() {
-      // Precargado con lo que hay hoy: el usuario tiene que ver de que valores parte antes de
-      // cambiarlos. compraValorCuota puede venir null —es el estado "valores distintos"— y
-      // entonces el campo abre vacio, que es exactamente lo que representa.
       this.formCredito = {
         NumeroCuotas: this.compra.compraNumeroCuotas ?? null,
         ValorCuota:
@@ -763,6 +833,30 @@ export default {
       }
       this.dialogCredito = true
     },
+
+    abrirEstadoPago() {
+      this.formCredito = {
+        NumeroCuotas: this.compra.compraNumeroCuotas ?? null,
+        ValorCuota:
+          this.compra.compraValorCuota === null || this.compra.compraValorCuota === undefined
+            ? null
+            : Number(this.compra.compraValorCuota)
+      }
+      this.dialogEstadoPago = true
+    },
+
+    abrirEstadoInventario() {
+      this.formCredito = {
+        NumeroCuotas: this.compra.compraNumeroCuotas ?? null,
+        ValorCuota:
+          this.compra.compraValorCuota === null || this.compra.compraValorCuota === undefined
+            ? null
+            : Number(this.compra.compraValorCuota)
+      }
+      this.dialogEstadoInvetario = true
+    },
+
+
 
     async guardarCredito() {
       const numeroCuotas = this.aNumeroONulo(this.formCredito.NumeroCuotas)
@@ -785,10 +879,6 @@ export default {
         return
       }
 
-      // Se bloquea en vez de avisar: dejar cuotas registradas por encima del plan es un estado
-      // que ninguna otra pantalla sabe representar, y las cuotas sobrantes no se borran solas.
-      // Vaciar NumeroCuotas cae en la misma regla, porque vacio es un plan de cero cuotas y
-      // entonces cualquier cuota registrada queda fuera.
       const tope = numeroCuotas ?? 0
       const sobrantes = this.cuotas
         .map((cuota) => Number(cuota.cuoNumCuota))
@@ -825,6 +915,14 @@ export default {
       } finally {
         this.guardandoCredito = false
       }
+    },
+
+    async guardarEstadoPago(){
+
+    },
+
+    async guardarEstadoInventario(){
+
     },
 
     async borrarCuota(cuota) {
