@@ -199,7 +199,9 @@ const routes = [
         props: true
       },
 
-      { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/VentasList.vue') },
+      { path: 'ventas', name: 'Ventas', 
+        component: () => import('@/views/Ventas/VentasList.vue') 
+      },
       {
         path: 'ventas/nueva',  name: 'VentasNuevo',
         component: () => import('@/views/Ventas/VentasForm.vue')

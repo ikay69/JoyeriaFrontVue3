@@ -16,7 +16,6 @@ export default {
     // payload: { idEmpresa, idTercero, idVendedor, TipoVenta, ValorDescuento,
     //            ValorEfectivo, ValorTransaccion,
     //            Articulos: [{ idBodega, idArticulo, Cantidad, PrecioVentaUnidad }] }
-    // Pendiente: aun no se definio esta ruta (la usara VentasForm.vue)
-    return http.post('/venta/newventa',payload)
+    return http.post('/venta/newventa', payload)
   }
 }
