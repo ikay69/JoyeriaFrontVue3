@@ -81,7 +81,7 @@
             />
           </template>
           <v-list-item :to="{ name: 'Vendedores' }" title="Vendedores" />
-          <v-list-item :to="{ name: 'Ventas' }" title="Ventas" class="bg-red text-white" />
+          <v-list-item :to="{ name: 'Ventas' }" title="Ventas" />
         </v-list-group>
 
 

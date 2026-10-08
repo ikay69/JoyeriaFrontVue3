@@ -90,7 +90,11 @@
                   />
                 </td>
                 <td>{{ art.artSKU }}</td>
-                <td>{{ art.artNombre }}</td>
+                <td>{{ art.artNombre }}
+                  <div v-if="art.artPropiedades" class="text-caption text-medium-emphasis">
+                    {{ art.artPropiedades }}
+                  </div>
+                </td>
                 <td>{{ art.artBodegaNombre }}</td>
                 <td class="text-right">{{ formatearCantidad(art.artCantidadDisponible) }}</td>
                 <td class="text-right">{{ formatearMoneda(art.artPrecio) }}</td>
