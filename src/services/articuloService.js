@@ -30,7 +30,7 @@ export default {
 
   getParaVenta(payload){
     //payload: {idEmpresa,idBodega,campoOrdenar,orden,pagina,textoFiltro}
-     return http.post('/articulo/getactivasarticulo', getvendiblesarticulo)
+     return http.post('/articulo/getvendiblesarticulo', payload)
   }
 
 
