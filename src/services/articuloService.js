@@ -26,6 +26,11 @@ export default {
     // Usado por ArticulosSeleccionar.vue (ventana flotante para elegir un articulo)
 
     return http.post('/articulo/getactivasarticulo', payload)
+  },
+
+  getParaVenta(payload){
+    //payload: {idEmpresa,idBodega,campoOrdenar,orden,pagina,textoFiltro}
+     return http.post('/articulo/getactivasarticulo', getvendiblesarticulo)
   }
 
 

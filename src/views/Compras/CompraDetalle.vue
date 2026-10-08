@@ -458,12 +458,21 @@
         <p class="text-caption text-medium-emphasis mb-4">
           Cambiar el estado de pago de PENDIENTE por pagar a pago COMPLETO <br />
           Cambiar el estado de pago de PENDIENTE por pagar a pago PARCIAL <br />
-          Cambiar el estado de pago de PARCIAL a pago COMPLETO
+          Cambiar el estado de pago de PARCIAL a pago COMPLETO <br />
+          <span class="text-h6" >¿Esta seguro que desea cambiar el estado de pago?</span>
         </p>
+
+        <v-select
+          v-model="EstadoPago"
+          :items="opcionesEstadoPago"
+          label="Estado" item-value="valor" item-title="texto"
+          class="mb-2" variant="outlined" density="comfortable"
+          hide-details
+        />
 
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="dialogEstadoPago = false">Cancelar</v-btn>
-          <v-btn color="primary" :loading="guardandoCredito" @click="guardarCredito">Guardar</v-btn>
+          <v-btn color="primary" :loading="guardandoEstadoPago" @click="guardarEstadoPago">Aceptar</v-btn>
         </div>
 
       </v-card>
@@ -477,12 +486,13 @@
         </div>
 
         <p class="text-caption text-medium-emphasis mb-4">
-          Cambia el estado de inventario de PENDIENTE a COMPLETO se registran los artículos al sistema
+          Cambia el estado de inventario de PENDIENTE a COMPLETO se registran los artículos al sistema  <br />
+          <span class="text-h6" >¿Esta seguro que desea cambiar el estado de inventario?</span>
         </p>
 
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="dialogEstadoInvetario = false">Cancelar</v-btn>
-          <v-btn color="primary" :loading="guardandoCredito" @click="guardarCredito">Guardar</v-btn>
+          <v-btn color="primary" :loading="guardandoEstadoInventario" @click="guardarEstadoInventario">Aceptar</v-btn>
         </div>
 
       </v-card>
@@ -519,27 +529,29 @@ export default {
       formEdicion: {
         idCuota: null, NumCuota: null, ValorCuota: null, FechaPago: null, Estado: 'PENDIENTE'
       },
-      // El numero con el que se abrio el dialogo de edicion. Una cuota puede nacer en N+1, y
-      // entonces su propio numero esta por encima del tope de edicion: se recuerda para poder
-      // ofrecerselo y aceptarlo, y no dejarla atrapada sin ningun valor elegible.
+
       numCuotaOriginal: null,
       
-
       dialogCredito: false,
       guardandoCredito: false,
+
+      EstadoPago:'',
       dialogEstadoPago: false,
+      guardandoEstadoPago: false,
+
       dialogEstadoInvetario: false,
-      // Los dos campos son opcionales y vaciarlos es una operacion con sentido, no un olvido:
-      // viaja null y el backend pone el campo en NULL. Se guardan como texto, sin .number, para
-      // poder distinguir "vacio" de "cero": con v-model.number un clearable vaciado y un 0
-      // tecleado llegan iguales, y uno significa NULL y el otro es un valor que el backend
-      // rechaza.
+      guardandoEstadoInventario: false,
+
       formCredito: { NumeroCuotas: null, ValorCuota: null },
       // 'CANCELADA' significa PAGADA. Al backend viajan los valores del contrato; el usuario lee
-      // la palabra de la derecha.
       opcionesEstadoCuota: [
         { valor: 'PENDIENTE', texto: 'Pendiente' },
         { valor: 'CANCELADA', texto: 'Pagada' }
+      ],
+
+      opcionesEstadoPago:[
+        { valor: 'PARCIAL', texto: 'Parcial' },
+        { valor: 'COMPLETO', texto: 'Completo' },
       ]
     }
   },
@@ -678,8 +690,6 @@ export default {
           MotivoAnulacion: String(motivo).trim()
         })
         await Swal.fire('Éxito', data.msg || 'Compra anulada', 'success')
-        // Se recarga en vez de parchear el estado local: una llamada, y la pantalla se
-        // reconfigura sola (chip rojo, boton fuera, tarjeta de anulacion).
         await this.cargar()
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo anular la compra'
@@ -779,6 +789,8 @@ export default {
       // El tope son las pactadas, con la excepcion del numero con el que se abrio el dialogo: una
       // cuota que ya vivia en N+1 puede quedarse ahi, pero ninguna puede SUBIR sobre el tope.
       if (numero > this.cuotasPactadas && numero !== this.numCuotaOriginal) {
+        this.dialogCredito = false;
+
         Swal.fire(
           'Atención',
           `El número de cuota no puede pasar de ${this.cuotasPactadas}, que son las cuotas ` +
@@ -794,10 +806,6 @@ export default {
 
       this.guardandoEdicion = true
       try {
-        // Se envian los cuatro campos siempre. El endpoint conserva lo que no venga, pero
-        // mandarlo todo hace que vaciar la fecha llegue como FechaPago: null —que SI es un
-        // cambio, es como se borra una fecha ya puesta— y que un campo intacto viaje con su
-        // propio valor, que es un no-op.
         const { data } = await compraService.updateCuota({
           idEmpresa: this.idEmpresa,
           idCuota: this.formEdicion.idCuota,
@@ -810,6 +818,7 @@ export default {
         await Swal.fire('Éxito', data.msg || 'Cuota actualizada', 'success')
         await this.cargar()
       } catch (error) {
+        this.dialogEdicion = false
         const mensaje = error.response?.data?.msg || 'No se pudo actualizar la cuota'
         Swal.fire('Error', mensaje, 'error')
       } finally {
@@ -835,30 +844,17 @@ export default {
     },
 
     abrirEstadoPago() {
-      this.formCredito = {
-        NumeroCuotas: this.compra.compraNumeroCuotas ?? null,
-        ValorCuota:
-          this.compra.compraValorCuota === null || this.compra.compraValorCuota === undefined
-            ? null
-            : Number(this.compra.compraValorCuota)
-      }
       this.dialogEstadoPago = true
     },
 
     abrirEstadoInventario() {
-      this.formCredito = {
-        NumeroCuotas: this.compra.compraNumeroCuotas ?? null,
-        ValorCuota:
-          this.compra.compraValorCuota === null || this.compra.compraValorCuota === undefined
-            ? null
-            : Number(this.compra.compraValorCuota)
-      }
       this.dialogEstadoInvetario = true
     },
 
 
 
     async guardarCredito() {
+   
       const numeroCuotas = this.aNumeroONulo(this.formCredito.NumeroCuotas)
       const valorCuota = this.aNumeroONulo(this.formCredito.ValorCuota)
 
@@ -870,6 +866,7 @@ export default {
         )
         return
       }
+      
       if (valorCuota !== null && !(valorCuota > 0)) {
         Swal.fire(
           'Atención',
@@ -886,6 +883,7 @@ export default {
         .sort((a, b) => a - b)
       if (sobrantes.length) {
         const unaSola = sobrantes.length === 1
+        this.dialogCredito = false
         Swal.fire(
           'Atención',
           `${unaSola ? 'La cuota' : 'Las cuotas'} ${sobrantes.join(', ')} ` +
@@ -905,24 +903,63 @@ export default {
           NumeroCuotas: numeroCuotas,
           ValorCuota: valorCuota === null ? null : Math.round(valorCuota * 100) / 100
         })
+       
         this.dialogCredito = false
         await Swal.fire('Éxito', data.msg || 'Crédito de la compra actualizado', 'success')
         await this.cargar()
       } catch (error) {
-        const mensaje =
-          error.response?.data?.msg || 'No se pudo actualizar el crédito de la compra'
+       
+        this.dialogCredito = false;
+        const mensaje =  error.response?.data?.msg || 'No se pudo actualizar el crédito de la compra';
         Swal.fire('Error', mensaje, 'error')
       } finally {
+        
         this.guardandoCredito = false
       }
     },
 
     async guardarEstadoPago(){
+      this.guardandoEstadoPago = true
+      try {
+        const { data } = await compraService.updateEstadoPago({
+          idEmpresa: this.idEmpresa,
+          idCompra: this.idCompra,
+          EstadoPago: this.EstadoPago
+        })
 
+        this.dialogEstadoPago = false
+        await Swal.fire('Éxito', data.msg || 'Crédito de la compra actualizado', 'success')
+        await this.cargar()
+
+      } catch (error) {
+        this.dialogEstadoPago = false
+        const mensaje =  error.response?.data?.msg || 'No se pudo actualizar el crédito de la compra'
+        Swal.fire('Error', mensaje, 'error')
+      } finally{
+        this.guardandoEstadoPago = false
+      }
     },
 
     async guardarEstadoInventario(){
+      this.guardandoEstadoInventario = true
+      try {
+        const { data } = await compraService.updateEstadoInventario({
+          idEmpresa: this.idEmpresa,
+          idCompra: this.idCompra,
+          EstadoInventario: 'COMPLETO'
+        })
 
+        this.dialogEstadoInvetario = false
+        await Swal.fire('Éxito', data.msg || 'Crédito de la compra actualizado', 'success')
+        await this.cargar()
+
+      } catch (error) {
+        this.dialogEstadoPago = false
+        const mensaje =  error.response?.data?.msg || 'No se pudo actualizar el crédito de la compra'
+        Swal.fire('Error', mensaje, 'error')
+      } finally{
+        this.guardandoEstadoInventario = false
+      }
     },
 
     async borrarCuota(cuota) {
