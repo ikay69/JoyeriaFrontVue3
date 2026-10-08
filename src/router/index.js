@@ -199,10 +199,17 @@ const routes = [
         props: true
       },
 
+      { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/VentasList.vue') },
+      {
+        path: 'ventas/nueva',  name: 'VentasNuevo',
+        component: () => import('@/views/Ventas/VentasForm.vue')
+      },
+      {
+        path: 'ventas/:EmpId/:VentaId/detalle', name: 'VentasDetalle',
+        component: () => import('@/views/Ventas/VentasDetalle.vue'),
+        props: true
+      },
 
-      { path: 'ventas', name: 'Ventas', component: () => import('@/views/Ventas/Ventas.vue') },
-
-      
       // Compras 
       { path: 'compras', name: 'ComprasList', component: () => import('@/views/Compras/ComprasList.vue') },
       { path: 'compras/nueva', name: 'CompraNueva', component: () => import('@/views/Compras/CompraForm.vue') },
