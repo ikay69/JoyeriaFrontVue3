@@ -26,13 +26,30 @@
       </v-btn>
     </v-app-bar>
 
-    <v-navigation-drawer permanent width="280">
+    <v-navigation-drawer
+      v-model="drawer"
+      :rail="rail"
+      :rail-width="wider ? 80 : 56"
+      permanent
+      width="280"
+      @click="rail = false"
+    >
       <v-list-item
         :title="usuario"
         :subtitle="rol"
         prepend-icon="mdi-account-circle"
         class="py-3"
-      />
+      >
+        <template v-slot:append>
+          <v-btn
+            :inert="rail"
+            icon="mdi-chevron-left"
+            variant="text"
+            @click.stop="rail = !rail"
+          />
+        </template>
+      </v-list-item>
+      
       <v-divider />
 
       <v-list density="compact" nav>
@@ -57,21 +74,15 @@
 
         <v-list-group value="informesInventario">
           <template #activator="{ props }">
-            <v-list-item
-              v-bind="props"
-              prepend-icon="mdi-clipboard-text-clock"
-              title="Inf inventario"
-            />
+            <v-list-item  v-bind="props"  prepend-icon="mdi-clipboard-text-clock"  title="Inf inventario"/>
           </template>
           <v-list-item :to="{ name: 'Existencias' }" title="Existencias" />
           <v-list-item :to="{ name: 'Kardex' }" title="Kardex" />
           <v-list-item :to="{ name: 'ExistenciaArticulo' }" title="Existencia artículo" />
         </v-list-group>
 
-
         <v-list-item :to="{ name: 'Terceros' }" prepend-icon="mdi-account-group" title="Terceros" />
 
-        <!--<v-list-item :to="{ name: 'Ventas' }" prepend-icon="mdi-cash-register" title="Ventas" class="bg-red text-white"/>-->
         <v-list-group value="ventas">
           <template #activator="{ props }">
             <v-list-item
@@ -84,7 +95,6 @@
           <v-list-item :to="{ name: 'Ventas' }" title="Ventas" />
         </v-list-group>
 
-
         <v-list-group value="informesCompras">
           <template #activator="{ props }">
             <v-list-item
@@ -95,11 +105,10 @@
           </template>
           <v-list-item :to="{ name: 'ComprasList' }" title="Compras" />
         </v-list-group>
-
         
-        <v-list-item :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Orden de producción" />
+        <v-list-item :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Fundir materiales" />
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
-        <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños"class="bg-red text-white" />
+        <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños" class="bg-red text-white" />
         <v-list-item :to="{ name: 'Abonos' }" prepend-icon="mdi-cash-plus" title="Abonos" class="bg-red text-white"/>
         <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos" class="bg-red text-white"/>
 
@@ -136,6 +145,13 @@ import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'MainLayout',
+  data() {
+    return {
+      drawer: true,
+      rail: true,
+      wider: false
+    }
+  },
   computed: {
     authStore() {
       return useAuthStore()
