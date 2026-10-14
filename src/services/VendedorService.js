@@ -16,6 +16,10 @@ export default {
   getById(payload) {
     // payload: { idEmpresa, idVendedor }
     return http.post('/vendedor/getidvendedor', payload)
+  },
+  getActivos(payload){
+    // payload: { idEmpresa }
+    return http.post('/vendedor/getactivosvendedor', payload)
   }
 }
  
