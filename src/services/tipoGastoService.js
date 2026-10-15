@@ -19,6 +19,6 @@ export default {
   },
   getActivas(payload){
     // payload: { idEmpresa }
-    return http.put('/tipogasto/getactivostipogasto', payload)
+    return http.post('/tipogasto/getactivostipogasto', payload)
   }
 }
