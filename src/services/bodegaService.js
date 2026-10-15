@@ -9,7 +9,7 @@ export default {
     // payload: { idEmpresa, Nombre }
     return http.post('/bodega/newbodega', payload)
   },
-    getById(payload) {
+  getById(payload) {
     // payload: { idEmpresa, idBodega }
     return http.post('/bodega/getidbodega', payload)
   },
@@ -17,7 +17,7 @@ export default {
     // payload: { idEmpresa, idBodega, Nombre, Estado }
     return http.put('/bodega/updatebodega', payload)
   },
-    getActivas(payload) {
+  getActivas(payload) {
     // payload: { idEmpresa }
     return http.post('/bodega/getactivasbodega', payload)
   }
