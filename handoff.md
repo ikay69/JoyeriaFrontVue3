@@ -1,6 +1,6 @@
 # Handoff — frontend joyeriacompraventa (Vue 3)
 
-Fecha: 2026-09-23 · última actualización: 2026-10-06 (§10 — convenciones de UI: la tabla de listado y los campos numéricos · §9 — orden de producción · §2 — el censo del `EmpId`, ahora once pantallas)
+Fecha: 2026-09-23 · última actualización: 2026-10-14 (§3 — selectores por tipo de tercero · §4 — estado actual)
 Documento **del front**. El backend tiene el suyo, aparte, en el worktree del repo `joyeriacompraventa` (`.claude/worktrees/nucleo-inventario/handoff.md`). Los dos proyectos son repos distintos, con remotos distintos.
 
 Este primer documento **no cierra una fase**: es el levantamiento del proyecto tal como está hoy, escrito para que quien retome no tenga que deducir el patrón leyendo diez archivos.
@@ -21,7 +21,7 @@ Lo mínimo para no romper nada:
 - **Compras ya está construida**, y es la pantalla más compleja del proyecto: una compra **no se edita, solo se anula**, una línea puede dar de alta un artículo que no existe, y las cuotas tienen su propio CRUD. Todo el contexto en §5. **Leerlo entero antes de tocarla.**
 - **Movimiento en caja está construido** (2026-10-05): es la primera pantalla de Contabilidad, y la quinta excepción al patrón List + Form. Contexto en §8. Dos cosas que parecen fallos y no lo son: los totales de caja **sólo** dependen de las fechas, y el Form **sólo** da de alta ajustes.
 - **Orden de producción está construido** (2026-10-06): un alta con **dos tablas** —lo consumido y lo producido— y un detalle de solo lectura. Contexto en §9. Lo que no se adivina: su listado **no acepta `campoOrdenar` ni `orden`**, así que la pantalla sale con tres filtros y no cinco, a propósito.
-- **Al navegar a un detalle o a una edición, el `EmpId` de la URL sale de la FILA, no del selector de empresa.** Es la regla que más veces se ha roto en este proyecto. Once pantallas la cumplen y tres no (`ArticulosList`, `TercerosList`, `ComprasList`). La regla, el motivo y el censo están en §2; qué hace falta para arreglar las tres, en la deuda 10 de §4.
+- **Al navegar a un detalle o a una edición, el `EmpId` de la URL sale de la FILA, no del selector de empresa.** Es la regla que más veces se ha roto en este proyecto. Once pantallas la cumplen y cinco no (`ArticulosList`, `ClientesList`, `ProveedoresList`, `TalleresList`, `ComprasList`). La regla, el motivo y el censo están en §2; qué hace falta para arreglarlas, en la deuda 10 de §4.
 - **El despliegue es manual y a propósito.** Se compila y el usuario copia `dist/` a la carpeta `Public/` del backend. Las dos carpetas no tienen relación en disco y **así se quedan**: es política de seguridad, no una tarea pendiente. No apuntes `build.outDir` al backend.
 
 **Correr el proyecto:** `npm run dev` (Vite, puerto 5173). `npm run build` deja el resultado en `dist/`, que **no** está versionado.
@@ -74,7 +74,7 @@ src/
 
 ## 2. El patrón List + Form — leer esto antes de crear un módulo
 
-Es el patrón que se repite en los **once** módulos de CRUD. La referencia canónica es **Categorías**:
+Es el patrón que se repite en los **trece** módulos de CRUD. La referencia canónica es **Categorías**:
 
 ```
 src/views/Inventario/Categorias/CategoriaList.vue
@@ -140,15 +140,15 @@ Así, si el usuario cambia de empresa en la barra superior mientras tiene abiert
 
 El motivo es el mismo que el del Form, un paso antes: **el selector de empresa vive en un `v-app-bar` persistente que no navega.** Leerlo del store al construir la URL mete en el parámetro la empresa que estaba seleccionada en ese instante, y basta con que el usuario la cambie —o con que un `watch` recargue la pantalla— para que el destino opere contra la empresa equivocada leyendo una URL que *parece* correcta. Es el mismo error de la lista de §7, solo que cometido en el List en vez de en el Form, y ahí es más difícil de ver porque el `EmpId` llega como argumento de una función y el nombre del parámetro no delata su origen.
 
-**Censo al 2026-10-06 — once pantallas la cumplen, tres no:**
+**Censo al 2026-10-14 — once pantallas la cumplen, cinco no:**
 
 | | |
 |---|---|
 | **Cumplen** (empresa de la fila) | Categorías, Bodegas, Productos, Propiedades, Tipos de producto, Unidades de medida, Tipos de documento, Tipos de gastos, Vendedores, Movimiento en caja, Orden de producción |
-| **No la cumplen** (empresa del store) | `ArticulosList` (`irAEditar(idEmpresa, …)`), `TercerosList` (`irAEditar(idEmpresa, …)`), `ComprasList` (`EmpId: this.idEmpresa`) |
+| **No la cumplen** (empresa del store) | `ArticulosList` (`irAEditar(idEmpresa, …)`), `ClientesList`, `ProveedoresList` y `TalleresList` (`irAEditar(idEmpresa, …)`), `ComprasList` (`EmpId: this.idEmpresa`) |
 | **No aplica** | `EmpresaList` (el registro *es* la empresa), `UsuarioList` (los usuarios son globales) |
 
-**Antes de arreglar las tres hay que comprobar si se puede.** Ninguna de ellas muestra hoy un alias de empresa, y las colecciones de Postman del repo **solo guardan peticiones, no respuestas**, así que no sirven para saber si el endpoint lo devuelve. Hay que mirar la respuesta real de `getallarticulo`, `getalltercero` y `getallcompra`: si traen el alias, es cambiar una línea en cada `@click`; si no lo traen, hay que pedirlo al backend primero. **No lo des por ausente sin mirar.** Ver la deuda 10 de §4.
+**Antes de arreglarlas hay que comprobar si se puede.** Ninguna de ellas muestra hoy un alias de empresa, y las colecciones de Postman del repo **solo guardan peticiones, no respuestas**, así que no sirven para saber si el endpoint lo devuelve. Hay que mirar la respuesta real de `getallarticulo`, `getalltercero` y `getallcompra`: si traen el alias, es cambiar una línea en cada `@click`; si no lo traen, hay que pedirlo al backend primero. **No lo des por ausente sin mirar.** Ver la deuda 10 de §4.
 
 ### El List
 
@@ -185,11 +185,11 @@ methods: {
 
 **Las cinco reglas del listado, que son las que se rompen al copiar:**
 
-1. **50 registros por página, y el 50 está escrito a mano en `totalPaginas`.** Es el tope del backend; no es configurable. Si alguna vez cambia, hay que tocarlo en los once List.
+1. **50 registros por página, y el 50 está escrito a mano en `totalPaginas`.** Es el tope del backend; no es configurable. Si alguna vez cambia, hay que tocarlo en los trece List.
 2. **`cantData` es el total *filtrado*, no el de la empresa.** De ahí salen las páginas. El backend garantiza que el conteo y el listado aplican los mismos filtros.
 3. **`consultar()` vuelve a la página 1; `irPagina()` no.** Cambiar un filtro y quedarse en la página 7 es la forma clásica de ver una tabla vacía sin entender por qué.
 4. **Se comprueba `idEmpresa` antes de llamar** y, si falta, se avisa con Swal y se corta. Sin empresa el backend responde error, pero el mensaje propio es más claro.
-5. **El `textoFiltro` filtra por la MISMA columna por la que se ordena.** Es una regla del backend, no del front: al ordenar por fecha de creación el filtro de texto queda desactivado del lado del servidor. Los dos selectores (`ArticulosSeleccionar`, `TercerosSeleccionar`) sí deshabilitan la caja de texto en ese caso, con un hint explicando por qué. **Los once List no lo hacen**, así que el usuario puede escribir un texto que se ignora en silencio. Ver §4.
+5. **El `textoFiltro` filtra por la MISMA columna por la que se ordena.** Es una regla del backend, no del front: al ordenar por fecha de creación el filtro de texto queda desactivado del lado del servidor. Los selectores (`ArticulosSeleccionar`, `TercerosSeleccionar`, `ClientesSeleccionar`, `ProveedoresSeleccionar`, `TalleresSeleccionar`) sí deshabilitan la caja de texto en ese caso, con un hint explicando por qué. **Los trece List no lo hacen**, así que el usuario puede escribir un texto que se ignora en silencio. Ver §4.
 
 El manejo de error es el mismo en todas partes, y conviene no inventarse otro:
 
@@ -292,23 +292,27 @@ Contrato, idéntico en los dos:
 
 Por dentro repiten los filtros y el paginado del List, dentro de un `v-dialog`. Viven en la carpeta del módulo al que pertenecen (`views/Inventario/Articulos/`), no en `components/`, aunque los consuma otro módulo.
 
+Los selectores de terceros por tipo siguen el mismo contrato de `v-model`, `id-empresa` y `@seleccionar`: `ClientesSeleccionar.vue`, `ProveedoresSeleccionar.vue` y `TalleresSeleccionar.vue` viven en sus respectivas carpetas de `views/`. Usan `/tercero/getactivosclientetercero`, `/tercero/getactivosproveedortercero` y `/tercero/getactivostallertercero`; envían `{ idEmpresa, campoOrden, orden, pagina, textoFiltro }`. Ventas usa Clientes, Compras usa Proveedores y Orden de producción usa Talleres. `TercerosSeleccionar.vue` queda para el selector sin tipo de Ajuste.
+
 ---
 
 ## 4. Estado actual y deuda
 
 ### Qué está construido
 
+**Clientes, Proveedores y Talleres** tienen una lista y un formulario independientes cada uno. Al crear, envían `tipoTercero` con `CLIENTE`, `PROVEEDOR` o `TALLER`, según el formulario, al endpoint `/tercero/newtercero`. Cada lista usa su endpoint (`/tercero/getallclientetercero`, `/tercero/getallproveedortercero` o `/tercero/getalltallertercero`) y manda `estadoFiltro`: `0` todos, `1` activos, `2` inactivos. La lectura y actualización por id siguen usando endpoints genéricos. Los selectores específicos y sus consumidores están descritos en §3; `TercerosSeleccionar.vue` conserva el selector sin tipo.
+
 | Módulo | Estado |
 |---|---|
 | Login, layout, menú, store de sesión | Completo |
 | Bodegas · Categorías · Unidades de medida · Propiedades · Tipos de producto · Productos · Artículos | List + Form completos |
-| Terceros | List + Form + selector en diálogo |
+| Clientes · Proveedores · Talleres | List + Form cada uno; comparten el recurso de terceros |
 | Tipos de documento | List + Form |
 | Usuarios | List + Form (con cambio de contraseña) |
 | Asignación de usuario | Completo |
 | Vendedores | List + Form completos — **pero sin commitear**, ver §6 |
 | Informes: Existencias · Kardex · Existencia artículo | Completos |
-| **Ventas** | Pantalla a medias: tiene los dos selectores funcionando, pero no registra nada |
+| **Ventas** | Pantalla a medias: selecciona clientes y permite crearlos/editarlos en un diálogo, pero todavía no registra ventas |
 | **Compras** | **Completo**: List con filtros completos + Form de alta (contado y crédito) + Detalle con anulación, CRUD de cuotas (un diálogo para crear y otro para editar) y cambio del plan de crédito + PDF del comprobante. Ver §5 |
 | Empresas | List + Form completos — **la tabla de este handoff decía hasta el 2026-10-05 que estaba en construcción, y era falso**: la ruta `Empresas` carga `EmpresaList.vue` y el menú no está en rojo. Lo que engaña es que `views/Administracion/Empresas/Empresas.vue` sigue ahí con el cartel `EnConstruccion`, huérfano y sin que nadie lo importe |
 | **Movimiento en caja** (Contabilidad) | **Completo**: List con filtros, totales de caja y paginado + Form de alta de ajuste + Detalle con anulación y salto al documento de origen. Ver §8 |
@@ -319,16 +323,16 @@ Las pendientes están marcadas **en rojo en el menú** (`class="bg-red text-whit
 
 ### Deuda y cosas a arreglar
 
-1. ~~El listado de Compras del backend cambió de contrato y el front no tiene pantalla.~~ **Resuelto el 2026-09-26**: `ComprasList.vue` nace con los filtros completos (`campoOrdenar` 1..5 obligatorio, `orden`, `textoFiltro`, `idTercero`, `fechaInicio`/`fechaFin`) y es el único List del proyecto que **sí deshabilita la caja de texto al ordenar por fecha** — o sea, nace sin la deuda 4 de más abajo. Los otros once List la siguen arrastrando: copiar de ahí la solución.
+1. ~~El listado de Compras del backend cambió de contrato y el front no tiene pantalla.~~ **Resuelto el 2026-09-26**: `ComprasList.vue` nace con los filtros completos (`campoOrdenar` 1..5 obligatorio, `orden`, `textoFiltro`, `idTercero`, `fechaInicio`/`fechaFin`) y es el único List del proyecto que **sí deshabilita la caja de texto al ordenar por fecha** — o sea, nace sin la deuda 4 de más abajo. Los otros trece List la siguen arrastrando: copiar de ahí la solución.
 2. **Ocho `console.log` olvidados.** `AsignacionUsuario:130`, `TiposDocumentoList:158`, `UsuarioList:98`, `CategoriaForm:125`, `UnidadesMedidaForm:166` y `:176`, `VendedoresList:176` (`'linea 176'`), `Ventas.vue:98`.
 3. **`VendedoresList.vue` tiene el botón «Agregar 1»** — un `1` de prueba que llegó a quedarse. Y `CategoriaList.vue` arrastra un comentario `//prueba`.
-4. **El `textoFiltro` no se deshabilita al ordenar por fecha en los once List.** El backend lo ignora en ese caso, así que el usuario escribe un filtro que no tiene efecto y nadie le dice nada. Los dos selectores ya lo resuelven bien, con `:disabled` y un `hint`: **copiar esa solución a los List**.
+4. **El `textoFiltro` no se deshabilita al ordenar por fecha en los trece List.** El backend lo ignora en ese caso, así que el usuario escribe un filtro que no tiene efecto y nadie le dice nada. Los dos selectores ya lo resuelven bien, con `:disabled` y un `hint`: **copiar esa solución a los List**.
 5. **La autorización por rol está en tres pantallas sueltas y no en el router.** `AsignacionUsuario`, `TiposDocumentoList` y `UsuarioList` tienen un método `checkToken()` que redirige si el rol no es `ADMINISTRADOR`. Las demás no comprueban nada. Lo correcto es un `meta: { roles: [...] }` en las rutas y una sola comprobación en el `beforeEach`; lo de hoy es fácil de olvidar en la pantalla siguiente. **La seguridad real la impone el backend** —el front solo esconde—, pero la inconsistencia confunde.
 6. **Nombres de archivo de services inconsistentes:** `VendedorService.js` y `Usuarioempresaservice.js` rompen el `camelCase` de los otros catorce (`categoriaService.js`). En Windows no molesta; en el build de Linux un import con la caja equivocada **falla**.
 7. **`EnConstruccion` se importa suelto en cada vista pendiente**, con diez archivos idénticos de doce líneas. Se podría resolver con una sola ruta comodín, pero tal como está es explícito y no estorba. **Y al construir una pantalla hay que borrar su archivo de cartel**: `Administracion/Empresas/Empresas.vue` quedó huérfano y por él la tabla de arriba daba Empresas por pendiente. Peinar el resto buscando cuáles ya no los importa nadie.
 8. **No hay pruebas ni linter.** `package.json` solo tiene `dev`, `build` y `preview`.
 9. **`.env` no está versionado** (y `.env.example` tampoco: está en `.gitignore`). Quien clone el repo **no tiene de dónde copiar la variable**. `VITE_API_BASE_URL` es la única que hace falta.
-10. **Tres listados ponen en la URL el `EmpId` del store y no el de la fila:** `ArticulosList`, `TercerosList` y `ComprasList`. La regla, el por qué y el censo completo están en §2. **El arreglo depende del backend:** hay que mirar la respuesta real de `getallarticulo`, `getalltercero` y `getallcompra` para saber si devuelven el alias de empresa; si lo devuelven es una línea por pantalla, y si no, hay que pedirlo. Las colecciones de Postman del repo no ayudan aquí: guardan las peticiones, no las respuestas.
+10. **Cinco listados ponen en la URL el `EmpId` del store y no el de la fila:** `ArticulosList`, `ClientesList`, `ProveedoresList`, `TalleresList` y `ComprasList`. La regla, el por qué y el censo completo están en §2. **El arreglo depende del backend:** hay que mirar la respuesta real de `getallarticulo`, `getalltercero` y `getallcompra` para saber si devuelven el alias de empresa; si lo devuelven es una línea por pantalla, y si no, hay que pedirlo. Las colecciones de Postman del repo no ayudan aquí: guardan las peticiones, no las respuestas.
 
 ### Decisiones tomadas, no las revuelvas
 

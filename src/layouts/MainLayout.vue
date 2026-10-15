@@ -81,7 +81,9 @@
           <v-list-item :to="{ name: 'ExistenciaArticulo' }" title="Existencia artículo" />
         </v-list-group>
 
-        <v-list-item :to="{ name: 'Terceros' }" prepend-icon="mdi-account-group" title="Terceros" />
+        <v-list-item :to="{ name: 'Clientes' }" prepend-icon="mdi-account-group" title="Clientes" />
+        <v-list-item :to="{ name: 'Proveedores' }" prepend-icon="mdi-account-group" title="Proveedores" />
+        <v-list-item :to="{ name: 'Talleres' }" prepend-icon="mdi-account-group" title="Talleres" />
 
         <v-list-group value="ventas">
           <template #activator="{ props }">
