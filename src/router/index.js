@@ -293,7 +293,31 @@ const routes = [
       { path: 'prestamos', name: 'Prestamos', component: () => import('@/views/Prestamos/Prestamos.vue') },
       { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/Empenos.vue') },
       { path: 'abonos', name: 'Abonos', component: () => import('@/views/Abonos/Abonos.vue') },
-      { path: 'gastos', name: 'Gastos', component: () => import('@/views/Gastos/Gastos.vue') },
+      
+      // Gastos
+      // Gastos
+      {
+        path: 'gastos',
+        name: 'Gastos',
+        component: () => import('@/views/Gastos/GastosList.vue')
+      },
+      {
+        path: 'gastos/nuevo',
+        name: 'GastosNuevo',
+        component: () => import('@/views/Gastos/GastosForm.vue')
+      },
+      {
+        path: 'gastos/:EmpId/:GasId/editar',
+        name: 'GastosEditar',
+        component: () => import('@/views/Gastos/GastosForm.vue'),
+        props: true
+      },
+      {
+        path: 'gastos/:EmpId/:GasId',
+        name: 'GastosDetalle',
+        component: () => import('@/views/Gastos/GastosDetalle.vue'),
+        props: true
+      },
 
       // Contabilidad
       // Las tres rutas de Movimiento en caja NO son las del patron List + Form: la tercera es
