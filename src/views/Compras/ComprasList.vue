@@ -12,7 +12,12 @@
       <v-row dense align="center" class="mb-2">
         <v-col cols="12" sm="12">
           <div class="d-flex align-center">
-            <v-btn icon="mdi-account-search" variant="tonal" size="small" @click="dialogTercero = true" />
+            <v-btn icon="mdi-account-search" 
+            size="small" 
+            variant="tonal" 
+            title="Ver detalle"
+            @click="dialogTercero = true" />
+
             <v-text-field
               :model-value="terceroSeleccionado ? terceroSeleccionado.Nombre : ''"
               label="Tercero"
@@ -202,7 +207,7 @@
       </div>
     </v-card>
 
-    <TercerosSeleccionar
+    <ProveedoresSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
@@ -215,12 +220,12 @@ import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
 import { useAuthStore } from '@/stores/auth'
 import { generarPdfCompra } from '@/utils/compraPdf'
-import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
+import ProveedoresSeleccionar from '@/views/Proveedores/ProveedoresSeleccionar.vue'
 
 export default {
   name: 'ComprasList',
 
-  components: { TercerosSeleccionar },
+  components: { ProveedoresSeleccionar },
 
   data() {
     return {

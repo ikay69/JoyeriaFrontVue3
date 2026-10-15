@@ -1,7 +1,7 @@
 <template>
   <v-container fluid class="pa-6">
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-2">
-      <h1 class="text-h5">Terceros</h1>
+      <h1 class="text-h5">Proveedores</h1>
       <v-btn color="primary" prepend-icon="mdi-plus" @click="irANuevo">
         Agregar
       </v-btn>
@@ -20,7 +20,7 @@
             hide-details
           />
         </v-col>
-        <v-col cols="6" sm="3">
+        <v-col cols="6" sm="2">
           <v-select
             v-model="filtros.campoOrdenar"
             :items="opcionesCampoOrdenar"
@@ -32,13 +32,25 @@
             hide-details
           />
         </v-col>
-        <v-col cols="6" sm="3">
+        <v-col cols="6" sm="2">
           <v-select
             v-model="filtros.orden"
             :items="opcionesOrden"
             item-title="texto"
             item-value="valor"
             label="Orden"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="6" sm="2">
+          <v-select
+            v-model="filtros.estadoFiltro"
+            :items="opcionesEstadoFiltro"
+            item-title="texto"
+            item-value="valor"
+            label="Estado"
             density="compact"
             variant="outlined"
             hide-details
@@ -70,23 +82,23 @@
               <v-progress-circular indeterminate color="primary" />
             </td>
           </tr>
-          <tr v-else-if="!terceros.length">
+          <tr v-else-if="!proveedores.length">
             <td colspan="6" class="text-center py-6 text-medium-emphasis">
               No hay registros para mostrar
             </td>
           </tr>
-          <tr v-for="ter in terceros" :key="ter.Id">
-            <td>{{ ter.identificacion }}</td>
-            <td>{{ ter.Nombre }}</td>
-            <td>{{ ter.Celular || '-' }}</td>
+          <tr v-for="proveedor in proveedores" :key="proveedor.Id">
+            <td>{{ proveedor.identificacion }}</td>
+            <td>{{ proveedor.Nombre }}</td>
+            <td>{{ proveedor.Celular || '-' }}</td>
             <td>
-              <v-chip :color="ter.Estado === 1 ? 'success' : 'error'" size="small">
-                {{ ter.Estado === 1 ? 'Activo' : 'Inactivo' }}
+              <v-chip :color="proveedor.Estado === 1 ? 'success' : 'error'" size="small">
+                {{ proveedor.Estado === 1 ? 'Activo' : 'Inactivo' }}
               </v-chip>
             </td>
-            <td>{{ formatearFecha(ter.FechaCreacion) }}</td>
+            <td>{{ formatearFecha(proveedor.FechaCreacion) }}</td>
             <td class="text-center">
-              <v-btn icon="mdi-pencil" size="small" variant="text" @click="irAEditar(idEmpresa, ter.Id)" />
+              <v-btn icon="mdi-pencil" size="small" variant="text" @click="irAEditar(idEmpresa, proveedor.Id)" />
             </td>
           </tr>
         </tbody>
@@ -111,17 +123,18 @@ import terceroService from '@/services/terceroService'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
-  name: 'TercerosList',
+  name: 'ProveedoresList',
   data() {
     return {
       cargando: false,
-      terceros: [],
+      proveedores: [],
       cantData: 0,
       pagina: 1,
       filtros: {
         textoFiltro: '',
         campoOrdenar: 5,
-        orden: 'DESC'
+        orden: 'DESC',
+        estadoFiltro: 0
       },
       opcionesCampoOrdenar: [
         { valor: 1, texto: 'Nombre' },
@@ -133,6 +146,11 @@ export default {
       opcionesOrden: [
         { valor: 'ASC', texto: 'Ascendente' },
         { valor: 'DESC', texto: 'Descendente' }
+      ],
+      opcionesEstadoFiltro: [
+        { valor: 0, texto: 'Todos' },
+        { valor: 1, texto: 'Activos' },
+        { valor: 2, texto: 'Inactivos' }
       ]
     }
   },
@@ -166,18 +184,19 @@ export default {
 
       this.cargando = true
       try {
-        const { data } = await terceroService.getAll({
+        const { data } = await terceroService.getAllProveedores({
           idEmpresa: this.idEmpresa,
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
           pagina,
-          textoFiltro: this.filtros.textoFiltro || ''
+          textoFiltro: this.filtros.textoFiltro || '',
+          estadoFiltro: this.filtros.estadoFiltro
         })
-        this.terceros = data.data || []
+        this.proveedores = data.data || []
         this.cantData = data.cantData || 0
         this.pagina = pagina
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo consultar los terceros'
+        const mensaje = error.response?.data?.msg || 'No se pudo consultar los proveedores'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargando = false
@@ -185,11 +204,11 @@ export default {
     },
 
     irANuevo() {
-      this.$router.push({ name: 'TercerosNuevo' })
+      this.$router.push({ name: 'ProveedoresNuevo' })
     },
 
     irAEditar(EmpId, TerId) {
-      this.$router.push({ name: 'TercerosEditar', params: { EmpId, TerId } })
+      this.$router.push({ name: 'ProveedoresEditar', params: { EmpId, TerId } })
     },
 
     formatearFecha(fecha) {
