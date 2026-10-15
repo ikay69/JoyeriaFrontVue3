@@ -1,6 +1,6 @@
 <template>
   <v-container fluid class="pa-6">
-    <h1 class="text-h5 mb-4">{{ esEdicion ? 'Editar tercero' : 'Nuevo tercero' }}</h1>
+    <h1 class="text-h5 mb-4">{{ esEdicion ? 'Editar cliente' : 'Nuevo cliente' }}</h1>
 
     <v-card class="pa-6" max-width="560" elevation="1">
       <v-form ref="form" @submit.prevent="confirmar">
@@ -109,7 +109,7 @@ import tipoDocumentoService from '@/services/tipoDocumentoService'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
-  name: 'TercerosForm',
+  name: 'ClientesForm',
 
   data() {
     return {
@@ -154,7 +154,7 @@ export default {
     },
 
     esEdicion() {
-      return this.$route.name === 'TercerosEditar'
+      return this.$route.name === 'ClientesEditar'
     },
 
     idTercero() {
@@ -177,7 +177,7 @@ export default {
   async created() {
     await this.cargarTiposDocumento()
     if (this.esEdicion) {
-      this.cargarTercero()
+      this.cargarCliente()
     }
   },
 
@@ -195,7 +195,7 @@ export default {
       }
     },
 
-    async cargarTercero() {
+    async cargarCliente() {
       this.cargando = true
       try {
         const { data } = await terceroService.getById({
@@ -213,7 +213,7 @@ export default {
         this.usuario = data.data.terUsuario
         this.fechaCreacion = data.data.terFecCreacion
 
-        // Si el tipo de documento del tercero ya no está activo (no vino
+        // Si el tipo de documento del cliente ya no está activo (no vino
         // en la lista de getActivas), lo agregamos igual para que el
         // combo lo muestre seleccionado correctamente.
         const existe = this.tiposDocumento.some((td) => td.tipDocId === data.data.terTipDocId)
@@ -224,7 +224,7 @@ export default {
           })
         }
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo cargar el tercero'
+        const mensaje = error.response?.data?.msg || 'No se pudo cargar el cliente'
         await Swal.fire('Error', mensaje, 'error')
         this.cancelar()
       } finally {
@@ -256,10 +256,11 @@ export default {
             Email: this.email,
             Direccion: this.direccion
           })
-          await Swal.fire('Éxito', data.msg || 'Tercero actualizado', 'success')
+          await Swal.fire('Éxito', data.msg || 'Cliente actualizado', 'success')
         } else {
           const { data } = await terceroService.create({
             idEmpresa: this.idEmpresa,
+            tipoTercero: 'CLIENTE',
             Nombre: this.nombre,
             Apellidos: this.apellidos,
             idTipoDocumento: this.idTipoDocumento,
@@ -268,11 +269,11 @@ export default {
             Email: this.email,
             Direccion: this.direccion
           })
-          await Swal.fire('Éxito', data.msg || 'Tercero creado', 'success')
+          await Swal.fire('Éxito', data.msg || 'Cliente creado', 'success')
         }
         this.$router.back()
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'Ocurrió un error al guardar el tercero'
+        const mensaje = error.response?.data?.msg || 'Ocurrió un error al guardar el cliente'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.guardando = false

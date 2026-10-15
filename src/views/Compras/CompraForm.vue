@@ -13,16 +13,36 @@
     <v-card class="pa-6 mt-4" elevation="1">
       <v-form ref="form" @submit.prevent="confirmar">
         <div class="mb-1 text-subtitle-2">Proveedor</div>
-        <div class="d-flex ga-2 mb-2">
-          <v-btn icon="mdi-account-search" variant="tonal" @click="dialogTercero = true" />
+        <div class="d-flex align-center ga-2 mb-2">
+          <v-btn
+            icon="mdi-plus"
+            variant="tonal"
+            title="Crear proveedor"
+            @click="mostrarAltaProveedor"
+          />
+          <v-btn
+            icon="mdi-magnify"
+            variant="tonal"
+            title="Buscar proveedor"
+            @click="dialogTercero = true"
+          />
           <v-text-field
-            :model-value="terceroSeleccionado ? terceroSeleccionado.Nombre : ''"
+            :model-value="proveedorTexto"
+            :hint="terceroSeleccionado ? `Celular: ${terceroSeleccionado.Celular || '-'}` : ''"
+            :persistent-hint="Boolean(terceroSeleccionado)"
             readonly
             placeholder="Seleccione un proveedor"
             variant="outlined"
             density="comfortable"
-            hide-details
+            :hide-details="!terceroSeleccionado"
             class="flex-grow-1"
+          />
+          <v-btn
+            v-if="terceroSeleccionado"
+            icon="mdi-pencil"
+            variant="tonal"
+            title="Editar proveedor seleccionado"
+            @click="editarProveedorSeleccionado"
           />
         </div>
         
@@ -43,26 +63,6 @@
       -->
       
         <v-row dense class="mb-2">
-          <v-col cols="12" sm="4">
-            <v-text-field
-              label="Identificación"
-              :model-value="terceroSeleccionado ? terceroSeleccionado.identificacion : ''"
-              readonly
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-text-field
-              label="Celular"
-              :model-value="terceroSeleccionado ? terceroSeleccionado.Celular : ''"
-              readonly
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
           <v-col cols="12" sm="4">
             <v-text-field
               v-model="documentoSoporte"
@@ -401,10 +401,17 @@
       </v-form>
     </v-card>
 
-    <TercerosSeleccionar
+    <ProveedoresSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
+    />
+
+    <ProveedoresFormDialog
+      v-model="dialogProveedorForm"
+      :id-empresa="idEmpresa"
+      :proveedor="proveedorParaEditar"
+      @guardado="onProveedorGuardado"
     />
 
     <ArticulosSeleccionar
@@ -425,7 +432,8 @@
 <script>
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
-import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
+import ProveedoresSeleccionar from '@/views/Proveedores/ProveedoresSeleccionar.vue'
+import ProveedoresFormDialog from '@/views/Proveedores/ProveedoresFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -434,11 +442,14 @@ import { useCatalogosStore } from '@/stores/catalogos'
 export default {
   name: 'CompraForm',
 
-  components: { TercerosSeleccionar, ArticulosSeleccionar, ArticuloNuevoDialog },
+  components: { ProveedoresSeleccionar, ProveedoresFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog },
 
   data() {
     return {
       dialogTercero: false,
+      dialogProveedorForm: false,
+      proveedorParaEditar: null,
+      abrirSelectorDespuesDeAlta: false,
       dialogArticulo: false,
       dialogArticuloNuevo: false,
       // fila para la que se abrio el selector de articulo: sin esto, el @seleccionar no sabria
@@ -472,6 +483,13 @@ export default {
     },
     catalogosStore() {
       return useCatalogosStore()
+    },
+    proveedorTexto() {
+      if (!this.terceroSeleccionado) return ''
+      return [
+        this.terceroSeleccionado.identificacion,
+        this.terceroSeleccionado.Nombre
+      ].filter(Boolean).join(' ')
     },
     idEmpresa() {
       // No hay modo edicion en este formulario, asi que no hay que leer $route.params.EmpId:
@@ -533,6 +551,10 @@ export default {
     // una empresa equivocada. Por eso se resetea todo lo que dependia de la empresa anterior.
     idEmpresa() {
       this.terceroSeleccionado = null
+      this.dialogTercero = false
+      this.dialogProveedorForm = false
+      this.proveedorParaEditar = null
+      this.abrirSelectorDespuesDeAlta = false
       this.lineas = []
       this.agregarLinea()
       this.cargarBodegas()
@@ -548,6 +570,15 @@ export default {
       this.valorCuota = null
       this.cuotas = []
       this.cuotasEditadas = false
+    },
+
+    dialogProveedorForm(visible) {
+      if (!visible && this.abrirSelectorDespuesDeAlta) {
+        this.abrirSelectorDespuesDeAlta = false
+        this.$nextTick(() => {
+          this.dialogTercero = true
+        })
+      }
     },
 
     tipoCompra(valor) {
@@ -607,6 +638,29 @@ export default {
 
     onTerceroSeleccionado(tercero) {
       this.terceroSeleccionado = tercero
+    },
+
+    mostrarAltaProveedor() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      this.proveedorParaEditar = null
+      this.dialogProveedorForm = true
+    },
+
+    editarProveedorSeleccionado() {
+      if (!this.terceroSeleccionado) return
+      this.proveedorParaEditar = { ...this.terceroSeleccionado }
+      this.dialogProveedorForm = true
+    },
+
+    onProveedorGuardado({ creado, proveedor }) {
+      if (proveedor) {
+        this.terceroSeleccionado = proveedor
+      }
+      this.proveedorParaEditar = null
+      this.abrirSelectorDespuesDeAlta = creado
     },
 
     agregarLinea() {

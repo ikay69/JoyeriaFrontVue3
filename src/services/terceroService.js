@@ -2,11 +2,23 @@ import http from '@/services/http'
 
 export default {
   getAll(payload) {
-    // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro }
+    // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro, estadoFiltro }
     return http.post('/tercero/getalltercero', payload)
   },
+  getAllClientes(payload) {
+    // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro, estadoFiltro }
+    return http.post('/tercero/getallclientetercero', payload)
+  },
+  getAllProveedores(payload) {
+    // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro, estadoFiltro }
+    return http.post('/tercero/getallproveedortercero', payload)
+  },
+  getAllTalleres(payload) {
+    // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro, estadoFiltro }
+    return http.post('/tercero/getalltallertercero', payload)
+  },
   create(payload) {
-    // payload: { idEmpresa, Nombre, Apellidos, idTipoDocumento, NumeroDocumento, Celular, Email, Direccion }
+    // payload: { idEmpresa, tipoTercero, Nombre, Apellidos, idTipoDocumento, NumeroDocumento, Celular, Email, Direccion }
     return http.post('/tercero/newtercero', payload)
   },
   getById(payload) {
@@ -23,5 +35,17 @@ export default {
     // orden -> 'ASC' | 'DESC'
     // Usado por TercerosSeleccionar.vue (ventana flotante para elegir un tercero)
     return http.post('/tercero/getactivastercero', payload)
+  },
+  getActivosClientes(payload) {
+    // payload: { idEmpresa, campoOrden, orden, pagina, textoFiltro }
+    return http.post('/tercero/getactivosclientetercero', payload)
+  },
+  getActivosProveedores(payload) {
+    // payload: { idEmpresa, campoOrden, orden, pagina, textoFiltro }
+    return http.post('/tercero/getactivosproveedortercero', payload)
+  },
+  getActivosTalleres(payload) {
+    // payload: { idEmpresa, campoOrden, orden, pagina, textoFiltro }
+    return http.post('/tercero/getactivostallertercero', payload)
   }
 }

@@ -263,7 +263,7 @@
       @seleccionar="onArticuloSeleccionado"
     />
 
-    <TercerosSeleccionar
+    <TalleresSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
@@ -277,12 +277,12 @@ import produccionService from '@/services/produccionService'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
-import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
+import TalleresSeleccionar from '@/views/Talleres/TalleresSeleccionar.vue'
 
 export default {
   name: 'OrdenProduccionForm',
 
-  components: { ArticulosSeleccionar, TercerosSeleccionar },
+  components: { ArticulosSeleccionar, TalleresSeleccionar },
 
   data() {
     return {
