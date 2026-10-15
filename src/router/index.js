@@ -18,36 +18,36 @@ const routes = [
 
       // BODEGAS
       {
-        path: 'inventario/bodegas',
         name: 'Bodegas',
+        path: 'inventario/bodegas',
         component: () => import('@/views/Inventario/Bodegas/BodegasList.vue')
       },
       {
+        name: 'BodegasNueva', 
         path: 'inventario/bodegas/nueva',
-        name: 'BodegasNueva',
         component: () => import('@/views/Inventario/Bodegas/BodegasForm.vue')
       },
       {
+        name: 'BodegasEditar', 
         path: 'inventario/bodegas/:EmpId/:BodId/editar',
-        name: 'BodegasEditar',
         component: () => import('@/views/Inventario/Bodegas/BodegasForm.vue'),
         props: true
       },
       
       // Inventario
       {
+        name: 'CategoriaList', 
         path: 'inventario/categorias',
-        name: 'CategoriaList',
         component: () => import('@/views/Inventario/Categorias/CategoriaList.vue')
       },
       {
-        path: 'inventario/categorias/nueva',
         name: 'CategoriaNueva',
+        path: 'inventario/categorias/nueva',
         component: () => import('@/views/Inventario/Categorias/CategoriaForm.vue')
       },
       {
+        name: 'CategoriaEditar', 
         path: 'inventario/categorias/:EmpId/:CatId/editar',
-        name: 'CategoriaEditar',
         component: () => import('@/views/Inventario/Categorias/CategoriaForm.vue'),
         props: true
       },
@@ -169,13 +169,57 @@ const routes = [
       
 
 
-            // Terceros
-      { path: 'terceros', name: 'Terceros', component: () => import('@/views/Terceros/TercerosList.vue') },
-      { path: 'terceros/nuevo', name: 'TercerosNuevo', component: () => import('@/views/Terceros/TercerosForm.vue') },
+      // Clientes
       {
-        path: 'terceros/:EmpId/:TerId/editar',
-        name: 'TercerosEditar',
-        component: () => import('@/views/Terceros/TercerosForm.vue'),
+        path: 'clientes',
+        name: 'Clientes',
+        component: () => import('@/views/Clientes/ClientesList.vue')
+      },
+      {
+        path: 'clientes/nuevo',
+        name: 'ClientesNuevo',
+        component: () => import('@/views/Clientes/ClientesForm.vue')
+      },
+      {
+        path: 'clientes/:EmpId/:TerId/editar',
+        name: 'ClientesEditar',
+        component: () => import('@/views/Clientes/ClientesForm.vue'),
+        props: true
+      },
+
+      // Proveedores
+      {
+        path: 'proveedores',
+        name: 'Proveedores',
+        component: () => import('@/views/Proveedores/ProveedoresList.vue')
+      },
+      {
+        path: 'proveedores/nuevo',
+        name: 'ProveedoresNuevo',
+        component: () => import('@/views/Proveedores/ProveedoresForm.vue')
+      },
+      {
+        path: 'proveedores/:EmpId/:TerId/editar',
+        name: 'ProveedoresEditar',
+        component: () => import('@/views/Proveedores/ProveedoresForm.vue'),
+        props: true
+      },
+
+      // Talleres
+      {
+        path: 'talleres',
+        name: 'Talleres',
+        component: () => import('@/views/Talleres/TalleresList.vue')
+      },
+      {
+        path: 'talleres/nuevo',
+        name: 'TalleresNuevo',
+        component: () => import('@/views/Talleres/TalleresForm.vue')
+      },
+      {
+        path: 'talleres/:EmpId/:TerId/editar',
+        name: 'TalleresEditar',
+        component: () => import('@/views/Talleres/TalleresForm.vue'),
         props: true
       },
 

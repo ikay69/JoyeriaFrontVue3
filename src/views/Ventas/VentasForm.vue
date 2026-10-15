@@ -52,12 +52,21 @@
           />
           <v-text-field
             :model-value="clienteTexto"
+            :hint="terceroSeleccionado ? `Celular: ${terceroSeleccionado.Celular || '-'}` : ''"
+            :persistent-hint="Boolean(terceroSeleccionado)"
             readonly
             placeholder="Seleccione un cliente"
             variant="outlined"
             density="comfortable"
-            hide-details
+            :hide-details="!terceroSeleccionado"
             class="flex-grow-1"
+          />
+          <v-btn
+            v-if="terceroSeleccionado"
+            icon="mdi-pencil"
+            variant="tonal"
+            title="Editar cliente seleccionado"
+            @click="editarClienteSeleccionado"
           />
         </div>
 
@@ -251,10 +260,17 @@
       </v-form>
     </v-card>
 
-    <TercerosSeleccionar
+    <ClientesSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
+    />
+
+    <ClientesFormDialog
+      v-model="dialogClienteForm"
+      :id-empresa="idEmpresa"
+      :cliente="clienteParaEditar"
+      @guardado="onClienteGuardado"
     />
 
     <ArticulosVender
@@ -271,7 +287,8 @@ import Swal from 'sweetalert2'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import ventasService from '@/services/ventasService'
-import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
+import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosVender from '@/views/Inventario/Articulos/ArticulosVender.vue'
 
 const MAX_LINEAS = 200
@@ -280,11 +297,14 @@ const MAX_DECIMAL_12_2 = 9999999999.99
 export default {
   name: 'VentasForm',
 
-  components: { TercerosSeleccionar, ArticulosVender },
+  components: { ClientesSeleccionar, ClientesFormDialog, ArticulosVender },
 
   data() {
     return {
       dialogTercero: false,
+      dialogClienteForm: false,
+      clienteParaEditar: null,
+      abrirSelectorDespuesDeAlta: false,
       dialogArticulo: false,
       filaActiva: null,
       siguienteClaveLinea: 1,
@@ -354,6 +374,14 @@ export default {
     idEmpresa() {
       this.reiniciarFormulario()
       this.cargarCatalogos()
+    },
+    dialogClienteForm(visible) {
+      if (!visible && this.abrirSelectorDespuesDeAlta) {
+        this.abrirSelectorDespuesDeAlta = false
+        this.$nextTick(() => {
+          this.dialogTercero = true
+        })
+      }
     }
   },
 
@@ -426,6 +454,9 @@ export default {
       this.siguienteClaveLinea = 1
       this.filaActiva = null
       this.dialogTercero = false
+      this.dialogClienteForm = false
+      this.clienteParaEditar = null
+      this.abrirSelectorDespuesDeAlta = false
       this.dialogArticulo = false
       this.agregarLinea()
     },
@@ -439,7 +470,26 @@ export default {
     },
 
     mostrarAltaCliente() {
-      Swal.fire('Atención', 'La creación de clientes aún está en desarrollo', 'info')
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      this.clienteParaEditar = null
+      this.dialogClienteForm = true
+    },
+
+    editarClienteSeleccionado() {
+      if (!this.terceroSeleccionado) return
+      this.clienteParaEditar = { ...this.terceroSeleccionado }
+      this.dialogClienteForm = true
+    },
+
+    onClienteGuardado({ creado, cliente }) {
+      if (cliente) {
+        this.terceroSeleccionado = cliente
+      }
+      this.clienteParaEditar = null
+      this.abrirSelectorDespuesDeAlta = creado
     },
 
     onTerceroSeleccionado(tercero) {
