@@ -16,5 +16,9 @@ export default {
   update(payload) {
     // payload: { idEmpresa, idTipoGasto, Nombre, Descripcion, Estado }
     return http.put('/tipogasto/updatetipogasto', payload)
+  },
+  getActivas(payload){
+    // payload: { idEmpresa }
+    return http.post('/tipogasto/getactivostipogasto', payload)
   }
 }

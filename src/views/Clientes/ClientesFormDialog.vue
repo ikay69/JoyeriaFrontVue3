@@ -34,7 +34,7 @@
           item-title="tipDocNombre"
           item-value="tipDocId"
           label="Tipo de documento"
-          :rules="[reglas.requerido]"
+          :rules="[reglas.documentoTipo]"
           :loading="cargandoListas"
           variant="outlined"
           class="mb-2"
@@ -45,7 +45,7 @@
           label="Número de documento"
           maxlength="50"
           counter="50"
-          :rules="[reglas.requerido]"
+          :rules="[reglas.documentoNumero]"
           variant="outlined"
           class="mb-2"
         />
@@ -136,7 +136,7 @@ export default {
     return {
       nombre: '',
       apellidos: '',
-      idTipoDocumento: null,
+      idTipoDocumento: '',
       numeroDocumento: '',
       celular: '',
       email: '',
@@ -145,7 +145,7 @@ export default {
       usuario: '',
       fechaCreacion: '',
 
-      tiposDocumento: [],
+      tiposDocumento: [{ tipDocId: '', tipDocNombre: 'NN' }],
 
       cargando: false,
       cargandoListas: false,
@@ -156,6 +156,16 @@ export default {
       ],
       reglas: {
         requerido: (v) => !!v || 'Campo obligatorio',
+        documentoTipo: (v) => {
+          const tipoVacio = v === '' || v === null || v === undefined
+          const numeroVacio = !String(this.numeroDocumento ?? '').trim()
+          return tipoVacio === numeroVacio || 'Complete ambos campos de documento o déjelos vacíos'
+        },
+        documentoNumero: (v) => {
+          const tipoVacio = this.idTipoDocumento === '' || this.idTipoDocumento === null || this.idTipoDocumento === undefined
+          const numeroVacio = !String(v ?? '').trim()
+          return tipoVacio === numeroVacio || 'Complete ambos campos de documento o déjelos vacíos'
+        },
         celular: (v) => !v || v.length === 10 || 'Debe tener exactamente 10 caracteres'
       }
     }
@@ -202,7 +212,7 @@ export default {
     async prepararFormulario() {
       this.nombre = ''
       this.apellidos = ''
-      this.idTipoDocumento = null
+      this.idTipoDocumento = ''
       this.numeroDocumento = ''
       this.celular = ''
       this.email = ''
@@ -210,7 +220,7 @@ export default {
       this.estado = true
       this.usuario = ''
       this.fechaCreacion = ''
-      this.tiposDocumento = []
+      this.tiposDocumento = [{ tipDocId: '', tipDocNombre: 'NN' }]
 
       if (!this.idEmpresa) {
         await Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
@@ -228,7 +238,7 @@ export default {
       this.cargandoListas = true
       try {
         const { data } = await tipoDocumentoService.getActivas({ idEmpresa: this.idEmpresa })
-        this.tiposDocumento = data.data || []
+        this.tiposDocumento = [{ tipDocId: '', tipDocNombre: 'NN' }, ...(data.data || [])]
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la lista de tipos de documento'
         Swal.fire('Error', mensaje, 'error')
@@ -246,8 +256,8 @@ export default {
         })
         this.nombre = data.data.terNombres
         this.apellidos = data.data.terApellidos
-        this.idTipoDocumento = data.data.terTipDocId
-        this.numeroDocumento = data.data.terNumDoc
+        this.idTipoDocumento = data.data.terTipDocId ?? ''
+        this.numeroDocumento = data.data.terNumDoc ?? ''
         this.celular = data.data.terCelular
         this.email = data.data.terEmail
         this.direccion = data.data.terDireccion
@@ -259,7 +269,7 @@ export default {
         // en la lista de getActivas), lo agregamos igual para que el
         // combo lo muestre seleccionado correctamente.
         const existe = this.tiposDocumento.some((td) => td.tipDocId === data.data.terTipDocId)
-        if (!existe) {
+        if (data.data.terTipDocId != null && !existe) {
           this.tiposDocumento.push({
             tipDocId: data.data.terTipDocId,
             tipDocNombre: data.data.terTipDocNombre
@@ -272,6 +282,14 @@ export default {
       } finally {
         this.cargando = false
       }
+    },
+
+    normalizarDocumento() {
+      const numeroDocumento = String(this.numeroDocumento ?? '').trim()
+      if (!numeroDocumento || this.idTipoDocumento === '' || this.idTipoDocumento === null || this.idTipoDocumento === undefined) {
+        return { idTipoDocumento: null, NumeroDocumento: null }
+      }
+      return { idTipoDocumento: this.idTipoDocumento, NumeroDocumento: numeroDocumento }
     },
 
     async confirmar() {
@@ -291,8 +309,7 @@ export default {
             idTercero: this.idTercero,
             Nombre: this.nombre,
             Apellidos: this.apellidos,
-            idTipoDocumento: this.idTipoDocumento,
-            NumeroDocumento: this.numeroDocumento,
+            ...this.normalizarDocumento(),
             Estado: this.estado,
             Celular: this.celular,
             Email: this.email,
@@ -317,8 +334,7 @@ export default {
             tipoTercero: 'CLIENTE',
             Nombre: this.nombre,
             Apellidos: this.apellidos,
-            idTipoDocumento: this.idTipoDocumento,
-            NumeroDocumento: this.numeroDocumento,
+            ...this.normalizarDocumento(),
             Celular: this.celular,
             Email: this.email,
             Direccion: this.direccion

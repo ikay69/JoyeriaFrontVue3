@@ -38,86 +38,84 @@
     <template v-else-if="movimiento">
       <v-card class="pa-6 mb-4" elevation="1">
         <div class="text-subtitle-2 mb-3">Datos del movimiento</div>
+        <v-row dense class="mb-1">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">fecha:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium">{{ formatearFechaHora(movimiento.movcajFecha) }}</v-col>
+        </v-row>
+        <v-row dense class="mb-1 align-center">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">tipo de movimiento:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium">
+            <v-chip
+              :color="movimiento.movcajTipo === 'ENTRADA' ? 'success' : 'error'"
+              size="small"
+              variant="tonal"
+            >
+              {{ movimiento.movcajTipo }}
+            </v-chip>
+          </v-col>
+        </v-row>
+        <v-row dense class="mb-1">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">motivo:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium">{{ textoMotivo(movimiento.movcajMotivo) }}</v-col>
+        </v-row>
+        <v-row dense class="mb-1">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">método de pago:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium">{{ movimiento.movcajMetodoPago || '-' }}</v-col>
+        </v-row>
+        <v-row dense class="mb-1">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">valor:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium text-subtitle-1">{{ formatearMoneda(movimiento.movcajValor) }}</v-col>
+        </v-row>
+        <v-row dense class="mb-1">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">usuario:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium">{{ movimiento.movcajUsuario || '-' }}</v-col>
+        </v-row>
         <v-row dense>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Fecha</div>
-            <div>{{ formatearFechaHora(movimiento.movcajFecha) }}</div>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Tipo de movimiento</div>
-            <div>
-              <v-chip
-                :color="movimiento.movcajTipo === 'ENTRADA' ? 'success' : 'error'"
-                size="small"
-                variant="tonal"
-              >
-                {{ movimiento.movcajTipo }}
-              </v-chip>
-            </div>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Motivo</div>
-            <div>{{ textoMotivo(movimiento.movcajMotivo) }}</div>
-          </v-col>
-
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Método de pago</div>
-            <div>{{ movimiento.movcajMetodoPago }}</div>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Valor</div>
-            <div class="text-subtitle-1 font-weight-medium">
-              {{ formatearMoneda(movimiento.movcajValor) }}
-            </div>
-          </v-col>
-          <v-col cols="12" sm="4">
-            <div class="text-caption text-medium-emphasis">Usuario</div>
-            <div>{{ movimiento.movcajUsuario || '-' }}</div>
-          </v-col>
-
-          <v-col cols="12">
-            <div class="text-caption text-medium-emphasis">Observaciones</div>
-            <div>{{ movimiento.movcajObservaciones || '-' }}</div>
-          </v-col>
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">observaciones:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium">{{ movimiento.movcajObservaciones || '-' }}</v-col>
         </v-row>
       </v-card>
 
       <!--
-        El documento que genero el movimiento. Hoy solo Compras tiene pantalla: para los otros
-        siete origenes el boton sale deshabilitado y el title dice por que, en vez de desaparecer
-        sin explicacion.
+        El documento que generó el movimiento. Se organiza en filas con tres columnas simuladas
+        para mantener la etiqueta, el texto del documento y el botón alineados de forma limpia.
       -->
       <v-card class="pa-6 mb-4" elevation="1">
         <div class="text-subtitle-2 mb-3">Origen</div>
-        <div class="d-flex align-center flex-wrap ga-4">
-          <div>
-            <div class="text-caption text-medium-emphasis">Documento</div>
-            <div>{{ textoOrigen(movimiento) }}</div>
-          </div>
-          <v-btn
-            variant="tonal"
-            prepend-icon="mdi-file-document-outline"
-            :disabled="!origenDisponible"
-            :title="origenDisponible ? '' : motivoOrigenNoDisponible(movimiento.movcajTipoOrigen)"
-            @click="irAlOrigen"
-          >
-            {{ etiquetaBotonOrigen(movimiento.movcajTipoOrigen) }}
-          </v-btn>
-        </div>
+        <v-row dense class="mb-1">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">tipo de origen:</v-col>
+          <v-col cols="12" sm="9" class="font-weight-medium">{{ movimiento.movcajTipoOrigen || '-' }}</v-col>
+        </v-row>
+        <v-row dense align="center">
+          <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">documento:</v-col>
+          <v-col cols="12" sm="5" class="font-weight-medium">{{ textoOrigen(movimiento) }}</v-col>
+          <v-col cols="12" sm="4" class="text-sm-right">
+            <v-btn
+              variant="tonal"
+              size="small"
+              prepend-icon="mdi-file-document-outline"
+              :disabled="!origenDisponible"
+              :title="origenDisponible ? '' : motivoOrigenNoDisponible(movimiento.movcajTipoOrigen)"
+              @click="irAlOrigen"
+            >
+              {{ etiquetaBotonOrigen(movimiento.movcajTipoOrigen) }}
+            </v-btn>
+          </v-col>
+        </v-row>
       </v-card>
 
       <v-card v-if="!esActivo" class="pa-6" elevation="1">
         <div class="text-subtitle-2 mb-3">Anulación</div>
         <v-row dense>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="4" class="mb-2">
             <div class="text-caption text-medium-emphasis">Fecha de anulación</div>
             <div>{{ formatearFechaHora(movimiento.movcajFechaAnulacion) }}</div>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="4" class="mb-2">
             <div class="text-caption text-medium-emphasis">Usuario que anuló</div>
             <div>{{ movimiento.movcajUsuarioAnulador || '-' }}</div>
           </v-col>
-          <v-col cols="12">
+          <v-col cols="12" class="mb-2">
             <div class="text-caption text-medium-emphasis">Motivo de la anulación</div>
             <div>{{ movimiento.movcajMotivoAnulacion || '-' }}</div>
           </v-col>
