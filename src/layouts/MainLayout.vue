@@ -110,7 +110,17 @@
         
         <v-list-item :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Fundir materiales" />
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
-        <v-list-item :to="{ name: 'Empenos' }" prepend-icon="mdi-diamond-stone" title="Empeños" class="bg-red text-white" />
+        <v-list-group value="informesEmpenos">
+          <template #activator="{ props }">
+            <v-list-item
+              v-bind="props"
+              prepend-icon="mdi-diamond-stone"
+              title="Inf Empeños"
+            />
+          </template>
+          <v-list-item :to="{ name: 'Empenos' }" title="Empeños" />
+          <v-list-item :to="{ name: 'EmpenosPagos' }" title="Pagos" />
+        </v-list-group>
         <v-list-item :to="{ name: 'Abonos' }" prepend-icon="mdi-cash-plus" title="Abonos" class="bg-red text-white"/>
         <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos" class="bg-red text-white"/>
 
