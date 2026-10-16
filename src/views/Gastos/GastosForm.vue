@@ -52,17 +52,28 @@
           class="mb-2"
         />
 
-        <v-text-field
-          v-if="tipoOrigen"
-          v-model="idOrigen"
-          label="ID de origen"
-          type="number"
-          step="1"
-          min="1"
-          :rules="[reglas.enteroPositivo]"
-          variant="outlined"
-          class="mb-2"
-        />
+        <div v-if="tipoOrigen" class="d-flex align-center ga-2">
+          <v-text-field
+            v-model="idOrigen"
+            label="ID de origen"
+            type="number"
+            step="1"
+            min="1"
+            :rules="[reglas.enteroPositivo]"
+            variant="outlined"
+            class="mb-2 flex-grow-1"
+          />
+          <v-btn
+            v-if="tipoOrigen === 'CUOTA_COMPRA'"
+            icon="mdi-magnify"
+            color="primary"
+            variant="tonal"
+            class="mb-2"
+            title="Buscar compra"
+            aria-label="Buscar compra"
+            @click="dialogCompras = true"
+          />
+        </div>
 
         <v-textarea
           v-model="descripcion"
@@ -81,6 +92,12 @@
         </div>
       </v-form>
     </v-card>
+
+    <ComprasSeleccionar
+      v-model="dialogCompras"
+      :id-empresa="idEmpresa"
+      @seleccionar="onCompraSeleccionada"
+    />
   </v-container>
 </template>
 
@@ -89,9 +106,12 @@ import Swal from 'sweetalert2'
 import gastosService from '@/services/gastosService'
 import tipoGastoService from '@/services/tipoGastoService'
 import { useAuthStore } from '@/stores/auth'
+import ComprasSeleccionar from '@/views/Compras/ComprasSeleccionar.vue'
 
 export default {
   name: 'GastosForm',
+
+  components: { ComprasSeleccionar },
 
   data() {
     return {
@@ -100,6 +120,7 @@ export default {
       metodoPago: 'EFECTIVO',
       tipoOrigen: null,
       idOrigen: '',
+      dialogCompras: false,
       descripcion: '',
 
       listaTiposGasto: [],
@@ -166,6 +187,10 @@ export default {
         const mensaje = error.response?.data?.msg || 'No se pudieron cargar los tipos de gasto'
         Swal.fire('Error', mensaje, 'error')
       }
+    },
+
+    onCompraSeleccionada(compra) {
+      this.idOrigen = compra.compraId
     },
 
     async confirmar() {
