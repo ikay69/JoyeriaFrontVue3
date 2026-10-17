@@ -47,5 +47,10 @@ export default {
   getActivosTalleres(payload) {
     // payload: { idEmpresa, campoOrden, orden, pagina, textoFiltro }
     return http.post('/tercero/getactivostallertercero', payload)
+  },
+
+  getCrearTerceroRol(payload){
+    // payload: { idEmpresa,idTercero,tipoTercero}
+    return http.post('/tercero/newtercerorol', payload)
   }
 }

@@ -66,7 +66,7 @@
             <th>Estado</th>
             <th>Propietario</th>
             <th>Cantidad</th>
-            <th>Costo</th>
+            <th>Costo Und</th>
             <th>Fecha</th>
           </tr>
         </thead>
