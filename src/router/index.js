@@ -291,7 +291,14 @@ const routes = [
 
       // Prestamos / Empenos / Abonos 
       { path: 'prestamos', name: 'Prestamos', component: () => import('@/views/Prestamos/Prestamos.vue') },
-      { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/Empenos.vue') },
+      { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/EmpenosList.vue') },
+      { path: 'empenos/nuevo', name: 'EmpenosNuevo', component: () => import('@/views/Empenos/EmpenosForm.vue') },
+      {
+        path: 'empenos/:EmpId/:EmpenoId/detalle',
+        name: 'EmpenosDetalle',
+        component: () => import('@/views/Empenos/EmpenosDetalle.vue'),
+        props: true
+      },
       { path: 'empenos/pagos', name: 'EmpenosPagos', component: () => import('@/views/Empenos/PagosList.vue') },
       { path: 'abonos', name: 'Abonos', component: () => import('@/views/Abonos/Abonos.vue') },
       
