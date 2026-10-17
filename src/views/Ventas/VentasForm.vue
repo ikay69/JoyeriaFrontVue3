@@ -287,6 +287,8 @@ import Swal from 'sweetalert2'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import ventasService from '@/services/ventasService'
+import empresaService from '@/services/empresaService'
+import { generarPdfVenta } from '@/utils/ventaPdf'
 import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosVender from '@/views/Inventario/Articulos/ArticulosVender.vue'
@@ -655,8 +657,49 @@ export default {
 
       this.guardando = true
       try {
-        const { data } = await ventasService.create(payload)
-        await Swal.fire('Éxito', data.msg || 'Venta registrada', 'success')
+        const { data: respuestaVenta } = await ventasService.create(payload)
+        const venta = respuestaVenta?.data
+
+        if (!venta) {
+          await Swal.fire(
+            'Venta registrada',
+            respuestaVenta?.msg || 'La venta se guardó, pero no se recibieron los datos para generar la factura.',
+            'warning'
+          )
+          this.$router.back()
+          return
+        }
+
+        let empresa = this.authStore.empresaActual || {}
+        let mensajeEmpresa = ''
+        try {
+          const { data: respuestaEmpresa } = await empresaService.getById({
+            idEmpresa: Number(this.idEmpresa)
+          })
+          empresa = respuestaEmpresa?.data || empresa
+        } catch (errorEmpresa) {
+          mensajeEmpresa = errorEmpresa.response?.data?.msg ||
+            'No se pudieron cargar los datos completos de la empresa; se usaron los disponibles en la sesión.'
+        }
+
+        try {
+          generarPdfVenta({ venta, empresa })
+        } catch (errorPdf) {
+          const mensaje = errorPdf.message || 'Error desconocido'
+          await Swal.fire(
+            'Venta registrada',
+            `La venta se guardó, pero no se pudo generar la factura PDF: ${mensaje}`,
+            'warning'
+          )
+          this.$router.back()
+          return
+        }
+
+        if (mensajeEmpresa) {
+          await Swal.fire('Venta registrada', `La factura se descargó. ${mensajeEmpresa}`, 'warning')
+        } else {
+          await Swal.fire('Éxito', 'Venta registrada y factura generada', 'success')
+        }
         this.$router.back()
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'Ocurrió un error al guardar la venta'
