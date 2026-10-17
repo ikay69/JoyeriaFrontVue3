@@ -200,7 +200,7 @@ export default {
     },
 
     // El id del documento es movcajOrigenId, y el nombre del parametro lo dice el mapa de
-    // ORIGENES: cada pantalla llama distinto al suyo (ComId en Compras).
+    // ORIGENES (ComId para Compras y GasId para GastosDetalle).
     irAlOrigen() {
       const origen = origenDe(this.movimiento.movcajTipoOrigen)
       if (!origen || !origen.ruta) return

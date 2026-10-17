@@ -18,16 +18,15 @@ export const MOTIVOS = [
   { valor: 'AJUSTE', texto: 'Ajuste' }
 ]
 
-// Los ocho valores de movcajTipoOrigen. `ruta` y `paramId` son lo UNICO que hay que tocar cuando
-// entre una pantalla nueva: hoy solo Compras existe, y agregar Ventas es poner ahi el nombre de
-// su ruta y el de su parametro de id.
+// Los ocho valores de movcajTipoOrigen. `ruta` y `paramId` determinan a que detalle navega el
+// boton de origen y cual parametro de id espera esa pantalla.
 export const ORIGENES = [
   { valor: 'COMPRA', nombre: 'compra', ruta: 'CompraDetalle', paramId: 'ComId' },
   { valor: 'VENTA', nombre: 'venta', ruta: null, paramId: null },
   { valor: 'EMPENO', nombre: 'empeño', ruta: null, paramId: null },
   { valor: 'GASTO', nombre: 'gasto', ruta: null, paramId: null },
   { valor: 'ABONO', nombre: 'abono', ruta: null, paramId: null },
-  { valor: 'CUOTA_COMPRA', nombre: 'cuota de compra', ruta: null, paramId: null },
+  { valor: 'CUOTA_COMPRA', nombre: 'cuota de compra', ruta: 'GastosDetalle', paramId: 'GasId' },
   { valor: 'CUOTA_VENTA', nombre: 'cuota de venta', ruta: null, paramId: null },
   // Un ajuste no viene de ningun documento: se teclea en la propia pantalla de caja. Nunca va a
   // tener ruta, y por eso se deja sin `nombre`: su boton dice "Ver origen" y no "Ver ajuste",
