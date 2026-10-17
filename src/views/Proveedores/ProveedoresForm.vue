@@ -97,6 +97,37 @@
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
           <v-btn color="primary" :loading="guardando" type="submit">Confirmar</v-btn>
         </div>
+
+        <template v-if="esEdicion">
+          <v-divider class="my-4" />
+          <v-row dense align="center">
+            <v-col cols="12" sm="3" class="font-weight-medium">Asignar como:</v-col>
+            <v-col cols="12" sm="6">
+              <v-select
+                v-model="tipoTerceroAsignar"
+                :items="opcionesTipoTercero"
+                item-title="texto"
+                item-value="valor"
+                label="Rol"
+                density="compact"
+                variant="outlined"
+                hide-details
+              />
+            </v-col>
+            <v-col cols="12" sm="3">
+              <v-btn
+                color="primary"
+                block
+                :loading="asignandoRol"
+                :disabled="!puedeAsignarRol"
+                type="button"
+                @click="asignarRol"
+              >
+                Asignar
+              </v-btn>
+            </v-col>
+          </v-row>
+        </template>
       </v-form>
     </v-card>
   </v-container>
@@ -129,6 +160,13 @@ export default {
       cargando: false,
       cargandoListas: false,
       guardando: false,
+      tipoTerceroAsignar: null,
+      asignandoRol: false,
+      opcionesTipoTercero: [
+        { valor: 'CLIENTE', texto: 'Cliente' },
+        { valor: 'PROVEEDOR', texto: 'Proveedor' },
+        { valor: 'TALLER', texto: 'Taller' }
+      ],
       opcionesEstado: [
         { valor: true, texto: 'Activo' },
         { valor: false, texto: 'Inactivo' }
@@ -181,6 +219,16 @@ export default {
         hour: '2-digit',
         minute: '2-digit'
       })
+    },
+
+    puedeAsignarRol() {
+      return Boolean(
+        this.esEdicion &&
+        Number.isInteger(Number(this.idEmpresa)) && Number(this.idEmpresa) > 0 &&
+        Number.isInteger(this.idTercero) && this.idTercero > 0 &&
+        this.tipoTerceroAsignar &&
+        !this.asignandoRol
+      )
     }
   },
 
@@ -248,6 +296,37 @@ export default {
         return { idTipoDocumento: null, NumeroDocumento: null }
       }
       return { idTipoDocumento: this.idTipoDocumento, NumeroDocumento: numeroDocumento }
+    },
+
+    async asignarRol() {
+      const idEmpresa = Number(this.idEmpresa)
+      const idTercero = Number(this.idTercero)
+      const rolesValidos = ['CLIENTE', 'PROVEEDOR', 'TALLER']
+
+      if (!Number.isInteger(idEmpresa) || idEmpresa <= 0 || !Number.isInteger(idTercero) || idTercero <= 0) {
+        await Swal.fire('Atención', 'Se requiere una empresa y un tercero válidos para asignar el rol', 'warning')
+        return
+      }
+      if (!rolesValidos.includes(this.tipoTerceroAsignar)) {
+        await Swal.fire('Atención', 'Seleccione un rol válido', 'warning')
+        return
+      }
+
+      this.asignandoRol = true
+      try {
+        const { data } = await terceroService.getCrearTerceroRol({
+          idEmpresa,
+          idTercero,
+          tipoTercero: this.tipoTerceroAsignar
+        })
+        await Swal.fire('Éxito', data.msg || 'Rol asignado correctamente', 'success')
+        this.tipoTerceroAsignar = null
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'Ocurrió un error al asignar el rol'
+        await Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.asignandoRol = false
+      }
     },
 
     async confirmar() {

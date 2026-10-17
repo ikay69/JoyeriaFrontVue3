@@ -70,9 +70,28 @@
           <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">tipo de origen:</v-col>
           <v-col cols="12" sm="9" class="font-weight-medium">{{ gasto.gasTipoOrigen }}</v-col>
         </v-row>
-        <v-row dense>
+        <v-row dense align="center">
           <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">origen:</v-col>
-          <v-col cols="12" sm="9" class="font-weight-medium">{{ gasto.gasOrigenId }} (id de origen)</v-col>
+          <v-col cols="12" :sm="gasto.gasTipoOrigen === 'CUOTA_COMPRA' ? 5 : 9" class="font-weight-medium">
+            <template v-if="gasto.gasTipoOrigen === 'CUOTA_COMPRA'">
+              Compra #{{ gasto.gasOrigenId || '-' }}
+            </template>
+            <template v-else>
+              {{ gasto.gasOrigenId }} (id de origen)
+            </template>
+          </v-col>
+          <v-col v-if="gasto.gasTipoOrigen === 'CUOTA_COMPRA'" cols="12" sm="4" class="text-sm-right">
+            <v-btn
+              variant="tonal"
+              size="small"
+              prepend-icon="mdi-file-document-outline"
+              :disabled="!origenCompraDisponible"
+              :title="origenCompraDisponible ? '' : motivoOrigenNoDisponible"
+              @click="irAlOrigen"
+            >
+              Ver compra
+            </v-btn>
+          </v-col>
         </v-row>
       </v-card>
 
@@ -123,6 +142,18 @@ export default {
 
     esActivo() {
       return this.gasto ? this.gasto.gasEstado === 1 : false
+    },
+
+    origenCompraDisponible() {
+      return Boolean(
+        this.gasto &&
+        this.gasto.gasTipoOrigen === 'CUOTA_COMPRA' &&
+        Number(this.gasto.gasOrigenId) > 0
+      )
+    },
+
+    motivoOrigenNoDisponible() {
+      return 'No hay una compra de origen válida para abrir'
     }
   },
 
@@ -146,6 +177,18 @@ export default {
       } finally {
         this.cargando = false
       }
+    },
+
+    irAlOrigen() {
+      if (!this.origenCompraDisponible) return
+
+      this.$router.push({
+        name: 'CompraDetalle',
+        params: {
+          EmpId: this.idEmpresa,
+          ComId: Number(this.gasto.gasOrigenId)
+        }
+      })
     },
 
     async anular() {
