@@ -9,6 +9,10 @@ export default {
     // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro, idTercero, fechaInicio, fechaFin }
     return http.post('/compra/getcomprascredito', payload)
   },
+  getComprasActivas(payload) {
+    // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro, idTercero, fechaInicio, fechaFin }
+    return http.post('/compra/getcomprasactivas', payload)
+  },
   getById(payload) {
     // payload: { idEmpresa, idCompra }
     return http.post('/compra/getidcompra', payload)
