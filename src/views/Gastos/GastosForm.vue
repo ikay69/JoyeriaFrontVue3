@@ -152,7 +152,7 @@ export default {
         { valor: 'CUOTA_COMPRA', texto: 'Cuota de compra' },
         { valor: 'COMPRA', texto: 'Compra' },
         { valor: 'VENTA', texto: 'Venta' },
-        { valor: 'PRODUCCION', texto: 'Producción' }
+        { valor: 'PRODUCCION', texto: 'Fundición de material' }
       ],
 
       reglas: {

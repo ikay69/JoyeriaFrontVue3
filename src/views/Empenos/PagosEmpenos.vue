@@ -6,7 +6,7 @@
 import EnConstruccion from '@/components/common/EnConstruccion.vue'
 
 export default {
-  name: 'PagosList',
+  name: 'PagosEmpenos',
   components: { EnConstruccion }
 }
 </script>
