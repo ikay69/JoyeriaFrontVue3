@@ -299,7 +299,7 @@ const routes = [
         component: () => import('@/views/Empenos/EmpenosDetalle.vue'),
         props: true
       },
-      { path: 'empenos/pagos', name: 'EmpenosPagos', component: () => import('@/views/Empenos/PagosList.vue') },
+      { path: 'empenos/pagos', name: 'EmpenosPagos', component: () => import('@/views/Empenos/PagosEmpenos.vue') },
       { path: 'abonos', name: 'Abonos', component: () => import('@/views/Abonos/Abonos.vue') },
       
       
