@@ -64,14 +64,14 @@
             class="mb-2 flex-grow-1"
           />
           <v-btn
-            v-if="tipoOrigen === 'CUOTA_COMPRA'"
+            v-if="tipoOrigen"
             icon="mdi-magnify"
             color="primary"
             variant="tonal"
             class="mb-2"
-            title="Buscar compra"
-            aria-label="Buscar compra"
-            @click="dialogCompras = true"
+            :title="tituloBuscarOrigen"
+            :aria-label="tituloBuscarOrigen"
+            @click="abrirSelectorOrigen"
           />
         </div>
 
@@ -96,7 +96,20 @@
     <ComprasSeleccionar
       v-model="dialogCompras"
       :id-empresa="idEmpresa"
+      :tipo-origen="tipoOrigen"
       @seleccionar="onCompraSeleccionada"
+    />
+
+    <VentasSeleccionar
+      v-model="dialogVentas"
+      :id-empresa="idEmpresa"
+      @seleccionar="onVentaSeleccionada"
+    />
+
+    <OrdenProduccionSeleccionar
+      v-model="dialogProduccion"
+      :id-empresa="idEmpresa"
+      @seleccionar="onOrdenProduccionSeleccionada"
     />
   </v-container>
 </template>
@@ -107,11 +120,13 @@ import gastosService from '@/services/gastosService'
 import tipoGastoService from '@/services/tipoGastoService'
 import { useAuthStore } from '@/stores/auth'
 import ComprasSeleccionar from '@/views/Compras/ComprasSeleccionar.vue'
+import VentasSeleccionar from '@/views/Ventas/VentasSeleccionar.vue'
+import OrdenProduccionSeleccionar from '@/views/OrdenProduccion/OrdenProduccionSeleccionar.vue'
 
 export default {
   name: 'GastosForm',
 
-  components: { ComprasSeleccionar },
+  components: { ComprasSeleccionar, VentasSeleccionar, OrdenProduccionSeleccionar },
 
   data() {
     return {
@@ -121,6 +136,8 @@ export default {
       tipoOrigen: null,
       idOrigen: '',
       dialogCompras: false,
+      dialogVentas: false,
+      dialogProduccion: false,
       descripcion: '',
 
       listaTiposGasto: [],
@@ -132,7 +149,10 @@ export default {
       ],
       opcionesTipoOrigen: [
         { valor: null, texto: 'Ninguno' },
-        { valor: 'CUOTA_COMPRA', texto: 'Cuota de compra' }
+        { valor: 'CUOTA_COMPRA', texto: 'Cuota de compra' },
+        { valor: 'COMPRA', texto: 'Compra' },
+        { valor: 'VENTA', texto: 'Venta' },
+        { valor: 'PRODUCCION', texto: 'Producción' }
       ],
 
       reglas: {
@@ -156,6 +176,14 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    tituloBuscarOrigen() {
+      return {
+        CUOTA_COMPRA: 'Buscar compra para la cuota',
+        COMPRA: 'Buscar compra',
+        VENTA: 'Buscar venta',
+        PRODUCCION: 'Buscar orden de producción'
+      }[this.tipoOrigen] || 'Buscar origen'
     }
   },
 
@@ -165,10 +193,11 @@ export default {
         this.cargarTiposGasto()
       }
     },
-    tipoOrigen(val) {
-      if (!val) {
-        this.idOrigen = ''
-      }
+    tipoOrigen() {
+      this.idOrigen = ''
+      this.dialogCompras = false
+      this.dialogVentas = false
+      this.dialogProduccion = false
     }
   },
 
@@ -191,6 +220,29 @@ export default {
 
     onCompraSeleccionada(compra) {
       this.idOrigen = compra.compraId
+    },
+
+    abrirSelectorOrigen() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+
+      if (this.tipoOrigen === 'COMPRA' || this.tipoOrigen === 'CUOTA_COMPRA') {
+        this.dialogCompras = true
+      } else if (this.tipoOrigen === 'VENTA') {
+        this.dialogVentas = true
+      } else if (this.tipoOrigen === 'PRODUCCION') {
+        this.dialogProduccion = true
+      }
+    },
+
+    onVentaSeleccionada(venta) {
+      this.idOrigen = venta.ventaId
+    },
+
+    onOrdenProduccionSeleccionada(orden) {
+      this.idOrigen = orden.ordId
     },
 
     async confirmar() {
