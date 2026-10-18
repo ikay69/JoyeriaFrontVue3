@@ -199,6 +199,10 @@ export default {
     idEmpresa: {
       type: [Number, String],
       required: true
+    },
+    tipoOrigen: {
+      type: String,
+      default: 'CUOTA_COMPRA'
     }
   },
 
@@ -276,7 +280,10 @@ export default {
 
       this.cargando = true
       try {
-        const { data } = await compraService.getComprasCredito({
+        const consultarCompras = this.tipoOrigen === 'COMPRA'
+          ? compraService.getComprasActivas
+          : compraService.getComprasCredito
+        const { data } = await consultarCompras({
           idEmpresa: this.idEmpresa,
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
@@ -290,7 +297,7 @@ export default {
         this.cantData = data.cantData || 0
         this.pagina = pagina
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo consultar las compras a crédito'
+        const mensaje = error.response?.data?.msg || 'No se pudo consultar las compras'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargando = false
