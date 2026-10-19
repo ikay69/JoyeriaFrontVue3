@@ -29,6 +29,9 @@ const dato = (valor, alternativo = '-') => {
 
 export function generarPdfVenta({ venta, empresa }) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+  const ventaAnulada = venta.ventaEstado === false ||
+    venta.ventaEstado === 0 ||
+    venta.ventaEstado === '0'
   const ancho = doc.internal.pageSize.getWidth()
   const alto = doc.internal.pageSize.getHeight()
   const margen = 14
@@ -78,6 +81,12 @@ export function generarPdfVenta({ venta, empresa }) {
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.text(`Fecha: ${formatearFecha(venta.ventaFecha)}`, cajaX + 32.5, 38, { align: 'center' })
+  if (ventaAnulada) {
+    doc.setFont('helvetica', 'bold')
+    doc.setFontSize(8)
+    doc.setTextColor(198, 40, 40)
+    doc.text('*** VENTA ANULADA ***', cajaX + 32.5, 44, { align: 'center' })
+  }
 
   let y = Math.max(54, yEmpresa + 5)
   doc.setFillColor(...COLOR_SUAVE)
@@ -94,7 +103,6 @@ export function generarPdfVenta({ venta, empresa }) {
     ['Documento', `${dato(venta.ventaTerceroTipoDoc, '')} ${dato(venta.ventaTerceroNumeroDoc, '')}`.trim() || '-'],
     ['Tipo de venta', dato(venta.ventaTipoVenta)],
     ['Vendedor', dato(venta.ventaVendedor)],
-    ['Estado', dato(venta.ventaEstado)],
     ['Usuario', dato(venta.ventaUsuario)]
   ]
 
