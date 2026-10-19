@@ -15,26 +15,34 @@
         <div class="mb-1 text-subtitle-2">Cliente</div>
         <div class="d-flex align-center ga-2 mb-4">
           <v-btn
+            icon="mdi-plus"
+            variant="tonal"
+            title="Crear cliente"
+            @click="mostrarAltaCliente"
+          />
+          <v-btn
             icon="mdi-magnify"
             variant="tonal"
             title="Buscar cliente"
-            @click="dialogCliente = true"
+            @click="abrirSelectorTercero"
           />
           <v-text-field
             :model-value="clienteTexto"
+            :hint="clienteSeleccionado ? `Celular: ${clienteSeleccionado.Celular || '-'}` : ''"
+            :persistent-hint="Boolean(clienteSeleccionado)"
             readonly
             placeholder="Seleccione un cliente"
             variant="outlined"
             density="comfortable"
-            hide-details
+            :hide-details="!clienteSeleccionado"
             class="flex-grow-1"
           />
           <v-btn
             v-if="clienteSeleccionado"
-            icon="mdi-close"
-            variant="text"
-            title="Quitar cliente"
-            @click="clienteSeleccionado = null"
+            icon="mdi-pencil"
+            variant="tonal"
+            title="Editar cliente seleccionado"
+            @click="editarClienteSeleccionado"
           />
         </div>
 
@@ -268,9 +276,16 @@
     </v-card>
 
     <ClientesSeleccionar
-      v-model="dialogCliente"
+      v-model="dialogTercero"
       :id-empresa="idEmpresa"
-      @seleccionar="onClienteSeleccionado"
+      @seleccionar="onTerceroSeleccionado"
+    />
+
+    <ClientesFormDialog
+      v-model="dialogClienteForm"
+      :id-empresa="idEmpresa"
+      :cliente="clienteParaEditar"
+      @guardado="onClienteGuardado"
     />
 
     <ArticulosSeleccionar
@@ -292,6 +307,7 @@
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
 import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -302,11 +318,14 @@ const MAXIMO_DECIMAL_12_2 = 9999999999.99
 export default {
   name: 'EmpenosForm',
 
-  components: { ClientesSeleccionar, ArticulosSeleccionar, ArticuloNuevoDialog },
+  components: { ClientesSeleccionar, ClientesFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog },
 
   data() {
     return {
-      dialogCliente: false,
+      dialogTercero: false,
+      dialogClienteForm: false,
+      clienteParaEditar: null,
+      abrirSelectorDespuesDeAlta: false,
       dialogArticulo: false,
       dialogArticuloNuevo: false,
       filaActiva: null,
@@ -357,6 +376,14 @@ export default {
     idEmpresa() {
       this.limpiarFormulario()
       this.cargarBodegas()
+    },
+    dialogClienteForm(visible) {
+      if (!visible && this.abrirSelectorDespuesDeAlta) {
+        this.abrirSelectorDespuesDeAlta = false
+        this.$nextTick(() => {
+          this.dialogTercero = true
+        })
+      }
     }
   },
 
@@ -411,7 +438,38 @@ export default {
       this.filaActiva = null
     },
 
-    onClienteSeleccionado(cliente) {
+    abrirSelectorTercero() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      this.dialogTercero = true
+    },
+
+    mostrarAltaCliente() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      this.clienteParaEditar = null
+      this.dialogClienteForm = true
+    },
+
+    editarClienteSeleccionado() {
+      if (!this.clienteSeleccionado) return
+      this.clienteParaEditar = { ...this.clienteSeleccionado }
+      this.dialogClienteForm = true
+    },
+
+    onClienteGuardado({ creado, cliente }) {
+      if (cliente) {
+        this.clienteSeleccionado = cliente
+      }
+      this.clienteParaEditar = null
+      this.abrirSelectorDespuesDeAlta = creado
+    },
+
+    onTerceroSeleccionado(cliente) {
       this.clienteSeleccionado = cliente
     },
 
@@ -624,7 +682,10 @@ export default {
     },
 
     limpiarFormulario() {
-      this.dialogCliente = false
+      this.dialogTercero = false
+      this.dialogClienteForm = false
+      this.clienteParaEditar = null
+      this.abrirSelectorDespuesDeAlta = false
       this.dialogArticulo = false
       this.dialogArticuloNuevo = false
       this.filaActiva = null
