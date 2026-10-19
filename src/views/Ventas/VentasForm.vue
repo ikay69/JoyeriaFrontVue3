@@ -34,6 +34,14 @@
               hide-details
             />
           </v-col>
+          <v-col v-if="tipoVenta !== 'CONTADO'" cols="12" md="4">
+            <v-checkbox
+              v-model="retiraInventario"
+              label="Retirar del inventario"
+              density="comfortable"
+              hide-details
+            />
+          </v-col>
         </v-row>
 
         <div class="mt-4 mb-1 text-subtitle-2">Cliente</div>
@@ -148,6 +156,7 @@
           <v-table density="compact" class="mb-2 tabla-listado">
             <thead>
               <tr>
+                <th class="text-center" style="width: 72px">Bolsa</th>
                 <th style="min-width: 160px">Bodega</th>
                 <th class="text-center" style="width: 48px"></th>
                 <th class="text-center" style="width: 48px"></th>
@@ -159,11 +168,19 @@
             </thead>
             <tbody>
               <tr v-if="!lineas.length">
-                <td colspan="7" class="text-center py-6 text-medium-emphasis">
+                <td colspan="8" class="text-center py-6 text-medium-emphasis">
                   Agregue al menos una línea
                 </td>
               </tr>
               <tr v-for="(fila, indice) in lineas" :key="fila.clave">
+                <td class="text-center">
+                  <v-checkbox
+                    v-model="fila.EsBolsa"
+                    density="compact"
+                    hide-details
+                    aria-label="Es bolsa"
+                  />
+                </td>
                 <td>
                   <v-select
                     v-model.number="fila.idBodega"
@@ -317,6 +334,7 @@ export default {
       descuento: 0,
       efectivo: 0,
       transaccion: 0,
+      retiraInventario: false,
 
       tiposVenta: [
         { valor: 'CONTADO', texto: 'Contado' },
@@ -373,6 +391,9 @@ export default {
   },
 
   watch: {
+    tipoVenta(valor) {
+      if (valor === 'CONTADO') this.retiraInventario = false
+    },
     idEmpresa() {
       this.reiniciarFormulario()
       this.cargarCatalogos()
@@ -452,6 +473,7 @@ export default {
       this.descuento = 0
       this.efectivo = 0
       this.transaccion = 0
+      this.retiraInventario = false
       this.lineas = []
       this.siguienteClaveLinea = 1
       this.filaActiva = null
@@ -502,6 +524,7 @@ export default {
       if (this.lineas.length >= MAX_LINEAS) return
       this.lineas.push({
         clave: this.siguienteClaveLinea++,
+        EsBolsa: false,
         idBodega: null,
         idArticulo: null,
         artNombre: '',
@@ -613,6 +636,7 @@ export default {
 
     armarArticulos() {
       return this.lineas.map((fila) => ({
+        EsBolsa: Boolean(fila.EsBolsa),
         idBodega: Number(fila.idBodega),
         idArticulo: Number(fila.idArticulo),
         Cantidad: Number(fila.Cantidad),
@@ -649,6 +673,7 @@ export default {
         idTercero: Number(this.terceroSeleccionado.Id),
         idVendedor: this.idVendedor ? Number(this.idVendedor) : null,
         TipoVenta: this.tipoVenta,
+        RetiraInventario: Boolean(this.retiraInventario),
         ValorDescuento: Number(this.descuento),
         ValorEfectivo: Number(this.efectivo),
         ValorTransaccion: Number(this.transaccion),

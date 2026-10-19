@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
-const COLOR_PRIMARIO = [125, 28, 28]
+const COLOR_PRIMARIO = [192, 165, 60]
 const COLOR_SECUNDARIO = [46, 46, 56]
 const COLOR_TEXTO = [48, 48, 48]
 const COLOR_SUAVE = [246, 243, 243]
@@ -123,14 +123,13 @@ export function generarPdfVenta({ venta, empresa }) {
   autoTable(doc, {
     startY: y + 3,
     margin: { left: margen, right: margen, bottom: 18 },
-    head: [['Artículo', 'Bodega', 'Cantidad', 'Precio unitario', 'Total']],
+    head: [['Artículo', 'Cantidad', 'Precio unitario', 'Total']],
     body: lineas.length
       ? lineas.map((linea) => {
           const cantidad = Number(linea.detCantidad) || 0
           const precio = Number(linea.detPrecioVentaUnidad) || 0
           return [
             dato(linea.detArticuloNombre),
-            dato(linea.detBodegaNombre),
             cantidad.toLocaleString('es-CO', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
@@ -139,7 +138,7 @@ export function generarPdfVenta({ venta, empresa }) {
             formatearMoneda(cantidad * precio)
           ]
         })
-      : [['Sin artículos', '-', '-', '-', '-']],
+      : [['Sin artículos', '-', '-', '-']],
     theme: 'grid',
     styles: {
       font: 'helvetica',
@@ -156,10 +155,9 @@ export function generarPdfVenta({ venta, empresa }) {
     alternateRowStyles: { fillColor: [250, 249, 249] },
     columnStyles: {
       0: { cellWidth: 'auto' },
-      1: { cellWidth: 31 },
-      2: { cellWidth: 23, halign: 'right' },
-      3: { cellWidth: 34, halign: 'right' },
-      4: { cellWidth: 32, halign: 'right' }
+      1: { cellWidth: 27, halign: 'right' },
+      2: { cellWidth: 38, halign: 'right' },
+      3: { cellWidth: 34, halign: 'right' }
     }
   })
 

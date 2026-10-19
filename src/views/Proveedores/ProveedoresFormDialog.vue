@@ -3,7 +3,17 @@
     <v-container fluid class="pa-6">
     <div class="d-flex align-center justify-space-between mb-4">
       <h1 class="text-h5">{{ esEdicion ? 'Editar proveedor' : 'Nuevo proveedor' }}</h1>
-      <v-btn icon="mdi-close" variant="text" title="Cerrar" @click="cancelar" />
+      <div class="d-flex align-center ga-2">
+        <v-btn
+          color="primary"
+          prepend-icon="mdi-content-save"
+          :loading="guardando"
+          @click="confirmar"
+        >
+          Guardar
+        </v-btn>
+        <v-btn icon="mdi-close" variant="text" title="Cerrar" @click="cancelar" />
+      </div>
     </div>
 
     <v-card class="pa-6" max-width="560" elevation="1">
@@ -99,7 +109,6 @@
 
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
-          <v-btn color="primary" :loading="guardando" type="submit">Confirmar</v-btn>
         </div>
       </v-form>
     </v-card>
