@@ -176,7 +176,7 @@
             </div>
             <div v-if="venta.ventaTipoVenta !== 'CONTADO'" class="campo">
               <span class="campo-rotulo">Suma Pagos:</span>
-              <span>{{ formatearMoneda(0) }}</span>
+              <span>{{ formatearMoneda(sumaPagosActivos) }}</span>
             </div>
           </v-col>
         </v-row>
@@ -223,6 +223,53 @@
                 <td class="text-end">{{ formatearMoneda(linea.detPrecioVentaUnidad) }}</td>
                 <td class="text-end">
                   {{ formatearMoneda(Number(linea.detCantidad) * Number(linea.detPrecioVentaUnidad)) }}
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
+      </v-card>
+
+      <v-card v-if="venta.ventaTipoVenta !== 'CONTADO'" class="pa-6 mb-4" elevation="1">
+        <div class="text-subtitle-2 mb-3">Pagos</div>
+        <div style="overflow-x: auto;">
+          <v-table density="compact" class="tabla-listado">
+            <thead>
+              <tr>
+                <th>Fecha</th>
+                <th>Tipo</th>
+                <th>Método</th>
+                <th class="text-end">Monto</th>
+                <th>Observación</th>
+                <th>Usuario</th>
+                <th class="text-center">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="!pagos.length">
+                <td colspan="7" class="text-center py-6 text-medium-emphasis">
+                  Esta venta no tiene pagos registrados
+                </td>
+              </tr>
+              <tr
+                v-for="pago in pagos"
+                :key="pago.pagoId"
+                :class="{ 'fila-anulada': !pagoActivo(pago) }"
+              >
+                <td>{{ formatearFecha(pago.pagoFecha) }}</td>
+                <td>{{ pago.pagoTipoOrigen || '-' }}</td>
+                <td>{{ pago.pagoMetodoPago || '-' }}</td>
+                <td class="text-end">{{ formatearMoneda(pago.pagoMonto) }}</td>
+                <td>{{ pago.pagoObservacion || '-' }}</td>
+                <td>{{ pago.pagoUsuario || '-' }}</td>
+                <td class="text-center">
+                  <v-chip
+                    :color="pagoActivo(pago) ? 'success' : 'error'"
+                    size="x-small"
+                    variant="tonal"
+                  >
+                    {{ pagoActivo(pago) ? 'Activo' : 'Anulado' }}
+                  </v-chip>
                 </td>
               </tr>
             </tbody>
@@ -316,6 +363,7 @@ export default {
       anulando: false,
       venta: null,
       lineas: [],
+      pagos: [],
       dialogEstadoPago: false,
       guardandoEstadoPago: false,
       estadoPagoNuevo: '',
@@ -351,6 +399,11 @@ export default {
         this.venta?.ventaEstado === true ||
         this.venta?.ventaEstado === '1'
     },
+    sumaPagosActivos() {
+      return this.pagos
+        .filter((pago) => this.pagoActivo(pago))
+        .reduce((total, pago) => total + (Number(pago.pagoMonto) || 0), 0)
+    },
     terceroCompleto() {
       if (!this.venta) return '-'
       const partes = [
@@ -381,6 +434,7 @@ export default {
         }
         this.venta = respuesta.data
         this.lineas = Array.isArray(respuesta.data.lineas) ? respuesta.data.lineas : []
+        this.pagos = Array.isArray(respuesta.data.pagos) ? respuesta.data.pagos : []
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la venta'
         await Swal.fire('Error', mensaje, 'error')
@@ -516,6 +570,10 @@ export default {
       }
     },
 
+    pagoActivo(pago) {
+      return pago.pagoEstado === 1 || pago.pagoEstado === true || pago.pagoEstado === '1'
+    },
+
     esBolsa(linea) {
       return linea.detEsBolsa === true || linea.detEsBolsa === 1 || linea.detEsBolsa === '1'
     },
@@ -561,6 +619,11 @@ export default {
 
 .campo-rotulo {
   font-weight: 600;
+}
+
+.fila-anulada td {
+  opacity: 0.55;
+  text-decoration: line-through;
 }
 
 .selector-impresion {
