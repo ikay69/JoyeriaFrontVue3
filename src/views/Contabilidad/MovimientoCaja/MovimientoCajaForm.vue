@@ -9,7 +9,7 @@
         modulo, no se teclean aqui.
       -->
       <p class="text-caption text-medium-emphasis mb-4">
-        Registra un sobrante o un faltante de caja. Los movimientos de ventas, compras, abonos,
+        Registra un sobrante o un faltante de caja. Los movimientos de ventas, compras, pagos,
         cuotas y gastos los genera su propio módulo.
       </p>
 
