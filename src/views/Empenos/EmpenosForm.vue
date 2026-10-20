@@ -627,6 +627,7 @@ export default {
             Nombre: String(fila.articuloNuevo.Nombre).trim(),
             Propiedades: (fila.articuloNuevo.Propiedades || []).map((propiedad) => ({
               idPropiedad: Number(propiedad.idPropiedad),
+              idUnidadMedida: propiedad.idUnidadMedida == null ? null : Number(propiedad.idUnidadMedida),
               Valor: String(propiedad.Valor).trim()
             }))
           }

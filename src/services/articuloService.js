@@ -6,6 +6,7 @@ export default {
     return http.post('/articulo/getallarticulo', payload)
   },
   create(payload) {
+    // Propiedades: [{ idPropiedad, idUnidadMedida (nullable), Valor }]
     // payload: { idEmpresa, idProducto, Nombre, Descripcion, PrecioVentaUnitario, Vender, Propiedades }
     return http.post('/articulo/newarticulo', payload)
   },
@@ -15,6 +16,7 @@ export default {
   },
   update(payload) {
     // ⚠️ Ruta NO confirmada en el documento — verificar con tu hermano
+    // Propiedades: [{ idPropiedad, idUnidadMedida (nullable), Valor }]
     // payload: { idEmpresa, idArticulo, idProducto, Nombre, Descripcion, PrecioVentaUnitario, Vender, Estado, Propiedades }
     return http.put('/articulo/updatearticulo', payload)
   },
