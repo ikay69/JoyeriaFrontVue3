@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { lineasParaImpresion } from './lineasImpresion'
 
 const dato = (valor, alternativo = '-') => {
   if (valor === null || valor === undefined || String(valor).trim() === '') return alternativo
@@ -131,7 +132,7 @@ export function dibujarContenidoTirilla(doc, {
   const documentoTercero = [venta.ventaTerceroTipoDoc, venta.ventaTerceroNumeroDoc]
     .filter(Boolean)
     .join(' ')
-  const lineas = Array.isArray(venta.lineas) ? venta.lineas : []
+  const lineas = lineasParaImpresion(venta.lineas)
 
   textoCentrado(dato(empresa?.Nombre, 'NOMBRE DE LA EMPRESA'), fuente * 1.12, 'bold')
   if (tipoNumeroEmpresa) textoCentrado(tipoNumeroEmpresa, fuentePequena)
@@ -218,7 +219,7 @@ export function dibujarContenidoTirilla(doc, {
     doc.setFont('helvetica', destacado ? 'bold' : 'normal')
     doc.setFontSize(fuente)
     doc.setTextColor(25, 25, 25)
-    doc.text(etiqueta, xInterior + anchoInterior * 0.52, y)
+    doc.text(etiqueta, xInterior, y)
     doc.text(formatearNumero(valor), xInterior + anchoInterior, y, { align: 'right' })
     y += altoLinea(fuente) + 0.5 * escala
   }
