@@ -123,7 +123,7 @@
       </v-form>
     </v-card>
 
-    <VentasSeleccionar
+    <VentasSeleccionarPago
       v-model="dialogVentas"
       :id-empresa="idEmpresa"
       @seleccionar="onVentaSeleccionada"
@@ -136,12 +136,12 @@ import Swal from 'sweetalert2'
 import pagoService from '@/services/pagoService'
 import ventasService from '@/services/ventasService'
 import { useAuthStore } from '@/stores/auth'
-import VentasSeleccionar from '@/views/Ventas/VentasSeleccionar.vue'
+import VentasSeleccionarPago from '@/views/Ventas/VentasSeleccionarPago.vue'
 
 export default {
   name: 'PagosForm',
 
-  components: { VentasSeleccionar },
+  components: { VentasSeleccionarPago },
 
   data() {
     return {

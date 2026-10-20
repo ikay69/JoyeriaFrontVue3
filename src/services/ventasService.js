@@ -9,6 +9,17 @@ export default {
     return http.post('/venta/getallventa', payload)
   },
 
+  getActivas(payload) {
+    // Mismo payload que getAll; solo trae ventas con Estado = TRUE
+    return http.post('/venta/getactivasventa', payload)
+  },
+
+  getActivasCreditoAbono(payload) {
+    // payload: { idEmpresa, pagina, idTercero } (idTercero null o 0 = todos)
+    // Solo ventas activas CREDITO/POR_ABONO que no estan COMPLETO. Sin fechas.
+    return http.post('/venta/getactivascreditoabonoventa', payload)
+  },
+
   getById(payload) {
     // payload: { idEmpresa, idVenta }
     return http.post('/venta/getidventa',payload)
