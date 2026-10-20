@@ -3,6 +3,15 @@
     <div class="d-flex align-center justify-space-between mb-4">
       <h1 class="text-h5">Empeños</h1>
       <div class="d-flex ga-2">
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-calendar-refresh"
+          :loading="actualizando"
+          :disabled="actualizando"
+          @click="actualizarPeriodos"
+        >
+          Actualizar periodos
+        </v-btn>
         <v-btn variant="tonal" prepend-icon="mdi-alert-circle-outline" @click="dialogMora = true">
           Reporte de mora
         </v-btn>
@@ -230,6 +239,7 @@ export default {
   data() {
     return {
       cargando: false,
+      actualizando: false,
       empenos: [],
       cantData: 0,
       pagina: 1,
@@ -285,16 +295,14 @@ export default {
   },
 
   watch: {
-    async idEmpresa() {
+    idEmpresa() {
       this.clienteSeleccionado = null
       this.filtros.idTercero = 0
-      await this.actualizarPeriodos()
       this.consultar()
     }
   },
 
-  async created() {
-    await this.actualizarPeriodos()
+  created() {
     this.consultar()
   },
 
@@ -303,14 +311,33 @@ export default {
       this.buscar(1)
     },
 
-    // Pone al día los periodos de la empresa; si falla no impide ver el listado.
     async actualizarPeriodos() {
+      if (this.actualizando) return
       const idEmpresa = Number(this.idEmpresa)
-      if (!Number.isInteger(idEmpresa) || idEmpresa <= 0) return
+      if (!Number.isInteger(idEmpresa) || idEmpresa <= 0) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+
+      this.actualizando = true
       try {
-        await empenoService.actualizarPeriodos({ idEmpresa })
+        const { data } = await empenoService.actualizarPeriodos({ idEmpresa })
+        const fallidos = Array.isArray(data.fallidos) ? data.fallidos : []
+        const resumen = `Empeños revisados: ${data.empenosTocados ?? 0}. ` +
+          `Períodos creados: ${data.periodosCreados ?? 0}. ` +
+          `Períodos atrasados: ${data.periodosAtrasados ?? 0}.`
+        if (fallidos.length) {
+          const ids = fallidos.map((f) => f.empenoId).join(', ')
+          await Swal.fire('Actualizado con errores', `${resumen} No se pudieron procesar los empeños: ${ids}.`, 'warning')
+        } else {
+          await Swal.fire('Éxito', resumen, 'success')
+        }
+        this.consultar()
       } catch (error) {
-        console.error('No se pudieron actualizar los periodos', error)
+        const mensaje = error.response?.data?.msg || 'No se pudieron actualizar los periodos'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.actualizando = false
       }
     },
 
