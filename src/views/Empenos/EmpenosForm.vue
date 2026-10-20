@@ -325,7 +325,6 @@ export default {
       dialogTercero: false,
       dialogClienteForm: false,
       clienteParaEditar: null,
-      abrirSelectorDespuesDeAlta: false,
       dialogArticulo: false,
       dialogArticuloNuevo: false,
       filaActiva: null,
@@ -376,14 +375,6 @@ export default {
     idEmpresa() {
       this.limpiarFormulario()
       this.cargarBodegas()
-    },
-    dialogClienteForm(visible) {
-      if (!visible && this.abrirSelectorDespuesDeAlta) {
-        this.abrirSelectorDespuesDeAlta = false
-        this.$nextTick(() => {
-          this.dialogTercero = true
-        })
-      }
     }
   },
 
@@ -464,9 +455,10 @@ export default {
     onClienteGuardado({ creado, cliente }) {
       if (cliente) {
         this.clienteSeleccionado = cliente
+      } else if (creado) {
+        this.clienteSeleccionado = null
       }
       this.clienteParaEditar = null
-      this.abrirSelectorDespuesDeAlta = creado
     },
 
     onTerceroSeleccionado(cliente) {
@@ -685,7 +677,6 @@ export default {
       this.dialogTercero = false
       this.dialogClienteForm = false
       this.clienteParaEditar = null
-      this.abrirSelectorDespuesDeAlta = false
       this.dialogArticulo = false
       this.dialogArticuloNuevo = false
       this.filaActiva = null
