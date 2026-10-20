@@ -74,6 +74,7 @@
               v-model="fechaInicio"
               label="Fecha de inicio"
               type="date"
+              :max="hoy()"
               :rules="[reglas.requerido]"
               variant="outlined"
               density="comfortable"
@@ -82,12 +83,13 @@
           <v-col cols="12" sm="6" md="3">
             <v-text-field
               v-model="tasaInteresPeriodo"
-              label="Tasa de interés (%)"
+              label="Tasa de interés mensual (%)"
               type="number"
-              min="0"
-              max="999.99"
+              min="0.01"
+              max="100"
               step="0.01"
-              :rules="[reglas.requerido]"
+              hint="Vacío = 10 %"
+              persistent-hint
               variant="outlined"
               density="comfortable"
             />
@@ -108,7 +110,22 @@
             <v-text-field
               label="Monto inicial"
               :model-value="formatearMoneda(montoInicial)"
+              hint="Suma de los avalúos"
+              persistent-hint
               readonly
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="idEmpenoOrigen"
+              label="Id del empeño que reemplaza"
+              type="number"
+              min="1"
+              step="1"
+              hint="Opcional: empeño REFINANCIADO de origen"
+              persistent-hint
               variant="outlined"
               density="comfortable"
             />
@@ -333,6 +350,7 @@ export default {
       terceroCiudadDoc: '',
       fechaInicio: '',
       tasaInteresPeriodo: '',
+      idEmpenoOrigen: '',
       metodoPago: 'EFECTIVO',
       lineas: [],
       bodegas: [],
@@ -570,15 +588,21 @@ export default {
         return 'La fecha de inicio es obligatoria y debe tener formato AAAA-MM-DD'
       }
 
-      const tasa = Number(this.tasaInteresPeriodo)
-      if (this.tasaInteresPeriodo === '' || this.tasaInteresPeriodo === null || this.tasaInteresPeriodo === undefined) {
-        return 'La tasa de interés es obligatoria'
+      if (this.fechaInicio > this.hoy()) return 'La fecha de inicio no puede ser futura'
+
+      if (this.tasaInteresPeriodo !== '' && this.tasaInteresPeriodo !== null && this.tasaInteresPeriodo !== undefined) {
+        const tasa = Number(this.tasaInteresPeriodo)
+        if (!Number.isFinite(tasa) || tasa <= 0 || tasa > 100) {
+          return 'La tasa debe ser mayor a 0 y máximo 100'
+        }
+        if (Math.abs(tasa - Number(tasa.toFixed(2))) > 0.0000001) {
+          return 'La tasa admite máximo dos decimales'
+        }
       }
-      if (!Number.isFinite(tasa) || tasa < 0 || tasa > 999.99) {
-        return 'La tasa debe estar entre 0 y 999.99'
-      }
-      if (Math.abs(tasa - Number(tasa.toFixed(2))) > 0.0000001) {
-        return 'La tasa admite máximo dos decimales'
+
+      const origenTexto = String(this.idEmpenoOrigen ?? '').trim()
+      if (origenTexto !== '' && (!Number.isInteger(Number(origenTexto)) || Number(origenTexto) <= 0)) {
+        return 'El id del empeño de origen debe ser un entero positivo'
       }
 
       if (!['EFECTIVO', 'TRANSACCION'].includes(this.metodoPago)) {
@@ -645,9 +669,10 @@ export default {
         CodigoContrato: this.codigoContrato.trim(),
         TerceroCiudadDoc: this.terceroCiudadDoc.trim(),
         FechaInicio: this.fechaInicio,
-        TasaInteresPeriodo: Number(this.tasaInteresPeriodo),
+        TasaInteresPeriodo: String(this.tasaInteresPeriodo ?? '').trim() === '' ? null : Number(this.tasaInteresPeriodo),
         MetodoPago: this.metodoPago,
         MontoInicial: this.montoInicial,
+        idEmpenoOrigen: String(this.idEmpenoOrigen ?? '').trim() === '' ? null : Number(this.idEmpenoOrigen),
         Articulos: this.armarArticulos()
       }
 
@@ -685,9 +710,17 @@ export default {
       this.terceroCiudadDoc = ''
       this.fechaInicio = ''
       this.tasaInteresPeriodo = ''
+      this.idEmpenoOrigen = ''
       this.metodoPago = 'EFECTIVO'
       this.lineas = []
       this.agregarLinea()
+    },
+
+    hoy() {
+      const ahora = new Date()
+      const mes = String(ahora.getMonth() + 1).padStart(2, '0')
+      const dia = String(ahora.getDate()).padStart(2, '0')
+      return `${ahora.getFullYear()}-${mes}-${dia}`
     },
 
     cancelar() {
