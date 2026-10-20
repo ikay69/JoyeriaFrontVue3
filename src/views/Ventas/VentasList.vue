@@ -8,8 +8,59 @@
     </div>
 
     <v-card class="pa-4 mb-4" elevation="1">
+      <v-row dense align="center" class="mb-2">
+        <v-col cols="12">
+          <div class="d-flex align-center">
+            <v-btn
+              icon="mdi-account-search"
+              size="small"
+              variant="tonal"
+              title="Buscar cliente"
+              @click="dialogCliente = true"
+            />
+            <v-text-field
+              :model-value="clienteSeleccionado ? clienteSeleccionado.Nombre : ''"
+              label="Cliente"
+              placeholder="Todos"
+              readonly
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+            <v-btn
+              v-if="clienteSeleccionado"
+              icon="mdi-close"
+              variant="text"
+              size="small"
+              title="Quitar el filtro de cliente"
+              @click="limpiarCliente"
+            />
+          </div>
+        </v-col>
+      </v-row>
+
       <v-row dense align="center">
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="6" md="2">
+          <v-text-field
+            v-model="filtros.fechaInicio"
+            label="Desde"
+            type="date"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
+          <v-text-field
+            v-model="filtros.fechaFin"
+            label="Hasta"
+            type="date"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
           <v-select
             v-model="filtros.idVendedor"
             :items="opcionesVendedor"
@@ -22,12 +73,49 @@
             hide-details
           />
         </v-col>
-        <v-col cols="12" sm="2">
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filtros.TipoVenta"
+            :items="opcionesTipoVenta"
+            item-title="texto"
+            item-value="valor"
+            label="Tipo de venta"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filtros.EstadoPago"
+            :items="opcionesEstadoPago"
+            item-title="texto"
+            item-value="valor"
+            label="Estado de pago"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
+          <v-select
+            v-model="filtros.EstadoInventario"
+            :items="opcionesEstadoInventario"
+            item-title="texto"
+            item-value="valor"
+            label="Estado de inventario"
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6" md="2">
           <v-btn color="primary" variant="tonal" block @click="consultar">
             Consultar
           </v-btn>
         </v-col>
       </v-row>
+      <div class="text-caption text-medium-emphasis mt-2">El rango de fechas es obligatorio y no puede superar los 94 días.</div>
     </v-card>
 
     <v-card elevation="1">
@@ -39,22 +127,22 @@
               <th>Tercero</th>
               <th>Tipo venta</th>
               <th class="text-right">Subtotal</th>
-              <th class="text-right">Descuento</th>
-              <th class="text-right">Cancelado</th>
               <th class="text-right">Saldo</th>
               <th>Vendedor</th>
-              <th>Estado</th>
+              <th>Estado de pago</th>
+              <th>Estado de inventario</th>
+              <th>Venta</th>
               <th class="text-center">Detalle</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="cargando">
-              <td colspan="10" class="text-center py-6">
+              <td colspan="12" class="text-center py-6">
                 <v-progress-circular indeterminate color="primary" />
               </td>
             </tr>
             <tr v-else-if="!ventas.length">
-              <td colspan="10" class="text-center py-6 text-medium-emphasis">
+              <td colspan="12" class="text-center py-6 text-medium-emphasis">
                 No hay registros para mostrar
               </td>
             </tr>
@@ -63,13 +151,13 @@
               <td>{{ ven.ventaTercero }}</td>
               <td>{{ ven.ventaTipoVenta }}</td>
               <td class="text-right">{{ formatearMoneda(ven.ventaSubtotal) }}</td>
-              <td class="text-right">{{ formatearMoneda(ven.ventaDescuento) }}</td>
-              <td class="text-right">{{ formatearMoneda(ven.ventaCancelado) }}</td>
               <td class="text-right">{{ formatearMoneda(ven.ventaSaldo) }}</td>
               <td>{{ ven.ventaVendedor }}</td>
+              <td>{{ ven.ventaEstadoPago || '-' }}</td>
+              <td>{{ ven.ventaEstadoInventario || '-' }}</td>
               <td>
-                <v-chip :color="ven.ventaEstado === 1 ? 'success' : 'error'" size="small">
-                  {{ ven.ventaEstado === 1 ? 'Activa' : 'Inactiva' }}
+                <v-chip :color="Number(ven.ventaEstado) === 1 ? 'success' : 'error'" size="small" variant="tonal">
+                  {{ Number(ven.ventaEstado) === 1 ? 'Activa' : 'Anulada' }}
                 </v-chip>
               </td>
               <td class="text-center">
@@ -90,6 +178,12 @@
         </v-btn>
       </div>
     </v-card>
+
+    <ClientesSeleccionar
+      v-model="dialogCliente"
+      :id-empresa="idEmpresa"
+      @seleccionar="onClienteSeleccionado"
+    />
   </v-container>
 </template>
 
@@ -98,21 +192,64 @@ import Swal from 'sweetalert2'
 import ventasService from '@/services/ventasService'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
+import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+
+function aFechaIso(fecha) {
+  const anio = fecha.getFullYear()
+  const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+  const dia = String(fecha.getDate()).padStart(2, '0')
+  return `${anio}-${mes}-${dia}`
+}
+
+function diasInclusivos(fechaInicio, fechaFin) {
+  const convertir = (valor) => {
+    const [anio, mes, dia] = valor.split('-').map(Number)
+    return Date.UTC(anio, mes - 1, dia)
+  }
+  return Math.floor((convertir(fechaFin) - convertir(fechaInicio)) / 86400000) + 1
+}
 
 export default {
   name: 'VentasList',
 
+  components: { ClientesSeleccionar },
+
   data() {
+    const hoy = new Date()
     return {
       cargando: false,
       cargandoVendedores: false,
       ventas: [],
       cantData: 0,
       pagina: 1,
+      dialogCliente: false,
+      clienteSeleccionado: null,
       filtros: {
-        idVendedor: 0 // 0: Todos
+        fechaInicio: aFechaIso(new Date(hoy.getFullYear(), hoy.getMonth(), 1)),
+        fechaFin: aFechaIso(hoy),
+        idVendedor: 0,
+        TipoVenta: '',
+        EstadoPago: '',
+        EstadoInventario: ''
       },
-      vendedoresActivos: []
+      vendedoresActivos: [],
+      opcionesTipoVenta: [
+        { valor: '', texto: 'Todos' },
+        { valor: 'CONTADO', texto: 'Contado' },
+        { valor: 'POR_ABONO', texto: 'Por abono' },
+        { valor: 'CREDITO', texto: 'Crédito' }
+      ],
+      opcionesEstadoPago: [
+        { valor: '', texto: 'Todos' },
+        { valor: 'PENDIENTE', texto: 'Pendiente' },
+        { valor: 'PARCIAL', texto: 'Parcial' },
+        { valor: 'COMPLETO', texto: 'Completo' }
+      ],
+      opcionesEstadoInventario: [
+        { valor: '', texto: 'Todos' },
+        { valor: 'PENDIENTE', texto: 'Pendiente' },
+        { valor: 'COMPLETO', texto: 'Completo' }
+      ]
     }
   },
 
@@ -138,6 +275,15 @@ export default {
     }
   },
 
+  watch: {
+    idEmpresa() {
+      this.clienteSeleccionado = null
+      this.filtros.idVendedor = 0
+      this.cargarVendedores()
+      this.consultar()
+    }
+  },
+
   created() {
     this.cargarVendedores()
     this.consultar()
@@ -158,15 +304,48 @@ export default {
         return
       }
 
+      if (!this.filtros.fechaInicio || !this.filtros.fechaFin) {
+        await Swal.fire('Atención', 'Las dos fechas son obligatorias', 'warning')
+        return
+      }
+
+      const cantidadDias = diasInclusivos(this.filtros.fechaInicio, this.filtros.fechaFin)
+      if (cantidadDias < 1) {
+        await Swal.fire('Atención', 'La fecha inicial no puede ser mayor que la fecha final', 'warning')
+        return
+      }
+      if (cantidadDias > 94) {
+        await Swal.fire('Atención', 'El rango de fechas no puede superar los 94 días', 'warning')
+        return
+      }
+
+      const idEmpresa = Number(this.idEmpresa)
+      const idVendedor = Number(this.filtros.idVendedor)
+      const idTercero = this.clienteSeleccionado ? Number(this.clienteSeleccionado.Id) : 0
+      if (
+        !Number.isInteger(idEmpresa) || idEmpresa <= 0 ||
+        !Number.isInteger(idVendedor) ||
+        !Number.isInteger(idTercero) || idTercero < 0
+      ) {
+        await Swal.fire('Atención', 'La empresa o el vendedor seleccionado no es válido', 'warning')
+        return
+      }
+
       this.cargando = true
       try {
         const { data } = await ventasService.getAll({
-          idEmpresa: this.idEmpresa,
+          idEmpresa,
           pagina,
-          idVendedor: this.filtros.idVendedor
+          fechaInicio: this.filtros.fechaInicio,
+          fechaFin: this.filtros.fechaFin,
+          idVendedor,
+          idTercero,
+          TipoVenta: this.filtros.TipoVenta || null,
+          EstadoPago: this.filtros.EstadoPago || null,
+          EstadoInventario: this.filtros.EstadoInventario || null
         })
         this.ventas = data.data || []
-        this.cantData = data.cantData || 0
+        this.cantData = Number(data.cantData) || 0
         this.pagina = pagina
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo consultar las ventas'
@@ -177,7 +356,10 @@ export default {
     },
 
     async cargarVendedores() {
-      if (!this.idEmpresa) return
+      if (!this.idEmpresa) {
+        this.vendedoresActivos = []
+        return
+      }
       this.cargandoVendedores = true
       try {
         this.vendedoresActivos = await this.catalogosStore.getVendedores(this.idEmpresa)
@@ -187,6 +369,16 @@ export default {
       } finally {
         this.cargandoVendedores = false
       }
+    },
+
+    onClienteSeleccionado(cliente) {
+      this.clienteSeleccionado = cliente
+      this.consultar()
+    },
+
+    limpiarCliente() {
+      this.clienteSeleccionado = null
+      this.consultar()
     },
 
     irANueva() {

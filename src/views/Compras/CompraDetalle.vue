@@ -265,7 +265,7 @@
         </v-table>
         <p class="text-caption text-medium-emphasis mt-3 mb-0">
           Marcar una cuota como pagada no mueve caja ni recalcula el saldo de la compra: es un
-          registro informativo. El movimiento de caja llegará con el módulo de Abonos.
+          registro informativo. El movimiento de caja debe registrarse en el módulo correspondiente.
         </p>
       </v-card>
 
