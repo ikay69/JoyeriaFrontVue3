@@ -449,7 +449,6 @@ export default {
       dialogTercero: false,
       dialogProveedorForm: false,
       proveedorParaEditar: null,
-      abrirSelectorDespuesDeAlta: false,
       dialogArticulo: false,
       dialogArticuloNuevo: false,
       // fila para la que se abrio el selector de articulo: sin esto, el @seleccionar no sabria
@@ -554,7 +553,6 @@ export default {
       this.dialogTercero = false
       this.dialogProveedorForm = false
       this.proveedorParaEditar = null
-      this.abrirSelectorDespuesDeAlta = false
       this.lineas = []
       this.agregarLinea()
       this.cargarBodegas()
@@ -570,15 +568,6 @@ export default {
       this.valorCuota = null
       this.cuotas = []
       this.cuotasEditadas = false
-    },
-
-    dialogProveedorForm(visible) {
-      if (!visible && this.abrirSelectorDespuesDeAlta) {
-        this.abrirSelectorDespuesDeAlta = false
-        this.$nextTick(() => {
-          this.dialogTercero = true
-        })
-      }
     },
 
     tipoCompra(valor) {
@@ -658,9 +647,10 @@ export default {
     onProveedorGuardado({ creado, proveedor }) {
       if (proveedor) {
         this.terceroSeleccionado = proveedor
+      } else if (creado) {
+        this.terceroSeleccionado = null
       }
       this.proveedorParaEditar = null
-      this.abrirSelectorDespuesDeAlta = creado
     },
 
     agregarLinea() {

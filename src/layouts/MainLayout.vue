@@ -121,7 +121,7 @@
           <v-list-item :to="{ name: 'Empenos' }" title="Empeños" />
           <v-list-item :to="{ name: 'EmpenosPagos' }" title="Pagos" />
         </v-list-group>
-        <v-list-item :to="{ name: 'PagosList' }" prepend-icon="mdi-cash-plus" title="Pagos" class="bg-red text-white"/>
+        <v-list-item :to="{ name: 'PagosList' }" prepend-icon="mdi-cash-plus" title="Pagos" />
         <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos"/>
 
         <v-list-group value="contabilidad">
