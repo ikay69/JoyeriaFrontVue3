@@ -52,27 +52,13 @@
               item-title="Nombre"
               item-value="Id"
               label="Categoría"
-              :rules="[reglas.requerido]"
               :loading="cargandoListas"
               variant="outlined"
               class="mb-2"
             />
           </v-col>
 
-          <!-- Fila 4: Unidad de medida y Tipo de seguimiento (Cada uno en una columna) -->
-          <v-col cols="12" sm="6">
-            <v-select
-              v-model="idUnidadMedida"
-              :items="unidadesMedida"
-              item-title="uniMedNombre"
-              item-value="uniMedId"
-              label="Unidad de medida"
-              :rules="[reglas.requerido]"
-              :loading="cargandoListas"
-              variant="outlined"
-              class="mb-2"
-            />
-          </v-col>
+          <!-- Fila 4: Tipo de seguimiento -->
           <v-col cols="12" sm="6">
             <v-select
               v-model="tipoSeguimiento"
@@ -130,7 +116,6 @@ import Swal from 'sweetalert2'
 import productoService from '@/services/productoService'
 import tipoProductoService from '@/services/tipoProductoService'
 import categoriaService from '@/services/categoriaService'
-import unidadMedidaService from '@/services/unidadMedidaService'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
@@ -141,8 +126,7 @@ export default {
       nombre: '',
       descripcion: '',
       idTipoProducto: null,
-      idCategoria: null,
-      idUnidadMedida: null,
+      idCategoria: 'SIN_CATEGORIA',
       tipoSeguimiento: 'CANTIDAD',
       estado: true,
       usuario: '',
@@ -150,7 +134,6 @@ export default {
 
       tiposProducto: [],
       categorias: [],
-      unidadesMedida: [],
 
       cargando: false,
       cargandoListas: false,
@@ -214,16 +197,17 @@ export default {
     async cargarListas() {
       this.cargandoListas = true
       try {
-        const [resTipos, resCategorias, resUnidades] = await Promise.all([
+        const [resTipos, resCategorias] = await Promise.all([
           tipoProductoService.getActivas({ idEmpresa: this.idEmpresa }),
-          categoriaService.getActivas({ idEmpresa: this.idEmpresa }),
-          unidadMedidaService.getActivas({ idEmpresa: this.idEmpresa })
+          categoriaService.getActivas({ idEmpresa: this.idEmpresa })
         ])
         this.tiposProducto = resTipos.data.data || []
-        this.categorias = resCategorias.data.data || []
-        this.unidadesMedida = resUnidades.data.data || []
+        this.categorias = [
+          { Id: 'SIN_CATEGORIA', Nombre: 'Sin Categoría' },
+          ...(resCategorias.data.data || [])
+        ]
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudieron cargar las listas de tipo de producto, categoría o unidad de medida'
+        const mensaje = error.response?.data?.msg || 'No se pudieron cargar las listas de tipo de producto o categoría'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargandoListas = false
@@ -240,8 +224,7 @@ export default {
         this.nombre = data.data.proNombre
         this.descripcion = data.data.proDescripcion
         this.idTipoProducto = data.data.proTipoProductoId
-        this.idCategoria = data.data.proCategoriaId
-        this.idUnidadMedida = data.data.proUnidadMedidaId
+        this.idCategoria = data.data.proCategoriaId ?? 'SIN_CATEGORIA'
         this.estado = data.data.proEstado === 1
         this.usuario = data.data.proUsuario
         this.fechaCreacion = data.data.proFecCreacion
@@ -258,19 +241,10 @@ export default {
 
         // Mismo caso para categoría...
         const existeCategoria = this.categorias.some((c) => c.Id === data.data.proCategoriaId)
-        if (!existeCategoria) {
+        if (data.data.proCategoriaId != null && !existeCategoria) {
           this.categorias.push({
             Id: data.data.proCategoriaId,
             Nombre: data.data.proCategoriaNombre
-          })
-        }
-
-        // ...y para unidad de medida.
-        const existeUnidad = this.unidadesMedida.some((u) => u.uniMedId === data.data.proUnidadMedidaId)
-        if (!existeUnidad) {
-          this.unidadesMedida.push({
-            uniMedId: data.data.proUnidadMedidaId,
-            uniMedNombre: data.data.proUnidadMedidaNombre
           })
         }
       } catch (error) {
@@ -300,8 +274,7 @@ export default {
             Nombre: this.nombre,
             Descripcion: this.descripcion,
             idTipoProducto: this.idTipoProducto,
-            idCategoria: this.idCategoria,
-            idUnidadMedida: this.idUnidadMedida,
+            idCategoria: this.idCategoria === 'SIN_CATEGORIA' ? null : this.idCategoria,
             TipoSeguimiento: this.tipoSeguimiento,
             Estado: this.estado
           })
@@ -312,8 +285,7 @@ export default {
             Nombre: this.nombre,
             Descripcion: this.descripcion,
             idTipoProducto: this.idTipoProducto,
-            idCategoria: this.idCategoria,
-            idUnidadMedida: this.idUnidadMedida,
+            idCategoria: this.idCategoria === 'SIN_CATEGORIA' ? null : this.idCategoria,
             TipoSeguimiento: this.tipoSeguimiento
           })
           await Swal.fire('Éxito', data.msg || 'Producto creado', 'success')
