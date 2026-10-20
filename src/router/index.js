@@ -289,7 +289,7 @@ const routes = [
         props: true
       },
 
-      // Prestamos / Empenos / Abonos 
+      // Prestamos / Empenos / Pagos
       { path: 'prestamos', name: 'Prestamos', component: () => import('@/views/Prestamos/Prestamos.vue') },
       { path: 'empenos', name: 'Empenos', component: () => import('@/views/Empenos/EmpenosList.vue') },
       { path: 'empenos/nuevo', name: 'EmpenosNuevo', component: () => import('@/views/Empenos/EmpenosForm.vue') },
@@ -300,7 +300,14 @@ const routes = [
         props: true
       },
       { path: 'empenos/pagos', name: 'EmpenosPagos', component: () => import('@/views/Empenos/PagosEmpenos.vue') },
-      { path: 'abonos', name: 'Abonos', component: () => import('@/views/Abonos/Abonos.vue') },
+      { path: 'pagos', name: 'PagosList', component: () => import('@/views/Pagos/PagosList.vue') },
+      { path: 'pagos/nuevo', name: 'PagosNuevo', component: () => import('@/views/Pagos/PagosForm.vue') },
+      {
+        path: 'pagos/:EmpId/:PagoId',
+        name: 'PagosDetalle',
+        component: () => import('@/views/Pagos/PagosDetalle.vue'),
+        props: true
+      },
       
       
       // Gastos

@@ -2,8 +2,10 @@ import http from '@/services/http'
 
 export default {
   getAll(payload) {
-    // payload: { idEmpresa, pagina, idVendedor }
+    // payload: { idEmpresa, pagina, fechaInicio, fechaFin, idVendedor, idTercero,
+    //            TipoVenta, EstadoPago, EstadoInventario }
     // idVendedor -> -1: Sin vendedor, 0: Todos, cualquier otro numero: ese vendedor
+    // El endpoint ordena por fecha de creacion e id descendente.
     return http.post('/venta/getallventa', payload)
   },
 
