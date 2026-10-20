@@ -8,6 +8,29 @@
     <v-card class="pa-6 mt-4" elevation="1">
       <v-form @submit.prevent="confirmar">
         <v-row dense>
+          <v-col cols="12" md="4" class="d-flex ga-2">
+            <v-select
+              v-model="tipoImpresion"
+              :items="opcionesTipoImpresion"
+              item-title="texto"
+              item-value="valor"
+              label="Tipo de impresión"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+            />
+            <v-select
+              v-if="tipoImpresion === 'tirilla'"
+              v-model.number="anchoTirilla"
+              :items="opcionesAnchoTirilla"
+              item-title="texto"
+              item-value="valor"
+              label="Ancho"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+            />
+          </v-col>
           <v-col cols="12" md="4">
             <v-select
               v-model="tipoVenta"
@@ -306,6 +329,8 @@ import { useCatalogosStore } from '@/stores/catalogos'
 import ventasService from '@/services/ventasService'
 import empresaService from '@/services/empresaService'
 import { generarPdfVenta } from '@/utils/ventaPdf'
+import { generarTirillaPDF } from '@/utils/tirillaPDF'
+import { generarTirilla } from '@/utils/tirilla'
 import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosVender from '@/views/Inventario/Articulos/ArticulosVender.vue'
@@ -327,6 +352,17 @@ export default {
       filaActiva: null,
       siguienteClaveLinea: 1,
 
+      tipoImpresion: 'pdf',
+      anchoTirilla: 80,
+      opcionesTipoImpresion: [
+        { valor: 'pdf', texto: 'PDF' },
+        { valor: 'tirillaPdf', texto: 'Tirilla PDF' },
+        { valor: 'tirilla', texto: 'Tirilla' }
+      ],
+      opcionesAnchoTirilla: [
+        { valor: 80, texto: '80 mm' },
+        { valor: 50, texto: '50 mm' }
+      ],
       tipoVenta: 'CONTADO',
       idVendedor: null,
       terceroSeleccionado: null,
@@ -586,9 +622,30 @@ export default {
           return 'La cantidad de la línea ' + numero +
             ' debe ser mayor a cero y tener máximo dos decimales'
         }
-        if (!(Number(fila.PrecioVentaUnidad) > 0) || !this.esDecimal12_2(fila.PrecioVentaUnidad)) {
+        // Una bolsa puede ir en cero (incluida sin cobrar); el resto exige precio mayor a cero
+        if (fila.EsBolsa) {
+          if (!this.esDecimal12_2(fila.PrecioVentaUnidad)) {
+            return 'El precio de la bolsa de la línea ' + numero +
+              ' debe ser cero o mayor y tener máximo dos decimales'
+          }
+        } else if (!(Number(fila.PrecioVentaUnidad) > 0) || !this.esDecimal12_2(fila.PrecioVentaUnidad)) {
           return 'El precio de la línea ' + numero +
             ' debe ser mayor a cero y tener máximo dos decimales'
+        }
+      }
+
+      // El backend agrupa el mismo artículo en la misma bodega y rechaza si difieren precio o bolsa
+      for (let i = 0; i < this.lineas.length; i++) {
+        for (let j = i + 1; j < this.lineas.length; j++) {
+          const a = this.lineas[i]
+          const b = this.lineas[j]
+          if (Number(a.idArticulo) !== Number(b.idArticulo) || Number(a.idBodega) !== Number(b.idBodega)) continue
+          if (Number(a.PrecioVentaUnidad) !== Number(b.PrecioVentaUnidad)) {
+            return `Las líneas ${i + 1} y ${j + 1} tienen el mismo artículo y bodega con precios distintos`
+          }
+          if (Boolean(a.EsBolsa) !== Boolean(b.EsBolsa)) {
+            return `Las líneas ${i + 1} y ${j + 1} tienen el mismo artículo y bodega, pero solo una está marcada como bolsa`
+          }
         }
       }
       return null
@@ -619,8 +676,12 @@ export default {
       if (!this.esDecimal12_2(this.transaccion)) {
         return 'El pago por transacción debe ser un valor no negativo con máximo dos decimales'
       }
-      if (this.saldo !== 0) {
-        return 'La venta de contado debe quedar con saldo cero'
+      if (this.tipoVenta === 'CONTADO') {
+        if (this.saldo !== 0) {
+          return 'La venta de contado debe quedar con saldo cero'
+        }
+      } else if (!(this.saldo > 0)) {
+        return 'Una venta a crédito o por abono debe quedar con saldo pendiente'
       }
       return null
     },
@@ -637,15 +698,6 @@ export default {
 
     async confirmar() {
       if (this.guardando) return
-
-      if (this.tipoVenta !== 'CONTADO') {
-        await Swal.fire(
-          'Atención',
-          'Las ventas a crédito y por abono aún están en desarrollo',
-          'info'
-        )
-        return
-      }
 
       const errorLineas = this.validarLineas()
       if (errorLineas) {
@@ -699,12 +751,19 @@ export default {
         }
 
         try {
-          generarPdfVenta({ venta, empresa })
+          const parametros = { venta, empresa }
+          if (this.tipoImpresion === 'tirillaPdf') {
+            generarTirillaPDF(parametros)
+          } else if (this.tipoImpresion === 'tirilla') {
+            generarTirilla({ ...parametros, anchoMm: this.anchoTirilla })
+          } else {
+            generarPdfVenta(parametros)
+          }
         } catch (errorPdf) {
           const mensaje = errorPdf.message || 'Error desconocido'
           await Swal.fire(
             'Venta registrada',
-            `La venta se guardó, pero no se pudo generar la factura PDF: ${mensaje}`,
+            `La venta se guardó, pero no se pudo generar la impresión: ${mensaje}`,
             'warning'
           )
           this.$router.back()
