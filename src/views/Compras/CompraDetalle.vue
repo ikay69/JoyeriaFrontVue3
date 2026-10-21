@@ -135,31 +135,14 @@
 
         <v-divider class="my-4" />
 
-        <v-row dense>
-          <v-col cols="12" md="6">
-            <div class="campo">
-              <span class="campo-rotulo">Subtotal:</span>
-              <span>{{ formatearMoneda(compra.compraSubtotal) }}</span>
-            </div>
-            <div class="campo">
-              <span class="campo-rotulo">Descuento:</span>
-              <span>{{ formatearMoneda(compra.compraDescuento) }}</span>
-            </div>
-            <div class="campo">
-              <span class="campo-rotulo">Cancelado:</span>
-              <span>{{ formatearMoneda(compra.compraCancelado) }}</span>
-            </div>
-            <div class="campo">
-              <span class="campo-rotulo">Saldo:</span>
-              <span class="font-weight-medium">{{ formatearMoneda(compra.compraSaldo) }}</span>
-            </div>
-          </v-col>
-          <!-- Las cuotas solo existen en CREDITO; en CONTADO la columna no se dibuja. -->
-          <v-col v-if="esCredito" cols="12" md="6">
+        <v-row v-if="esCredito" dense>
+          <v-col cols="12" sm="4">
             <div class="campo">
               <span class="campo-rotulo">Número cuotas:</span>
               <span>{{ compra.compraNumeroCuotas ?? '-' }}</span>
             </div>
+          </v-col>
+          <v-col cols="12" sm="4">
             <div class="campo">
               <span class="campo-rotulo">Valor cuota:</span>
               <span>
@@ -168,6 +151,8 @@
                   : formatearMoneda(compra.compraValorCuota) }}
               </span>
             </div>
+          </v-col>
+          <v-col cols="12" sm="4">
             <div class="campo">
               <span class="campo-rotulo">Fecha compromiso:</span>
               <span>{{ compra.compraFechaCompromiso ? formatearFecha(compra.compraFechaCompromiso) : '-' }}</span>
@@ -207,6 +192,29 @@
         </div>
       </v-card>
 
+      <v-card class="pa-6 mb-4" elevation="1" aria-label="Resumen de la compra">
+        <div class="d-flex justify-end">
+          <div class="resumen-montos">
+            <div class="text-subtitle-2 mb-2 text-end">Resumen de la compra</div>
+            <div class="resumen-montos__fila">
+              <span>Subtotal</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(compra.compraSubtotal) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Descuento</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(compra.compraDescuento) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Cancelado</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(compra.compraCancelado) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Saldo</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(compra.compraSaldo) }}</span>
+            </div>
+          </div>
+        </div>
+      </v-card>
       <v-card v-if="esCredito" class="pa-6 mb-4" elevation="1">
         <div class="d-flex align-center justify-space-between mb-3">
           <span class="text-subtitle-2">Cuotas</span>
@@ -1058,5 +1066,21 @@ export default {
     grid-template-columns: 1fr;
     column-gap: 0;
   }
+}
+.resumen-montos {
+  width: min(100%, 420px);
+}
+
+.resumen-montos__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+}
+
+.resumen-montos__valor {
+  text-align: right;
+  font-weight: 500;
 }
 </style>

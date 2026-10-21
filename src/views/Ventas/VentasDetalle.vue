@@ -144,42 +144,6 @@
           </v-col>
         </v-row>
 
-        <v-divider class="my-4" />
-
-        <v-row dense>
-          <v-col cols="12" md="6">
-            <div class="campo">
-              <span class="campo-rotulo">Subtotal:</span>
-              <span>{{ formatearMoneda(venta.ventaSubtotal) }}</span>
-            </div>
-            <div class="campo">
-              <span class="campo-rotulo">Descuento:</span>
-              <span>{{ formatearMoneda(venta.ventaDescuento) }}</span>
-            </div>
-            <div class="campo">
-              <span class="campo-rotulo">Cancelado:</span>
-              <span>{{ formatearMoneda(venta.ventaCancelado) }}</span>
-            </div>
-            <div class="campo">
-              <span class="campo-rotulo">Saldo:</span>
-              <span class="font-weight-medium">{{ formatearMoneda(venta.ventaSaldo) }}</span>
-            </div>
-          </v-col>
-          <v-col cols="12" md="6">
-            <div class="campo">
-              <span class="campo-rotulo">Efectivo:</span>
-              <span>{{ formatearMoneda(venta.ventaEfectivo) }}</span>
-            </div>
-            <div class="campo">
-              <span class="campo-rotulo">Transacción:</span>
-              <span>{{ formatearMoneda(venta.ventaTransaccion) }}</span>
-            </div>
-            <div v-if="venta.ventaTipoVenta !== 'CONTADO'" class="campo">
-              <span class="campo-rotulo">Suma Pagos:</span>
-              <span>{{ formatearMoneda(sumaPagosActivos) }}</span>
-            </div>
-          </v-col>
-        </v-row>
       </v-card>
 
       <v-card class="pa-6 mb-4" elevation="1">
@@ -230,6 +194,41 @@
         </div>
       </v-card>
 
+      <v-card class="pa-6 mb-4" elevation="1" aria-label="Resumen de la venta">
+        <div class="d-flex justify-end">
+          <div class="resumen-montos">
+            <div class="text-subtitle-2 mb-2 text-end">Resumen de la venta</div>
+            <div class="resumen-montos__fila">
+              <span>Subtotal</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(venta.ventaSubtotal) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Descuento</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(venta.ventaDescuento) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Efectivo</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(venta.ventaEfectivo) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Transacción</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(venta.ventaTransaccion) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Cancelado</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(venta.ventaCancelado) }}</span>
+            </div>
+            <div v-if="venta.ventaTipoVenta !== 'CONTADO'" class="resumen-montos__fila">
+              <span>Suma pagos</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(sumaPagosActivos) }}</span>
+            </div>
+            <div class="resumen-montos__fila">
+              <span>Saldo</span>
+              <span class="resumen-montos__valor">{{ formatearMoneda(venta.ventaSaldo) }}</span>
+            </div>
+          </div>
+        </div>
+      </v-card>
       <v-card v-if="venta.ventaTipoVenta !== 'CONTADO'" class="pa-6 mb-4" elevation="1">
         <div class="text-subtitle-2 mb-3">Pagos</div>
         <div style="overflow-x: auto;">
@@ -652,5 +651,21 @@ export default {
 
 .tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
   background-color: rgba(var(--v-theme-primary), 0.06);
+}
+.resumen-montos {
+  width: min(100%, 420px);
+}
+
+.resumen-montos__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 16px;
+  min-height: 36px;
+}
+
+.resumen-montos__valor {
+  text-align: right;
+  font-weight: 500;
 }
 </style>

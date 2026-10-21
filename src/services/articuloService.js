@@ -33,7 +33,15 @@ export default {
   getParaVenta(payload){
     //payload: {idEmpresa,idBodega,campoOrdenar,orden,pagina,textoFiltro}
      return http.post('/articulo/getvendiblesarticulo', payload)
+  },
+
+  getParaProduccion(payload) {
+    // payload: { idEmpresa, idBodega, idTercero, campoOrdenar, orden, pagina, textoFiltro }
+    // idBodega es OBLIGATORIO (bodega activa de la empresa).
+    // idTercero: null o 0 -> bolsa DISPONIBLE; > 0 -> bolsa RECIBIDO_DE_TALLER de ese tercero.
+    // campoOrdenar -> 1:Nombre, 2:SKU, 4:FechaCreacion (el 3 lo rechaza esta ruta)
+    // Respuesta: { cantData, data: [{ artId, artSKU, artNombre, ..., artCostoUnitario (cadena o null), artCantidadDisponible }] }
+    // Usado por ArticulosProduccion.vue (consumos de la orden de produccion)
+    return http.post('/articulo/getproduccionarticulo', payload)
   }
-
-
 }

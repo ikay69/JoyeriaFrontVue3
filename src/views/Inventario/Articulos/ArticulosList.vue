@@ -14,10 +14,13 @@
             v-model="filtros.textoFiltro"
             label="Buscar"
             maxlength="150"
+            :disabled="filtros.campoOrdenar === 4"
+            :hint="filtros.campoOrdenar === 4 ? 'No aplica al ordenar por fecha de creación' : ''"
+            persistent-hint
             clearable
             density="compact"
             variant="outlined"
-            hide-details
+            hide-details="auto"
           />
         </v-col>
         <v-col cols="6" sm="3">
@@ -69,19 +72,19 @@
         </thead>
         <tbody>
           <tr v-if="cargando">
-            <td colspan="8" class="text-center py-6">
+            <td colspan="9" class="text-center py-6">
               <v-progress-circular indeterminate color="primary" />
             </td>
           </tr>
           <tr v-else-if="!articulos.length">
-            <td colspan="8" class="text-center py-6 text-medium-emphasis">
+            <td colspan="9" class="text-center py-6 text-medium-emphasis">
               No hay registros para mostrar
             </td>
           </tr>
           <tr v-for="art in articulos" :key="art.artId">
             <td>{{ art.artSKU }}</td>
             <td>{{ art.artNombre }} </td>
-            <td>{{ art.artCategoria }}</td>
+            <td>{{ art.artCategoria || '-' }}</td>
             <td>{{ art.artTipoProducto }}</td>
             <td class="columna-ajustable-text">{{art.artPropiedades}}</td>
             <td>{{ formatearPrecio(art.artPrecio) }}</td>
@@ -133,6 +136,7 @@ export default {
         campoOrdenar: 4,
         orden: 'DESC'
       },
+      // campoOrdenar ordena Y filtra: textoFiltro se busca en esa columna (con 4 se ignora)
       opcionesCampoOrdenar: [
         { valor: 1, texto: 'Nombre' },
         { valor: 2, texto: 'SKU' },
@@ -180,7 +184,7 @@ export default {
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
           pagina,
-          textoFiltro: this.filtros.textoFiltro || ''
+          textoFiltro: (this.filtros.textoFiltro || '').trim() || null
         })
         this.articulos = data.data || []
         this.cantData = data.cantData || 0
@@ -201,9 +205,11 @@ export default {
       this.$router.push({ name: 'ArticulosEditar', params: { EmpId, ArtId } })
     },
 
+    // artPrecio llega como CADENA ("350000.00") o null si el articulo no tiene precio
     formatearPrecio(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
       const n = Number(valor)
-      if (Number.isNaN(n)) return valor
+      if (!Number.isFinite(n)) return '-'
       return n.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     }
   }
