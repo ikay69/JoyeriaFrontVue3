@@ -231,9 +231,9 @@
                     v-model.number="fila.Cantidad"
                     control-variant="hidden"
                     type="number"
-                    min="0.01"
-                    step="0.01"
-                    :precision="2"
+                    min="0.0001"
+                    step="0.0001"
+                    :precision="4"
                     variant="outlined"
                     density="compact"
                     hide-details
@@ -331,6 +331,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 
 const MAXIMO_DECIMAL_12_2 = 9999999999.99
+const MAXIMO_CANTIDAD_12_4 = 99999999.9999
 
 export default {
   name: 'EmpenosForm',
@@ -529,6 +530,19 @@ export default {
       return null
     },
 
+    validarCantidad(valor, etiqueta) {
+      if (valor === null || valor === undefined || String(valor).trim() === '') {
+        return `${etiqueta} es obligatoria`
+      }
+      const numero = Number(valor)
+      if (!Number.isFinite(numero) || numero <= 0) return `${etiqueta} debe ser mayor a cero`
+      if (numero > MAXIMO_CANTIDAD_12_4) return `${etiqueta} excede el máximo permitido`
+      if (Number(numero.toFixed(4)) !== numero) {
+        return `${etiqueta} admite máximo cuatro decimales`
+      }
+      return null
+    },
+
     validarLineas() {
       if (!this.lineas.length) return 'Debe registrar al menos un artículo'
       if (this.lineas.length > 200) return 'No puede registrar más de 200 artículos'
@@ -559,7 +573,7 @@ export default {
           }
         }
 
-        const errorCantidad = this.validarDecimal(fila.Cantidad, `La cantidad de la línea ${numero}`)
+        const errorCantidad = this.validarCantidad(fila.Cantidad, `La cantidad de la línea ${numero}`)
         if (errorCantidad) return errorCantidad
         const errorAvaluo = this.validarDecimal(fila.ValorAvaluo, `El valor de avalúo de la línea ${numero}`)
         if (errorAvaluo) return errorAvaluo

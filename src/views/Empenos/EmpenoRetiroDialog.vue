@@ -319,7 +319,7 @@ export default {
     formatearNumero(valor) {
       const numero = Number(valor)
       if (valor === null || valor === undefined || valor === '' || !Number.isFinite(numero)) return '-'
-      return numero.toLocaleString('es-CO', { maximumFractionDigits: 2 })
+      return numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })
     },
 
     formatearMoneda(valor) {

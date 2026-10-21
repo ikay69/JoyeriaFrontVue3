@@ -60,7 +60,7 @@
             <th>Estado</th>
             <th>Fecha de creación</th>
             <th>Usuario</th>
-            <th class="text-center">Editar</th>
+            <th class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -84,7 +84,25 @@
             <td>{{ formatearFecha(cat.catFecCreacion) }}</td>
             <td>{{ cat.catcUsuario }}</td>
             <td class="text-center">
-              <v-btn icon="mdi-pencil" size="small" variant="text"  @click="irAEditar(cat.catEmp,cat.catId)" />
+              <v-btn
+                icon="mdi-pencil"
+                size="small"
+                variant="text"
+                title="Editar categoría"
+                :aria-label="`Editar categoría ${cat.catNombre}`"
+                @click="irAEditar(cat.catEmp, cat.catId)"
+              />
+              <v-btn
+                icon="mdi-delete"
+                size="small"
+                variant="text"
+                color="error"
+                title="Eliminar categoría"
+                :aria-label="`Eliminar categoría ${cat.catNombre}`"
+                :loading="eliminandoId === cat.catId"
+                :disabled="eliminandoId !== null"
+                @click="confirmarEliminar(cat)"
+              />
             </td>
           </tr>
         </tbody>
@@ -113,6 +131,7 @@ export default {
   data() {
     return {
       cargando: false,
+      eliminandoId: null,
       categorias: [],
       cantData: 0,
       pagina: 1,
@@ -185,6 +204,38 @@ export default {
    
     irAEditar(EmpId,CatId) {
       this.$router.push({ name: 'CategoriaEditar', params: { EmpId,CatId } })
+    },
+
+    async confirmarEliminar(cat) {
+      const confirmacion = await Swal.fire({
+        title: '¿Está seguro de eliminar la categoría?',
+        text: 'La categoría no se eliminará si ya existen productos que la usen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+      })
+
+      if (!confirmacion.isConfirmed) return
+
+      this.eliminandoId = cat.catId
+      try {
+        const { data } = await categoriaService.eliminar({
+          idEmpresa: this.idEmpresa,
+          idCategoria: cat.catId
+        })
+        await Swal.fire('Éxito', data.msg || 'Categoría eliminada correctamente', 'success')
+
+        const cantidadRestante = Math.max(0, this.cantData - 1)
+        const ultimaPagina = Math.max(1, Math.ceil(cantidadRestante / 50))
+        await this.buscar(Math.min(this.pagina, ultimaPagina))
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo eliminar la categoría'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.eliminandoId = null
+      }
     },
     
     formatearFecha(fecha) {

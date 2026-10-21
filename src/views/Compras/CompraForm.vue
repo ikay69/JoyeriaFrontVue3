@@ -83,69 +83,6 @@
           <v-radio label="Crédito" value="CREDITO" />
         </v-radio-group>
 
-        <v-row dense>
-          <v-col cols="12" sm="4" md="2">
-            <v-text-field
-              label="Subtotal"
-              :model-value="formatearMoneda(subtotal)"
-              readonly
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="4" md="2">
-            <v-number-input
-              v-model.number="descuento"
-              control-variant="hidden"
-              label="Descuento"
-              type="number"
-              min="0"
-              step="0.01"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="4" md="2">
-            <v-number-input
-              v-model.number="efectivo"
-              control-variant="hidden"
-              label="Pago en efectivo"
-              type="number"
-              min="0"
-              step="0.01"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="4" md="3">
-           
-            <v-number-input
-              v-model.number="transaccion"
-              control-variant="hidden"
-              label="Pago en transacción"
-              min="0"
-              :step="0.01"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-              :precision="2"
-            />
-          </v-col>
-          <v-col cols="12" sm="4" md="3">
-            <v-text-field
-              label="Saldo"
-              :model-value="formatearMoneda(saldo)"
-              readonly
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-        </v-row>
-
         <template v-if="esCredito">
           <v-divider class="my-4" />
           <div class="mb-2 text-subtitle-2">Condiciones del crédito</div>
@@ -358,7 +295,8 @@
                     v-model.number="fila.Cantidad"
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="0.0001"
+                    :precision="4"
                     variant="outlined"
                     density="compact"
                     hide-details
@@ -392,6 +330,69 @@
           Agregar línea
         </v-btn>
 
+        <div class="d-flex justify-end mt-2">
+          <div class="totales-compra" aria-label="Resumen de pagos">
+            <div class="totales-compra__fila">
+              <span>Subtotal</span>
+              <span class="totales-compra__valor">{{ formatearMoneda(subtotal) }}</span>
+            </div>
+            <div class="totales-compra__fila">
+              <label for="compra-descuento">Descuento</label>
+              <v-number-input
+                id="compra-descuento"
+                v-model.number="descuento"
+                class="totales-compra__campo"
+                control-variant="hidden"
+                aria-label="Descuento"
+                prefix="$"
+                type="number"
+                min="0"
+                step="0.01"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </div>
+            <div class="totales-compra__fila">
+              <label for="compra-efectivo">Pago en efectivo</label>
+              <v-number-input
+                id="compra-efectivo"
+                v-model.number="efectivo"
+                class="totales-compra__campo"
+                control-variant="hidden"
+                aria-label="Pago en efectivo"
+                prefix="$"
+                type="number"
+                min="0"
+                step="0.01"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </div>
+            <div class="totales-compra__fila">
+              <label for="compra-transaccion">Pago en transacción</label>
+              <v-number-input
+                id="compra-transaccion"
+                v-model.number="transaccion"
+                class="totales-compra__campo"
+                control-variant="hidden"
+                aria-label="Pago en transacción"
+                prefix="$"
+                min="0"
+                :step="0.01"
+                variant="outlined"
+                density="compact"
+                hide-details
+                :precision="2"
+              />
+            </div>
+            <div class="totales-compra__fila">
+              <span>Saldo</span>
+              <span class="totales-compra__valor">{{ formatearMoneda(saldo) }}</span>
+            </div>
+          </div>
+        </div>
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
           <v-btn color="primary" prepend-icon="mdi-content-save" :loading="guardando" :disabled="guardando" type="submit">
@@ -711,6 +712,13 @@ export default {
     },
 
     // Devuelve un mensaje de error, o null si las lineas estan bien.
+    cantidadValida(cantidad) {
+      const numero = Number(cantidad)
+      return Number.isFinite(numero) &&
+        numero > 0 &&
+        Number(numero.toFixed(4)) === numero
+    },
+
     validarLineas() {
       if (!this.lineas.length) return 'Debe registrar al menos un artículo'
       if (this.lineas.length > 200) return 'La compra no puede tener más de 200 líneas'
@@ -725,6 +733,9 @@ export default {
           return `Elija el artículo de la línea ${numero}`
         }
         if (!(Number(fila.Cantidad) > 0)) return `La cantidad de la línea ${numero} debe ser mayor a cero`
+        if (!this.cantidadValida(fila.Cantidad)) {
+          return `La cantidad de la línea ${numero} admite máximo cuatro decimales`
+        }
         if (!(Number(fila.CostoUnidad) > 0)) return `El costo de la línea ${numero} debe ser mayor a cero`
       }
       return null
@@ -1002,5 +1013,25 @@ export default {
 
 .tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
   background-color: rgba(var(--v-theme-primary), 0.06);
+}
+.totales-compra {
+  width: min(100%, 420px);
+}
+
+.totales-compra__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+}
+
+.totales-compra__valor {
+  text-align: right;
+  font-weight: 500;
+}
+
+.totales-compra__campo {
+  width: 100%;
 }
 </style>

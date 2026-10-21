@@ -19,7 +19,7 @@ export default {
     // consumos:   { idArticulo, idBodega, BolsaEstado, idPropietario, Cantidad }
     //             BolsaEstado es DISPONIBLE o RECIBIDO_DE_TALLER, e idPropietario SOLO lleva
     //             valor con RECIBIDO_DE_TALLER; con DISPONIBLE viaja null.
-    // producidos: { idArticulo, idBodega, Cantidad } — sin BolsaEstado ni propietario.
+    // producidos: { idArticulo, idBodega, Cantidad,CostoUnitario } — sin BolsaEstado ni propietario.
     return http.post('/produccion/nuevaorden', payload)
   }
 }

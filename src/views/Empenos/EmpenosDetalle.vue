@@ -232,7 +232,7 @@
                   </div>
                 </td>
                 <td>{{ articulo.empartBodega || '-' }}</td>
-                <td class="text-end">{{ formatearNumero(articulo.empartCantidad) }}</td>
+                <td class="text-end">{{ formatearCantidad(articulo.empartCantidad) }}</td>
                 <td class="text-end">{{ formatearMoneda(articulo.empartValorAvaluo) }}</td>
                 <td>{{ articulo.empartObservacion || '-' }}</td>
                 <td>{{ articulo.empartEstado || '-' }}</td>
@@ -470,6 +470,13 @@ export default {
       const numero = Number(valor)
       if (!Number.isFinite(numero)) return String(valor)
       return numero.toLocaleString('es-CO', { maximumFractionDigits: 2 })
+    },
+
+    formatearCantidad(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return String(valor)
+      return numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })
     },
 
     formatearMoneda(valor) {

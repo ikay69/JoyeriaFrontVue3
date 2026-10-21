@@ -34,21 +34,22 @@
         </div>
 
         <div style="overflow-x: auto;">
-          <v-table density="compact" class="mb-2 tabla-listado">
+          <v-table density="compact" class="mb-2 tabla-listado tabla-consumos">
             <thead>
               <tr>
                 <th style="min-width: 160px">Bodega</th>
-                <th class="text-center" style="width: 48px"></th>
-                <th class="text-center" style="width: 48px"></th>
-                <th style="min-width: 220px">Artículo</th>
                 <th style="min-width: 200px">Bolsa</th>
                 <th style="min-width: 220px">Propietario</th>
+                <th style="min-width: 220px">Artículo (+)</th>
+                <th class="text-center" style="width: 48px"></th>
+                <th class="text-end" style="min-width: 140px">Costo unitario</th>
                 <th style="min-width: 110px">Cantidad</th>
+                <th class="text-end" style="min-width: 140px">Subtotal</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!consumos.length">
-                <td colspan="7" class="text-center py-6 text-medium-emphasis">
+                <td colspan="8" class="text-center py-6 text-medium-emphasis">
                   Agregue al menos un artículo consumido
                 </td>
               </tr>
@@ -63,33 +64,8 @@
                     variant="outlined"
                     density="compact"
                     hide-details
+                    @update:model-value="limpiarArticulo(fila)"
                   />
-                </td>
-                <td class="text-center">
-                  <v-btn
-                    icon="mdi-plus"
-                    size="small"
-                    variant="text"
-                    color="primary"
-                    title="Elegir el artículo"
-                    @click="abrirSelectorArticulo('consumos', i)"
-                  />
-                </td>
-                <td class="text-center">
-                  <v-btn
-                    icon="mdi-delete"
-                    size="small"
-                    variant="text"
-                    title="Quitar esta fila"
-                    @click="quitarFila('consumos', i)"
-                  />
-                </td>
-                <td>
-                  <span v-if="fila.articuloNombre">{{ fila.articuloNombre }}</span>
-                  <span v-else class="text-medium-emphasis">Sin artículo</span>
-                  <div v-if="fila.articuloSKU" class="text-caption text-medium-emphasis">
-                    {{ fila.articuloSKU }}
-                  </div>
                 </td>
                 <td>
                   <v-select
@@ -104,11 +80,6 @@
                   />
                 </td>
                 <td>
-                  <!--
-                    El propietario SOLO aplica a RECIBIDO_DE_TALLER: es el dueño del oro que el
-                    taller devolvio. Con DISPONIBLE el material ya es de la casa y el campo
-                    viaja como null.
-                  -->
                   <div v-if="fila.BolsaEstado === 'RECIBIDO_DE_TALLER'" class="d-flex ga-1 align-center">
                     <v-btn
                       icon="mdi-account-search"
@@ -123,19 +94,59 @@
                   <span v-else class="text-medium-emphasis">No aplica</span>
                 </td>
                 <td>
+                  <div class="d-flex align-center ga-2">
+                    <v-btn
+                      icon="mdi-plus"
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      title="Elegir el artículo"
+                      @click="abrirSelectorArticulo('consumos', i)"
+                    />
+                    <div>
+                      <span v-if="fila.articuloNombre">{{ fila.articuloNombre }}</span>
+                      <span v-else class="text-medium-emphasis">Seleccione un artículo</span>
+                      <div v-if="fila.articuloSKU" class="text-caption text-medium-emphasis">
+                        {{ fila.articuloSKU }}
+                      </div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-center">
+                  <v-btn
+                    icon="mdi-delete"
+                    size="small"
+                    variant="text"
+                    title="Quitar esta fila"
+                    @click="quitarFila('consumos', i)"
+                  />
+                </td>
+                <td class="text-end">{{ formatearMoneda(fila.CostoUnitario) }}</td>
+                <td>
                   <v-number-input
                     v-model.number="fila.Cantidad"
                     control-variant="hidden"
                     :min="0"
-                    :step="0.01"
+                    :step="0.0001"
+                    :precision="4"
                     variant="outlined"
                     density="compact"
                     hide-details
                   />
                 </td>
+                <td class="text-end">{{ formatearMoneda(calcularSubtotal(fila)) }}</td>
               </tr>
             </tbody>
           </v-table>
+        </div>
+
+        <div class="d-flex justify-end mt-2 mb-4">
+          <div class="total-consumos" aria-label="Total de artículos consumidos">
+            <div class="total-consumos__fila">
+              <span>Total</span>
+              <span class="total-consumos__valor">{{ formatearMoneda(totalConsumos) }}</span>
+            </div>
+          </div>
         </div>
 
         <v-btn
@@ -155,7 +166,7 @@
         </div>
 
         <div style="overflow-x: auto;">
-          <v-table density="compact" class="mb-2 tabla-listado">
+          <v-table density="compact" class="mb-2 tabla-listado tabla-producidos">
             <thead>
               <tr>
                 <th style="min-width: 160px">Bodega</th>
@@ -163,11 +174,12 @@
                 <th class="text-center" style="width: 48px"></th>
                 <th style="min-width: 220px">Artículo</th>
                 <th style="min-width: 110px">Cantidad</th>
+                <th style="min-width: 140px">Costo unitario</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!producidos.length">
-                <td colspan="5" class="text-center py-6 text-medium-emphasis">
+                <td colspan="6" class="text-center py-6 text-medium-emphasis">
                   Agregue al menos un artículo producido
                 </td>
               </tr>
@@ -215,8 +227,22 @@
                     v-model.number="fila.Cantidad"
                     control-variant="hidden"
                     type="number"
-                    min="1"
+                    min="0"
+                    step="0.0001"
+                    :precision="4"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </td>
+                <td>
+                  <v-number-input
+                    v-model.number="fila.CostoUnitario"
+                    control-variant="hidden"
+                    type="number"
+                    min="0"
                     step="0.01"
+                    prefix="$"
                     variant="outlined"
                     density="compact"
                     hide-details
@@ -263,6 +289,14 @@
       @seleccionar="onArticuloSeleccionado"
     />
 
+    <ArticulosProduccion
+      v-model="dialogArticuloProduccion"
+      :id-empresa="idEmpresa"
+      :id-bodega="idBodegaConsumoActiva"
+      :id-tercero="idTerceroConsumoActivo"
+      @seleccionar="onArticuloSeleccionado"
+    />
+
     <TalleresSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
@@ -277,12 +311,13 @@ import produccionService from '@/services/produccionService'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
+import ArticulosProduccion from '@/views/Inventario/Articulos/ArticulosProduccion.vue'
 import TalleresSeleccionar from '@/views/Talleres/TalleresSeleccionar.vue'
 
 export default {
   name: 'OrdenProduccionForm',
 
-  components: { ArticulosSeleccionar, TalleresSeleccionar },
+  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar },
 
   data() {
     return {
@@ -292,6 +327,7 @@ export default {
       bodegas: [],
       guardando: false,
       dialogArticulo: false,
+      dialogArticuloProduccion: false,
       dialogTercero: false,
       // { tabla: 'consumos' | 'producidos', indice: n } o null. La tabla hace falta porque hay
       // dos y el indice por si solo es ambiguo.
@@ -314,6 +350,20 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    idBodegaConsumoActiva() {
+      if (this.filaActiva?.tabla !== 'consumos') return null
+      return this.consumos[this.filaActiva.indice]?.idBodega ?? null
+    },
+    idTerceroConsumoActivo() {
+      if (this.filaActiva?.tabla !== 'consumos') return null
+      const fila = this.consumos[this.filaActiva.indice]
+      return fila?.BolsaEstado === 'RECIBIDO_DE_TALLER' ? fila.idPropietario : null
+    },
+    totalConsumos() {
+      return this.redondear(this.consumos.reduce((total, fila) => {
+        return total + (this.calcularSubtotal(fila) ?? 0)
+      }, 0))
     }
   },
 
@@ -333,6 +383,9 @@ export default {
       // dialogos leerian una fila undefined.
       this.filaActiva = null
       this.indicePropietario = null
+      this.dialogArticulo = false
+      this.dialogArticuloProduccion = false
+      this.dialogTercero = false
     }
   },
 
@@ -366,7 +419,8 @@ export default {
         BolsaEstado: 'DISPONIBLE',
         idPropietario: null,
         propietarioNombre: '',
-        Cantidad: 1
+        Cantidad: 1,
+        CostoUnitario: null
       })
     },
 
@@ -376,7 +430,8 @@ export default {
         idArticulo: null,
         articuloNombre: '',
         articuloSKU: '',
-        Cantidad: 1
+        Cantidad: 1,
+        CostoUnitario: null
       })
     },
 
@@ -391,13 +446,38 @@ export default {
     // Pasar de RECIBIDO_DE_TALLER a DISPONIBLE tiene que borrar el propietario ya elegido, o
     // viajaria un idPropietario en una fila que, por contrato, no lo lleva.
     onBolsaCambiada(fila) {
+      this.limpiarArticulo(fila)
       if (fila.BolsaEstado !== 'RECIBIDO_DE_TALLER') {
         fila.idPropietario = null
         fila.propietarioNombre = ''
       }
     },
 
+    limpiarArticulo(fila) {
+      fila.idArticulo = null
+      fila.articuloNombre = ''
+      fila.articuloSKU = ''
+      fila.CostoUnitario = null
+      fila.Cantidad = 1
+    },
+
     abrirSelectorArticulo(tabla, indice) {
+      if (tabla === 'consumos') {
+        const fila = this.consumos[indice]
+        if (!Number.isInteger(Number(fila?.idBodega)) || Number(fila.idBodega) <= 0) {
+          Swal.fire('Atención', 'Seleccione una bodega para el consumo', 'warning')
+          return
+        }
+        // Sin propietario el selector pediria la bolsa DISPONIBLE (idTercero null) y se
+        // elegiria material de una bolsa distinta a la indicada en la fila.
+        if (fila.BolsaEstado === 'RECIBIDO_DE_TALLER' && !fila.idPropietario) {
+          Swal.fire('Atención', 'Seleccione el propietario antes de elegir el artículo', 'warning')
+          return
+        }
+        this.filaActiva = { tabla, indice }
+        this.dialogArticuloProduccion = true
+        return
+      }
       this.filaActiva = { tabla, indice }
       this.dialogArticulo = true
     },
@@ -406,9 +486,19 @@ export default {
       if (!this.filaActiva) return
       const fila = this[this.filaActiva.tabla][this.filaActiva.indice]
       if (!fila) return
+      const tabla = this.filaActiva.tabla
       fila.idArticulo = art.artId
-      fila.articuloNombre = art.artNombre
-      fila.articuloSKU = art.artSKU
+      fila.articuloNombre = art.artNombre || art.rtNombre || ''
+      fila.articuloSKU = art.artSKU || ''
+      if (tabla === 'consumos') {
+        const disponible = Number(art.artCantidadDisponible)
+        const costo = Number(art.artCostoUnitario)
+        fila.Cantidad = Number.isFinite(disponible) ? this.redondearCantidad(disponible) : 0
+        fila.CostoUnitario = art.artCostoUnitario === null || art.artCostoUnitario === undefined ||
+          art.artCostoUnitario === '' || !Number.isFinite(costo)
+          ? null
+          : costo
+      }
       this.filaActiva = null
     },
 
@@ -423,6 +513,7 @@ export default {
       if (!fila) return
       fila.idPropietario = tercero.Id
       fila.propietarioNombre = tercero.Nombre
+      this.limpiarArticulo(fila)
       this.indicePropietario = null
     },
 
@@ -441,7 +532,8 @@ export default {
         if (fila.BolsaEstado === 'RECIBIDO_DE_TALLER' && !fila.idPropietario) {
           return `Elija el propietario del consumo ${n}: con la bolsa Recibido de taller es obligatorio`
         }
-        if (!(Number(fila.Cantidad) > 0)) return `La cantidad del consumo ${n} debe ser mayor que cero`
+        const errorCantidad = this.validarCantidad(fila.Cantidad, `La cantidad del consumo ${n}`)
+        if (errorCantidad) return errorCantidad
       }
 
       for (let i = 0; i < this.producidos.length; i += 1) {
@@ -449,7 +541,8 @@ export default {
         const n = i + 1
         if (!fila.idBodega) return `Elija la bodega del producido ${n}`
         if (!fila.idArticulo) return `Elija el artículo del producido ${n}`
-        if (!(Number(fila.Cantidad) > 0)) return `La cantidad del producido ${n} debe ser mayor que cero`
+        const errorCantidad = this.validarCantidad(fila.Cantidad, `La cantidad del producido ${n}`)
+        if (errorCantidad) return errorCantidad
       }
 
       return null
@@ -483,12 +576,13 @@ export default {
             // null con DISPONIBLE: el propietario solo existe para el material que devolvio el
             // taller.
             idPropietario: fila.BolsaEstado === 'RECIBIDO_DE_TALLER' ? Number(fila.idPropietario) : null,
-            Cantidad: this.redondear(fila.Cantidad)
+            Cantidad: this.redondearCantidad(fila.Cantidad)
           })),
           producidos: this.producidos.map((fila) => ({
             idArticulo: Number(fila.idArticulo),
             idBodega: Number(fila.idBodega),
-            Cantidad: this.redondear(fila.Cantidad)
+            Cantidad: this.redondearCantidad(fila.Cantidad),
+            CostoUnitario: this.normalizarCostoUnitario(fila.CostoUnitario)
           }))
         })
         // El await es intencional: primero se ve el mensaje, despues se navega.
@@ -503,10 +597,48 @@ export default {
       }
     },
 
-    // Las cantidades llegan del backend como "3.00": se redondea a dos decimales antes de
-    // enviarlas para que lo guardado sea lo que el usuario escribio y no lo que la base recorte.
+    // Los valores monetarios se redondean a dos decimales antes de enviarlos.
     redondear(valor) {
       return Math.round((Number(valor) || 0) * 100) / 100
+    },
+
+    redondearCantidad(valor) {
+      return Math.round((Number(valor) || 0) * 10000) / 10000
+    },
+
+    formatearMoneda(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return '-'
+      return `$ ${numero.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    },
+
+    calcularSubtotal(fila) {
+      if (
+        fila.Cantidad === null || fila.Cantidad === undefined || fila.Cantidad === '' ||
+        fila.CostoUnitario === null || fila.CostoUnitario === undefined || fila.CostoUnitario === ''
+      ) return null
+
+      const cantidad = Number(fila.Cantidad)
+      const costoUnitario = Number(fila.CostoUnitario)
+      if (!Number.isFinite(cantidad) || !Number.isFinite(costoUnitario)) return null
+      return this.redondear(cantidad * costoUnitario)
+    },
+
+    validarCantidad(valor, etiqueta) {
+      const numero = Number(valor)
+      if (!Number.isFinite(numero) || numero <= 0) return `${etiqueta} debe ser mayor que cero`
+      if (Number(numero.toFixed(4)) !== numero) {
+        return `${etiqueta} admite máximo cuatro decimales`
+      }
+      return null
+    },
+
+    normalizarCostoUnitario(valor) {
+      if (valor === null || valor === undefined || String(valor).trim() === '') return null
+      const costo = Number(valor)
+      if (!Number.isFinite(costo) || costo === 0) return null
+      return this.redondear(costo)
     },
 
     cancelar() {
@@ -524,6 +656,33 @@ export default {
   font-weight: 600;
   white-space: nowrap;
   border-bottom: none;
+}
+
+.tabla-consumos :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: #EF5350;
+  color: #fff;
+}
+
+.tabla-producidos :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: #4CAF50;
+  color: #fff;
+}
+
+.total-consumos {
+  width: min(100%, 420px);
+}
+
+.total-consumos__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+}
+
+.total-consumos__valor {
+  text-align: right;
+  font-weight: 600;
 }
 
 .tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:first-child) {
