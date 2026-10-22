@@ -79,6 +79,7 @@
           <v-list-item :to="{ name: 'Existencias' }" title="Existencias" />
           <v-list-item :to="{ name: 'Kardex' }" title="Kardex" />
           <v-list-item :to="{ name: 'ExistenciaArticulo' }" title="Existencia artículo" />
+          <v-list-item :to="{ name: 'ExistenciaProducto' }" title="Existencia producto" />
         </v-list-group>
 
         <v-list-item :to="{ name: 'Clientes' }" prepend-icon="mdi-account-group" title="Clientes" />
@@ -130,6 +131,8 @@
           </template>
           <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" />
           <v-list-item :to="{ name: 'EstadoCuentaTercero' }" title="Estado de cuenta por tercero" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'EstadoCuentaPorCobrar' }" title="Estado de cuenta por cobrar" />
+          <v-list-item :to="{ name: 'EstadoCuentaPorPagar' }" title="Estado de cuenta por pagar" />
         </v-list-group>
 
         <v-list-group value="administracion">
