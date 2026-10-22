@@ -52,5 +52,11 @@ export default {
   getCrearTerceroRol(payload){
     // payload: { idEmpresa,idTercero,tipoTercero}
     return http.post('/tercero/newtercerorol', payload)
+  },
+
+  importar(payload) {
+    // payload: { idEmpresa, terceros: [{ tipoDocumento, numeroDocumento, nombre, apellidos, celular, tipo }] }
+    // Maximo 200 filas, todo o nada
+    return http.post('/tercero/importarterceros', payload)
   }
 }

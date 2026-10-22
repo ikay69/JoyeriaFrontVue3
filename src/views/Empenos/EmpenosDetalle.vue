@@ -25,6 +25,43 @@
           </v-chip>
         </div>
       </div>
+      <div v-if="empeno" class="d-flex flex-wrap ga-2">
+        <v-btn
+          v-if="esVivo"
+          color="primary"
+          prepend-icon="mdi-cash"
+          @click="dialogPago = true"
+        >
+          Pagar
+        </v-btn>
+        <v-btn
+          v-if="puedeRetirar"
+          variant="tonal"
+          prepend-icon="mdi-diamond-stone"
+          @click="dialogRetiro = true"
+        >
+          Retirar joyas
+        </v-btn>
+        <v-btn
+          v-if="puedeEntregar"
+          variant="tonal"
+          prepend-icon="mdi-package-variant"
+          :loading="entregando"
+          :disabled="entregando"
+          @click="entregarJoyas"
+        >
+          Entregar joyas
+        </v-btn>
+        <v-btn
+          v-if="esVivo"
+          variant="tonal"
+          color="warning"
+          prepend-icon="mdi-gavel"
+          @click="dialogAdjudicar = true"
+        >
+          Adjudicar
+        </v-btn>
+      </div>
     </div>
 
     <v-card v-if="cargando" class="pa-8 d-flex justify-center" elevation="1">
@@ -94,10 +131,78 @@
                 <div class="dato-etiqueta">Usuario</div>
                 <div>{{ empeno.empUsuario || '-' }}</div>
               </v-col>
+              <v-col v-if="empeno.empEmpenoOrigenId" cols="12" sm="6">
+                <div class="dato-etiqueta">Reemplaza al empeño</div>
+                <div>{{ empeno.empEmpenoOrigenId }}</div>
+              </v-col>
             </v-row>
           </v-card>
         </v-col>
       </v-row>
+
+      <v-card v-if="empeno.empFechaAdjudicacion" class="mt-5 pa-5" elevation="1">
+        <div class="text-subtitle-1 font-weight-medium mb-3">Adjudicación</div>
+        <v-row dense>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Fecha</div>
+            <div>{{ formatearFecha(empeno.empFechaAdjudicacion) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Valor de compra</div>
+            <div>{{ formatearMoneda(empeno.empValorCompraAdjudicacion) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Efectivo entregado</div>
+            <div>{{ formatearMoneda(empeno.empEfectivoEntregado) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Capital adjudicado</div>
+            <div>{{ formatearMoneda(empeno.empCapitalAdjudicado) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Intereses adjudicados</div>
+            <div>{{ formatearMoneda(empeno.empInteresesAdjudicados) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Períodos cobrados</div>
+            <div>{{ formatearNumero(empeno.empPeriodosAdjudicados) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Usuario</div>
+            <div>{{ empeno.empUsuarioAdjudicacion || '-' }}</div>
+          </v-col>
+        </v-row>
+      </v-card>
+
+      <v-card v-if="empeno.empFechaRetiro" class="mt-5 pa-5" elevation="1">
+        <div class="text-subtitle-1 font-weight-medium mb-3">Retiro</div>
+        <v-row dense>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Fecha</div>
+            <div>{{ formatearFecha(empeno.empFechaRetiro) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Valor negociado</div>
+            <div>{{ formatearMoneda(empeno.empValorRetiro) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Intereses</div>
+            <div>{{ formatearMoneda(empeno.empInteresesRetiro) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Capital</div>
+            <div>{{ formatearMoneda(empeno.empCapitalRetiro) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Saldo perdonado</div>
+            <div>{{ formatearMoneda(empeno.empSaldoPerdonado) }}</div>
+          </v-col>
+          <v-col cols="12" sm="4">
+            <div class="dato-etiqueta">Usuario</div>
+            <div>{{ empeno.empUsuarioRetiro || '-' }}</div>
+          </v-col>
+        </v-row>
+      </v-card>
 
       <v-card class="mt-5" elevation="1">
         <div class="pa-4 pb-2 text-subtitle-1 font-weight-medium">Artículos en garantía</div>
@@ -127,7 +232,7 @@
                   </div>
                 </td>
                 <td>{{ articulo.empartBodega || '-' }}</td>
-                <td class="text-end">{{ formatearNumero(articulo.empartCantidad) }}</td>
+                <td class="text-end">{{ formatearCantidad(articulo.empartCantidad) }}</td>
                 <td class="text-end">{{ formatearMoneda(articulo.empartValorAvaluo) }}</td>
                 <td>{{ articulo.empartObservacion || '-' }}</td>
                 <td>{{ articulo.empartEstado || '-' }}</td>
@@ -209,24 +314,67 @@
         </div>
       </v-card>
     </template>
+
+    <EmpenoPagoDialog
+      v-model="dialogPago"
+      :id-empresa="idEmpresaRuta"
+      :empeno="empeno"
+      @guardado="consultarDetalle"
+    />
+
+    <EmpenoRetiroDialog
+      v-model="dialogRetiro"
+      :id-empresa="idEmpresaRuta"
+      :empeno="empeno"
+      @guardado="consultarDetalle"
+    />
+
+    <EmpenoAdjudicarDialog
+      v-model="dialogAdjudicar"
+      :id-empresa="idEmpresaRuta"
+      :empeno="empeno"
+      @guardado="consultarDetalle"
+    />
   </v-container>
 </template>
 
 <script>
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
+import EmpenoPagoDialog from '@/views/Empenos/EmpenoPagoDialog.vue'
+import EmpenoRetiroDialog from '@/views/Empenos/EmpenoRetiroDialog.vue'
+import EmpenoAdjudicarDialog from '@/views/Empenos/EmpenoAdjudicarDialog.vue'
 
 export default {
   name: 'EmpenosDetalle',
 
+  components: { EmpenoPagoDialog, EmpenoRetiroDialog, EmpenoAdjudicarDialog },
+
   data() {
     return {
       cargando: false,
-      empeno: null
+      entregando: false,
+      empeno: null,
+      dialogPago: false,
+      dialogRetiro: false,
+      dialogAdjudicar: false
     }
   },
 
   computed: {
+    idEmpresaRuta() {
+      return Number(this.$route.params.EmpId)
+    },
+    esVivo() {
+      return ['ACTIVO', 'EN_MORA'].includes(this.empeno?.empEstado)
+    },
+    puedeRetirar() {
+      return this.esVivo || this.empeno?.empEstado === 'FINALIZADO'
+    },
+    puedeEntregar() {
+      return this.empeno?.empEstado === 'FINALIZADO' &&
+        this.articulos.some((articulo) => articulo.empartEstado === 'EN_CUSTODIA')
+    },
     articulos() {
       return Array.isArray(this.empeno?.articulos) ? this.empeno.articulos : []
     },
@@ -268,6 +416,35 @@ export default {
       }
     },
 
+    async entregarJoyas() {
+      if (this.entregando) return
+      const confirmacion = await Swal.fire({
+        title: '¿Entregar las joyas?',
+        text: 'Se entregarán al cliente todas las joyas que siguen en custodia.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, entregar',
+        cancelButtonText: 'Cancelar'
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.entregando = true
+      try {
+        const { data } = await empenoService.entregarArticulos({
+          idEmpresa: this.idEmpresaRuta,
+          idEmpeno: Number(this.$route.params.EmpenoId),
+          FechaEntrega: null
+        })
+        await Swal.fire('Éxito', data.msg || 'Joyas entregadas', 'success')
+        await this.consultarDetalle()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudieron entregar las joyas'
+        await Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.entregando = false
+      }
+    },
+
     volver() {
       this.$router.push({ name: 'Empenos' })
     },
@@ -295,6 +472,13 @@ export default {
       return numero.toLocaleString('es-CO', { maximumFractionDigits: 2 })
     },
 
+    formatearCantidad(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return String(valor)
+      return numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })
+    },
+
     formatearMoneda(valor) {
       if (valor === null || valor === undefined || valor === '') return '-'
       const numero = Number(valor)
@@ -316,6 +500,7 @@ export default {
       return {
         FINALIZADO: 'success',
         ADJUDICADO: 'warning',
+        REFINANCIADO: 'info',
         EN_MORA: 'error'
       }[estado]
     }

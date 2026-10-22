@@ -8,6 +8,29 @@
     <v-card class="pa-6 mt-4" elevation="1">
       <v-form @submit.prevent="confirmar">
         <v-row dense>
+          <v-col cols="12" md="4" class="d-flex ga-2">
+            <v-select
+              v-model="tipoImpresion"
+              :items="opcionesTipoImpresion"
+              item-title="texto"
+              item-value="valor"
+              label="Tipo de impresión"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+            />
+            <v-select
+              v-if="tipoImpresion === 'tirilla'"
+              v-model.number="anchoTirilla"
+              :items="opcionesAnchoTirilla"
+              item-title="texto"
+              item-value="valor"
+              label="Ancho"
+              variant="outlined"
+              density="comfortable"
+              hide-details
+            />
+          </v-col>
           <v-col cols="12" md="4">
             <v-select
               v-model="tipoVenta"
@@ -77,73 +100,6 @@
             @click="editarClienteSeleccionado"
           />
         </div>
-
-        <v-divider class="my-4" />
-
-        <v-row dense align="center">
-          <v-col cols="12" sm="6" md="2">
-            <v-text-field
-              label="Subtotal"
-              :model-value="formatearMoneda(subtotal)"
-              readonly
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="2">
-            <v-number-input
-              v-model.number="descuento"
-              control-variant="hidden"
-              label="Descuento"
-              prefix="$"
-              type="number"
-              min="0"
-              step="0.01"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <v-number-input
-              v-model.number="efectivo"
-              control-variant="hidden"
-              label="Pago en efectivo"
-              prefix="$"
-              type="number"
-              min="0"
-              step="0.01"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="3">
-            <v-number-input
-              v-model.number="transaccion"
-              control-variant="hidden"
-              label="Pago por transacción"
-              prefix="$"
-              type="number"
-              min="0"
-              step="0.01"
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="6" md="2">
-            <v-text-field
-              label="Saldo"
-              :model-value="formatearMoneda(saldo)"
-              readonly
-              variant="outlined"
-              density="comfortable"
-              hide-details
-            />
-          </v-col>
-        </v-row>
 
         <v-divider class="my-4" />
 
@@ -227,7 +183,8 @@
                     control-variant="hidden"
                     type="number"
                     min="0"
-                    step="0.01"
+                    step="0.0001"
+                    :precision="4"
                     variant="outlined"
                     density="compact"
                     hide-details
@@ -262,6 +219,69 @@
           Agregar línea
         </v-btn>
 
+        <div class="d-flex justify-end mt-2">
+          <div class="totales-venta" aria-label="Resumen de pagos">
+            <div class="totales-venta__fila">
+              <span>Subtotal</span>
+              <span class="totales-venta__valor">{{ formatearMoneda(subtotal) }}</span>
+            </div>
+            <div class="totales-venta__fila">
+              <label for="venta-descuento">Descuento</label>
+              <v-number-input
+                id="venta-descuento"
+                v-model.number="descuento"
+                class="totales-venta__campo"
+                control-variant="hidden"
+                aria-label="Descuento"
+                prefix="$"
+                type="number"
+                min="0"
+                step="0.01"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </div>
+            <div class="totales-venta__fila">
+              <label for="venta-efectivo">Pago efectivo</label>
+              <v-number-input
+                id="venta-efectivo"
+                v-model.number="efectivo"
+                class="totales-venta__campo"
+                control-variant="hidden"
+                aria-label="Pago efectivo"
+                prefix="$"
+                type="number"
+                min="0"
+                step="0.01"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </div>
+            <div class="totales-venta__fila">
+              <label for="venta-transaccion">Pago por transacción</label>
+              <v-number-input
+                id="venta-transaccion"
+                v-model.number="transaccion"
+                class="totales-venta__campo"
+                control-variant="hidden"
+                aria-label="Pago por transacción"
+                prefix="$"
+                type="number"
+                min="0"
+                step="0.01"
+                variant="outlined"
+                density="compact"
+                hide-details
+              />
+            </div>
+            <div class="totales-venta__fila">
+              <span>Saldo</span>
+              <span class="totales-venta__valor">{{ formatearMoneda(saldo) }}</span>
+            </div>
+          </div>
+        </div>
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
           <v-btn
@@ -306,6 +326,8 @@ import { useCatalogosStore } from '@/stores/catalogos'
 import ventasService from '@/services/ventasService'
 import empresaService from '@/services/empresaService'
 import { generarPdfVenta } from '@/utils/ventaPdf'
+import { generarTirillaPDF } from '@/utils/tirillaPDF'
+import { generarTirilla } from '@/utils/tirilla'
 import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosVender from '@/views/Inventario/Articulos/ArticulosVender.vue'
@@ -323,11 +345,21 @@ export default {
       dialogTercero: false,
       dialogClienteForm: false,
       clienteParaEditar: null,
-      abrirSelectorDespuesDeAlta: false,
       dialogArticulo: false,
       filaActiva: null,
       siguienteClaveLinea: 1,
 
+      tipoImpresion: 'pdf',
+      anchoTirilla: 80,
+      opcionesTipoImpresion: [
+        { valor: 'pdf', texto: 'PDF' },
+        { valor: 'tirillaPdf', texto: 'Tirilla PDF' },
+        { valor: 'tirilla', texto: 'Tirilla' }
+      ],
+      opcionesAnchoTirilla: [
+        { valor: 80, texto: '80 mm' },
+        { valor: 50, texto: '50 mm' }
+      ],
       tipoVenta: 'CONTADO',
       idVendedor: null,
       terceroSeleccionado: null,
@@ -397,14 +429,6 @@ export default {
     idEmpresa() {
       this.reiniciarFormulario()
       this.cargarCatalogos()
-    },
-    dialogClienteForm(visible) {
-      if (!visible && this.abrirSelectorDespuesDeAlta) {
-        this.abrirSelectorDespuesDeAlta = false
-        this.$nextTick(() => {
-          this.dialogTercero = true
-        })
-      }
     }
   },
 
@@ -480,7 +504,6 @@ export default {
       this.dialogTercero = false
       this.dialogClienteForm = false
       this.clienteParaEditar = null
-      this.abrirSelectorDespuesDeAlta = false
       this.dialogArticulo = false
       this.agregarLinea()
     },
@@ -511,9 +534,10 @@ export default {
     onClienteGuardado({ creado, cliente }) {
       if (cliente) {
         this.terceroSeleccionado = cliente
+      } else if (creado) {
+        this.terceroSeleccionado = null
       }
       this.clienteParaEditar = null
-      this.abrirSelectorDespuesDeAlta = creado
     },
 
     onTerceroSeleccionado(tercero) {
@@ -578,6 +602,14 @@ export default {
         Number(numero.toFixed(2)) === numero
     },
 
+    esCantidadHasta4Decimales(valor) {
+      const numero = Number(valor)
+      return Number.isFinite(numero) &&
+        numero > 0 &&
+        numero <= MAX_DECIMAL_12_2 &&
+        Number(numero.toFixed(4)) === numero
+    },
+
     validarLineas() {
       if (this.lineas.length < 1) return 'Debe agregar al menos un artículo'
       if (this.lineas.length > MAX_LINEAS) return 'La venta no puede tener más de 200 artículos'
@@ -591,13 +623,34 @@ export default {
         if (!Number.isInteger(Number(fila.idArticulo)) || Number(fila.idArticulo) <= 0) {
           return 'Seleccione el artículo de la línea ' + numero
         }
-        if (!(Number(fila.Cantidad) > 0) || !this.esDecimal12_2(fila.Cantidad)) {
+        if (!this.esCantidadHasta4Decimales(fila.Cantidad)) {
           return 'La cantidad de la línea ' + numero +
-            ' debe ser mayor a cero y tener máximo dos decimales'
+            ' debe ser mayor a cero y tener máximo cuatro decimales'
         }
-        if (!(Number(fila.PrecioVentaUnidad) > 0) || !this.esDecimal12_2(fila.PrecioVentaUnidad)) {
+        // Una bolsa puede ir en cero (incluida sin cobrar); el resto exige precio mayor a cero
+        if (fila.EsBolsa) {
+          if (!this.esDecimal12_2(fila.PrecioVentaUnidad)) {
+            return 'El precio de la bolsa de la línea ' + numero +
+              ' debe ser cero o mayor y tener máximo dos decimales'
+          }
+        } else if (!(Number(fila.PrecioVentaUnidad) > 0) || !this.esDecimal12_2(fila.PrecioVentaUnidad)) {
           return 'El precio de la línea ' + numero +
             ' debe ser mayor a cero y tener máximo dos decimales'
+        }
+      }
+
+      // El backend agrupa el mismo artículo en la misma bodega y rechaza si difieren precio o bolsa
+      for (let i = 0; i < this.lineas.length; i++) {
+        for (let j = i + 1; j < this.lineas.length; j++) {
+          const a = this.lineas[i]
+          const b = this.lineas[j]
+          if (Number(a.idArticulo) !== Number(b.idArticulo) || Number(a.idBodega) !== Number(b.idBodega)) continue
+          if (Number(a.PrecioVentaUnidad) !== Number(b.PrecioVentaUnidad)) {
+            return `Las líneas ${i + 1} y ${j + 1} tienen el mismo artículo y bodega con precios distintos`
+          }
+          if (Boolean(a.EsBolsa) !== Boolean(b.EsBolsa)) {
+            return `Las líneas ${i + 1} y ${j + 1} tienen el mismo artículo y bodega, pero solo una está marcada como bolsa`
+          }
         }
       }
       return null
@@ -628,8 +681,12 @@ export default {
       if (!this.esDecimal12_2(this.transaccion)) {
         return 'El pago por transacción debe ser un valor no negativo con máximo dos decimales'
       }
-      if (this.saldo !== 0) {
-        return 'La venta de contado debe quedar con saldo cero'
+      if (this.tipoVenta === 'CONTADO') {
+        if (this.saldo !== 0) {
+          return 'La venta de contado debe quedar con saldo cero'
+        }
+      } else if (!(this.saldo > 0)) {
+        return 'Una venta a crédito o por abono debe quedar con saldo pendiente'
       }
       return null
     },
@@ -646,15 +703,6 @@ export default {
 
     async confirmar() {
       if (this.guardando) return
-
-      if (this.tipoVenta !== 'CONTADO') {
-        await Swal.fire(
-          'Atención',
-          'Las ventas a crédito y por abono aún están en desarrollo',
-          'info'
-        )
-        return
-      }
 
       const errorLineas = this.validarLineas()
       if (errorLineas) {
@@ -708,12 +756,19 @@ export default {
         }
 
         try {
-          generarPdfVenta({ venta, empresa })
+          const parametros = { venta, empresa }
+          if (this.tipoImpresion === 'tirillaPdf') {
+            generarTirillaPDF(parametros)
+          } else if (this.tipoImpresion === 'tirilla') {
+            generarTirilla({ ...parametros, anchoMm: this.anchoTirilla })
+          } else {
+            generarPdfVenta(parametros)
+          }
         } catch (errorPdf) {
           const mensaje = errorPdf.message || 'Error desconocido'
           await Swal.fire(
             'Venta registrada',
-            `La venta se guardó, pero no se pudo generar la factura PDF: ${mensaje}`,
+            `La venta se guardó, pero no se pudo generar la impresión: ${mensaje}`,
             'warning'
           )
           this.$router.back()
@@ -761,5 +816,25 @@ export default {
 
 .tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
   background-color: rgba(var(--v-theme-primary), 0.06);
+}
+.totales-venta {
+  width: min(100%, 420px);
+}
+
+.totales-venta__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: center;
+  gap: 16px;
+  min-height: 52px;
+}
+
+.totales-venta__valor {
+  text-align: right;
+  font-weight: 500;
+}
+
+.totales-venta__campo {
+  width: 100%;
 }
 </style>

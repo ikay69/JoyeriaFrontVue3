@@ -68,12 +68,12 @@
             </thead>
             <tbody>
               <tr v-if="cargando">
-                <td colspan="6" class="text-center py-6">
+                <td colspan="5" class="text-center py-6">
                   <v-progress-circular indeterminate color="primary" />
                 </td>
               </tr>
               <tr v-else-if="!articulos.length">
-                <td colspan="6" class="text-center py-6 text-medium-emphasis">
+                <td colspan="5" class="text-center py-6 text-medium-emphasis">
                   No hay registros para mostrar
                 </td>
               </tr>
@@ -90,14 +90,13 @@
                 </td>
                 <td>{{ art.artSKU }}</td>
                 <td>
-                  {{ art.artNombre }}
+                  {{ art.artNombre || '-' }}
                   <div v-if="art.artPropiedades" class="text-caption text-medium-emphasis">
                     {{ art.artPropiedades }}
                   </div>
                 </td>
-                 <td>{{ art.artCategoria }}</td>
-                <td>{{ art.artTipoProducto }}</td>
-                
+                <td>{{ art.artCategoria || '-' }}</td>
+                <td>{{ art.artTipoProducto || '-' }}</td>
               </tr>
             </tbody>
           </v-table>
@@ -203,12 +202,14 @@ export default {
 
       this.cargando = true
       try {
+        // Solo articulos ACTIVOS (vendibles o no) y sin mirar existencias: para elegir que
+        // vender esta ArticulosVender y para consumir en produccion ArticulosProduccion.
         const { data } = await articuloService.getActivas({
-          idEmpresa: this.idEmpresa,
+          idEmpresa: Number(this.idEmpresa),
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
           pagina,
-          textoFiltro: this.filtros.textoFiltro || ''
+          textoFiltro: (this.filtros.textoFiltro || '').trim() || null
         })
         this.articulos = data.data || []
         this.cantData = data.cantData || 0
@@ -229,12 +230,6 @@ export default {
 
     cerrar() {
       this.dialogVisible = false
-    },
-
-    formatearMoneda(valor) {
-      const numero = Number(valor)
-      if (Number.isNaN(numero)) return valor
-      return `$ ${numero.toLocaleString('es-CO')}`
     }
   }
 }

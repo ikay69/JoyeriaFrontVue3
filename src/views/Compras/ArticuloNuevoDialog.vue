@@ -89,12 +89,13 @@
               <th>Propiedad</th>
               <th>Tipo valor</th>
               <th>Valor</th>
+              <th>Unidad de medida</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="!propiedades.length">
-              <td colspan="4" class="text-center py-4 text-medium-emphasis">
+              <td colspan="5" class="text-center py-4 text-medium-emphasis">
                 Sin propiedades
               </td>
             </tr>
@@ -124,6 +125,19 @@
                   placeholder="Ingrese el valor"
                   maxlength="150"
                   variant="outlined" density="compact" hide-details
+                />
+              </td>
+              <td style="min-width: 160px">
+                <v-select
+                  v-model="fila.idUnidadMedida"
+                  :items="unidadesMedida"
+                  item-title="uniMedNombre"
+                  item-value="uniMedId"
+                  placeholder="--"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  :loading="cargandoUnidadesMedida"
                 />
               </td>
               <td class="text-center">
@@ -228,7 +242,10 @@
 <script>
 import Swal from 'sweetalert2'
 import productoService from '@/services/productoService'
+import unidadMedidaService from '@/services/unidadMedidaService'
 import { useCatalogosStore } from '@/stores/catalogos'
+
+const UNIDAD_MEDIDA_SIN_REGISTRO = 'SIN_UNIDAD_MEDIDA'
 
 export default {
   name: 'ArticuloNuevoDialog',
@@ -249,6 +266,10 @@ export default {
       descripcion: '',
       propiedades: [],
       propiedadesDisponibles: [],
+      unidadesMedida: [
+        { uniMedId: UNIDAD_MEDIDA_SIN_REGISTRO, uniMedNombre: '--' }
+      ],
+      cargandoUnidadesMedida: false,
 
       dialogProducto: false,
       productos: [],
@@ -286,7 +307,10 @@ export default {
       // `restaurar` busca el TipoDato de cada propiedad en propiedadesDisponibles, asi que
       // tiene que esperar a que la lista este cargada: sin el await, las propiedades
       // restauradas aparecen con el tipo de dato vacio.
-      await this.cargarPropiedadesDisponibles()
+      await Promise.all([
+        this.cargarPropiedadesDisponibles(),
+        this.cargarUnidadesMedida()
+      ])
       this.restaurar()
     }
   },
@@ -311,7 +335,8 @@ export default {
         return {
           idPropiedad: p.idPropiedad,
           tipoDato: encontrada ? encontrada.TipoDato : '',
-          valor: p.Valor
+          valor: p.Valor,
+          idUnidadMedida: p.idUnidadMedida ?? UNIDAD_MEDIDA_SIN_REGISTRO
         }
       })
     },
@@ -322,6 +347,22 @@ export default {
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la lista de propiedades'
         Swal.fire('Error', mensaje, 'error')
+      }
+    },
+
+    async cargarUnidadesMedida() {
+      this.cargandoUnidadesMedida = true
+      try {
+        const { data } = await unidadMedidaService.getActivas({ idEmpresa: this.idEmpresa })
+        this.unidadesMedida = [
+          { uniMedId: UNIDAD_MEDIDA_SIN_REGISTRO, uniMedNombre: '--' },
+          ...(data.data || [])
+        ]
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo cargar la lista de unidades de medida'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.cargandoUnidadesMedida = false
       }
     },
 
@@ -368,7 +409,12 @@ export default {
     },
 
     agregarPropiedad() {
-      this.propiedades.push({ idPropiedad: null, tipoDato: '', valor: '' })
+      this.propiedades.push({
+        idPropiedad: null,
+        tipoDato: '',
+        valor: '',
+        idUnidadMedida: UNIDAD_MEDIDA_SIN_REGISTRO
+      })
     },
 
     quitarPropiedad(index) {
@@ -393,7 +439,11 @@ export default {
 
       const propiedadesEnviar = this.propiedades
         .filter((fila) => fila.idPropiedad && String(fila.valor || '').trim() !== '')
-        .map((fila) => ({ idPropiedad: fila.idPropiedad, Valor: String(fila.valor).trim() }))
+        .map((fila) => ({
+          idPropiedad: fila.idPropiedad,
+          idUnidadMedida: fila.idUnidadMedida === UNIDAD_MEDIDA_SIN_REGISTRO ? null : fila.idUnidadMedida,
+          Valor: String(fila.valor).trim()
+        }))
 
       this.$emit('guardar', {
         idProducto: this.productoSeleccionado.proId,

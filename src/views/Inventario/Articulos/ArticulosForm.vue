@@ -121,6 +121,7 @@
               <th>Propiedad</th>
               <th>Tipo valor</th>
               <th>Valor</th>
+              <th>Unidad de medida</th>
               <th></th>
             </tr>
           </thead>
@@ -155,6 +156,19 @@
                   variant="outlined"
                   density="compact"
                   hide-details
+                />
+              </td>
+              <td style="min-width: 160px">
+                <v-select
+                  v-model="fila.idUnidadMedida"
+                  :items="unidadesMedida"
+                  item-title="uniMedNombre"
+                  item-value="uniMedId"
+                  placeholder="--"
+                  variant="outlined"
+                  density="compact"
+                  hide-details
+                  :loading="cargandoListas"
                 />
               </td>
               <td class="text-center">
@@ -298,7 +312,10 @@ import Swal from 'sweetalert2'
 import articuloService from '@/services/articuloService'
 import productoService from '@/services/productoService'
 import propiedadService from '@/services/propiedadService'
+import unidadMedidaService from '@/services/unidadMedidaService'
 import { useAuthStore } from '@/stores/auth'
+
+const UNIDAD_MEDIDA_SIN_REGISTRO = 'SIN_UNIDAD_MEDIDA'
 
 export default {
   name: 'ArticulosForm',
@@ -336,6 +353,7 @@ export default {
 
       propiedades: [],
       propiedadesDisponibles: [],
+      unidadesMedida: [],
       existencias: [],
 
       cargando: false,
@@ -383,21 +401,28 @@ export default {
     }
   },
 
-  created() {
-    this.cargarPropiedadesDisponibles()
+  async created() {
+    await this.cargarListas()
     if (this.esEdicion) {
-      this.cargarArticulo()
+      await this.cargarArticulo()
     }
   },
 
   methods: {
-    async cargarPropiedadesDisponibles() {
+    async cargarListas() {
       this.cargandoListas = true
       try {
-        const { data } = await propiedadService.getActivas({ idEmpresa: this.idEmpresa })
-        this.propiedadesDisponibles = data.data || []
+        const [resPropiedades, resUnidades] = await Promise.all([
+          propiedadService.getActivas({ idEmpresa: this.idEmpresa }),
+          unidadMedidaService.getActivas({ idEmpresa: this.idEmpresa })
+        ])
+        this.propiedadesDisponibles = resPropiedades.data.data || []
+        this.unidadesMedida = [
+          { uniMedId: UNIDAD_MEDIDA_SIN_REGISTRO, uniMedNombre: '--' },
+          ...(resUnidades.data.data || [])
+        ]
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo cargar la lista de propiedades'
+        const mensaje = error.response?.data?.msg || 'No se pudieron cargar las listas de propiedades y unidades de medida'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargandoListas = false
@@ -442,7 +467,12 @@ export default {
     },
 
     agregarPropiedad() {
-      this.propiedades.push({ idPropiedad: null, tipoDato: '', valor: '' })
+      this.propiedades.push({
+        idPropiedad: null,
+        tipoDato: '',
+        valor: '',
+        idUnidadMedida: UNIDAD_MEDIDA_SIN_REGISTRO
+      })
     },
 
     quitarPropiedad(index) {
@@ -485,8 +515,21 @@ export default {
         this.propiedades = (art.propiedades || []).map((p) => ({
           idPropiedad: p.propId,
           tipoDato: p.propTipoDato,
-          valor: p.propValor
+          valor: p.propValor,
+          idUnidadMedida: p.propUnidadMedidaId ?? p.idUnidadMedida ?? UNIDAD_MEDIDA_SIN_REGISTRO
         }))
+
+        this.propiedades.forEach((fila, index) => {
+          if (fila.idUnidadMedida === UNIDAD_MEDIDA_SIN_REGISTRO) return
+          const existe = this.unidadesMedida.some((unidad) => unidad.uniMedId === fila.idUnidadMedida)
+          if (!existe) {
+            const original = (art.propiedades || [])[index]
+            this.unidadesMedida.push({
+              uniMedId: fila.idUnidadMedida,
+              uniMedNombre: original?.propUnidadMedidaNombre || original?.unidadMedidaNombre || ''
+            })
+          }
+        })
 
         // Si alguna propiedad del artículo ya no está activa, la agregamos
         // igual a la lista disponible para que el combo la muestre bien.
@@ -526,7 +569,11 @@ export default {
 
       const propiedadesEnviar = this.propiedades
         .filter((fila) => fila.idPropiedad && fila.valor !== '')
-        .map((fila) => ({ idPropiedad: fila.idPropiedad, Valor: fila.valor }))
+        .map((fila) => ({
+          idPropiedad: fila.idPropiedad,
+          idUnidadMedida: fila.idUnidadMedida === UNIDAD_MEDIDA_SIN_REGISTRO ? null : fila.idUnidadMedida,
+          Valor: fila.valor
+        }))
 
       this.guardando = true
       try {
