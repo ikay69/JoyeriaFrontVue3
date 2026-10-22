@@ -5,20 +5,55 @@
       <div>
         <h1 class="text-h5">Registrar pago</h1>
         <p class="text-body-2 text-medium-emphasis mb-0">
-          Registre un abono o una cuota para una venta pendiente o parcial.
+          Registre un abono o una cuota para una venta pendiente o parcial, o un pago por otro concepto.
         </p>
       </div>
     </div>
 
     <v-card class="pa-6" max-width="760" elevation="1">
       <v-alert type="info" variant="tonal" class="mb-5">
-        El tipo de pago debe corresponder al tipo de venta. El cliente se toma de la venta verificada.
+        <template v-if="esPagoVenta">
+          El tipo de pago debe corresponder al tipo de venta. El cliente se toma de la venta verificada.
+        </template>
+        <template v-else>
+          Un pago sin venta no afecta ninguna venta. Seleccione el cliente y escriba el concepto en observaciones.
+        </template>
       </v-alert>
 
       <v-form ref="form" @submit.prevent="confirmar">
-       
+        <v-select
+          v-model="tipoOrigen"
+          :items="opcionesTipoOrigen"
+          item-title="texto"
+          item-value="valor"
+          label="Tipo de pago"
+          :rules="[reglas.requerido]"
+          variant="outlined"
+          class="mb-2"
+        />
 
-        <div class="d-flex align-center ga-2">
+        <div v-if="!esPagoVenta" class="d-flex align-center ga-2 mb-4">
+          <v-text-field
+            :model-value="clienteSeleccionado ? `${clienteSeleccionado.identificacion || ''} ${clienteSeleccionado.Nombre}`.trim() : ''"
+            label="Cliente"
+            readonly
+            :rules="[() => !!clienteSeleccionado || 'Seleccione el cliente']"
+            variant="outlined"
+            class="flex-grow-1"
+            @click="abrirSelectorCliente"
+          />
+          <v-btn
+            icon="mdi-magnify"
+            variant="tonal"
+            color="primary"
+            title="Buscar cliente"
+            aria-label="Buscar cliente"
+            :disabled="!idEmpresa"
+            @click="abrirSelectorCliente"
+          />
+        </div>
+
+        <div v-if="esPagoVenta" class="d-flex align-center ga-2">
           <v-text-field
             v-model="idVenta"
             label="ID de la venta"
@@ -41,11 +76,11 @@
             @click="dialogVentas = true"
           />
         </div>
-        <p class="text-caption text-medium-emphasis mt-n4 mb-4">
+        <p v-if="esPagoVenta" class="text-caption text-medium-emphasis mt-n4 mb-4">
           Busque una venta con la lupa o escriba su ID y presione Enter para verificarla.
         </p>
 
-        <v-card v-if="ventaOrigen" variant="tonal" color="primary" class="pa-4 mb-4">
+        <v-card v-if="esPagoVenta && ventaOrigen" variant="tonal" color="primary" class="pa-4 mb-4">
           <div class="text-subtitle-2 mb-2">Venta verificada #{{ ventaOrigen.ventaId }}</div>
           <v-row dense>
             <v-col cols="12" sm="6">
@@ -71,17 +106,6 @@
           </v-row>
         </v-card>
 
-         <v-select
-          v-model="tipoOrigen"
-          :items="opcionesTipoOrigen"
-          item-title="texto"
-          item-value="valor"
-          label="Tipo de pago"
-          :rules="[reglas.requerido]"
-          variant="outlined"
-          class="mb-2"
-        />
-        
         <v-text-field
           v-model="monto"
           label="Monto del pago"
@@ -108,10 +132,11 @@
 
         <v-textarea
           v-model="observaciones"
-          label="Observaciones (opcional)"
+          :label="esPagoVenta ? 'Observaciones (opcional)' : 'Observaciones (concepto del pago)'"
           maxlength="255"
           counter="255"
           rows="3"
+          :rules="esPagoVenta ? [] : [reglas.requerido]"
           variant="outlined"
           class="mb-2"
         />
@@ -128,6 +153,12 @@
       :id-empresa="idEmpresa"
       @seleccionar="onVentaSeleccionada"
     />
+
+    <ClientesSeleccionar
+      v-model="dialogCliente"
+      :id-empresa="idEmpresa"
+      @seleccionar="onClienteSeleccionado"
+    />
   </v-container>
 </template>
 
@@ -135,13 +166,19 @@
 import Swal from 'sweetalert2'
 import pagoService from '@/services/pagoService'
 import ventasService from '@/services/ventasService'
+import empresaService from '@/services/empresaService'
 import { useAuthStore } from '@/stores/auth'
+import { generarTirillaPdfPagos } from '@/utils/tirillaPdfPagos'
 import VentasSeleccionarPago from '@/views/Ventas/VentasSeleccionarPago.vue'
+import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+
+// Valor interno del select; al servidor se envia TipoOrigen null
+const SIN_ORIGEN = 'SIN_ORIGEN'
 
 export default {
   name: 'PagosForm',
 
-  components: { VentasSeleccionarPago },
+  components: { VentasSeleccionarPago, ClientesSeleccionar },
 
   data() {
     return {
@@ -149,6 +186,8 @@ export default {
       idVenta: '',
       ventaOrigen: null,
       dialogVentas: false,
+      clienteSeleccionado: null,
+      dialogCliente: false,
       monto: '',
       metodoPago: 'EFECTIVO',
       observaciones: '',
@@ -156,7 +195,8 @@ export default {
       guardando: false,
       opcionesTipoOrigen: [
         { valor: 'ABONO_VENTA', texto: 'Abono a venta por abono' },
-        { valor: 'CUOTA_VENTA', texto: 'Cuota de venta a crédito' }
+        { valor: 'CUOTA_VENTA', texto: 'Cuota de venta a crédito' },
+        { valor: SIN_ORIGEN, texto: 'Pago sin venta (otro concepto)' }
       ],
       opcionesMetodoPago: [
         { valor: 'EFECTIVO', texto: 'Efectivo' },
@@ -185,13 +225,16 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    esPagoVenta() {
+      return this.tipoOrigen !== SIN_ORIGEN
     }
   },
 
   watch: {
     tipoOrigen() {
       this.ventaOrigen = null
-      if (this.idVenta) this.verificarVenta()
+      if (this.esPagoVenta && this.idVenta) this.verificarVenta()
     },
     idVenta(valor) {
       if (this.ventaOrigen && String(this.ventaOrigen.ventaId) !== String(valor).trim()) {
@@ -201,10 +244,23 @@ export default {
     idEmpresa() {
       this.ventaOrigen = null
       this.idVenta = ''
+      this.clienteSeleccionado = null
     }
   },
 
   methods: {
+    abrirSelectorCliente() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      this.dialogCliente = true
+    },
+
+    onClienteSeleccionado(cliente) {
+      this.clienteSeleccionado = cliente
+    },
+
     onVentaSeleccionada(venta) {
       this.idVenta = String(venta.ventaId)
       this.ventaOrigen = null
@@ -272,34 +328,81 @@ export default {
         await Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
         return
       }
-      if (!this.ventaOrigen || Number(this.ventaOrigen.ventaId) !== Number(this.idVenta)) {
+      if (this.esPagoVenta && (!this.ventaOrigen || Number(this.ventaOrigen.ventaId) !== Number(this.idVenta))) {
         await Swal.fire('Atención', 'Verifique la venta antes de registrar el pago', 'warning')
+        return
+      }
+      if (!this.esPagoVenta && !this.clienteSeleccionado) {
+        await Swal.fire('Atención', 'Seleccione el cliente que realiza el pago', 'warning')
         return
       }
 
       const monto = Math.round((Number(this.monto) + Number.EPSILON) * 100) / 100
+      const payload = this.esPagoVenta
+        ? {
+            idEmpresa: this.idEmpresa,
+            idTercero: Number(this.ventaOrigen.ventaTerceroId),
+            TipoOrigen: this.tipoOrigen,
+            idOrigen: Number(this.ventaOrigen.ventaId),
+            Monto: monto,
+            MetodoPago: this.metodoPago,
+            Observaciones: this.observaciones.trim() || null
+          }
+        : {
+            idEmpresa: this.idEmpresa,
+            idTercero: Number(this.clienteSeleccionado.Id),
+            TipoOrigen: null,
+            Monto: monto,
+            MetodoPago: this.metodoPago,
+            Observaciones: this.observaciones.trim()
+          }
+
       this.guardando = true
       try {
-        const { data } = await pagoService.create({
-          idEmpresa: this.idEmpresa,
-          idTercero: Number(this.ventaOrigen.ventaTerceroId),
-          TipoOrigen: this.tipoOrigen,
-          idOrigen: Number(this.ventaOrigen.ventaId),
-          Monto: monto,
-          MetodoPago: this.metodoPago,
-          Observaciones: this.observaciones.trim() || null
-        })
-
+        const { data } = await pagoService.create(payload)
         const pago = data.data
-        await Swal.fire('Éxito', data.msg || 'Pago registrado correctamente', 'success')
-        if (pago?.pagoId) {
-          this.$router.push({
-            name: 'PagosDetalle',
-            params: { EmpId: this.idEmpresa, PagoId: pago.pagoId }
-          })
-        } else {
+
+        if (!pago) {
+          await Swal.fire(
+            'Pago registrado',
+            data.msg || 'El pago se guardó, pero no se recibieron los datos para generar la tirilla.',
+            'warning'
+          )
           this.$router.push({ name: 'PagosList' })
+          return
         }
+
+        let empresa = this.authStore.empresaActual || {}
+        let mensajeEmpresa = ''
+        try {
+          const { data: respuestaEmpresa } = await empresaService.getById({
+            idEmpresa: Number(this.idEmpresa)
+          })
+          empresa = respuestaEmpresa?.data || empresa
+        } catch (errorEmpresa) {
+          mensajeEmpresa = errorEmpresa.response?.data?.msg ||
+            'No se pudieron cargar los datos completos de la empresa; se usaron los disponibles en la sesión.'
+        }
+
+        let mensajeImpresion = ''
+        try {
+          generarTirillaPdfPagos({ pago, empresa })
+        } catch (errorPdf) {
+          mensajeImpresion = `El pago se guardó, pero no se pudo generar la tirilla: ${errorPdf.message || 'Error desconocido'}`
+        }
+
+        if (mensajeImpresion) {
+          await Swal.fire('Pago registrado', mensajeImpresion, 'warning')
+        } else if (mensajeEmpresa) {
+          await Swal.fire('Pago registrado', `La tirilla se descargó. ${mensajeEmpresa}`, 'warning')
+        } else {
+          await Swal.fire('Éxito', 'Pago registrado y tirilla generada', 'success')
+        }
+
+        this.$router.push({
+          name: 'PagosDetalle',
+          params: { EmpId: pago.pagoEmp || this.idEmpresa, PagoId: pago.pagoId }
+        })
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo registrar el pago'
         await Swal.fire('Error', mensaje, 'error')
