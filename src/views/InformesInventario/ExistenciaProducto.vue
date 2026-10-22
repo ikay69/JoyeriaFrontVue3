@@ -1,0 +1,250 @@
+<template>
+  <v-container fluid class="pa-6">
+    <h1 class="text-h5 mb-4">Existencia producto</h1>
+
+    <v-card class="pa-4 mb-4" elevation="1">
+      <div class="mb-1 text-subtitle-2">Producto</div>
+      <div class="d-flex ga-2 mb-4">
+        <v-btn icon="mdi-arrow-right" variant="tonal" title="Seleccionar producto" @click="abrirDialogProducto" />
+        <v-text-field
+          :model-value="productoSeleccionado ? productoSeleccionado.proNombre : ''"
+          readonly
+          placeholder="Seleccione un producto"
+          variant="outlined"
+          density="comfortable"
+          hide-details
+          class="flex-grow-1"
+        />
+      </div>
+
+      <v-row dense>
+        <v-col cols="12" sm="4">
+          <v-text-field
+            label="Tipo de producto"
+            :model-value="productoSeleccionado ? productoSeleccionado.TipoProductoNombre : ''"
+            readonly
+            variant="outlined"
+            density="comfortable"
+          />
+        </v-col>
+        <v-col cols="12" sm="4">
+          <v-text-field
+            label="Categoría"
+            :model-value="productoSeleccionado ? productoSeleccionado.CategoriaNombre : ''"
+            readonly
+            variant="outlined"
+            density="comfortable"
+          />
+        </v-col>
+      </v-row>
+    </v-card>
+
+    <v-card elevation="1">
+      <div style="overflow-x: auto;">
+        <v-table class="tabla-listado" density="compact">
+          <thead>
+            <tr>
+              
+              <th>SKU</th>
+              <th style="min-width: 24ch;">Artículo</th>
+              
+              <th>Vender</th>
+              <th>Estado</th>
+              <th>Bodega</th>
+              <th>Existencia</th>
+              <th>Propietario</th>
+              <th>Cantidad</th>
+              <th class="columna-monto">Costo und</th>
+              <th class="columna-monto">Costo total</th>
+              <th class="columna-monto">Precio</th>
+              <th class="columna-monto">Precio total</th>
+              <th class="columna-monto">Diff</th>
+              <th>Propiedades</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="cargando">
+              <td colspan="12" class="text-center py-6">
+                <v-progress-circular indeterminate color="primary" />
+              </td>
+            </tr>
+            <tr v-else-if="!productoSeleccionado">
+              <td colspan="12" class="text-center py-6 text-medium-emphasis">
+                Seleccione un producto para ver sus existencias
+              </td>
+            </tr>
+            <tr v-else-if="!existencias.length">
+              <td colspan="12" class="text-center py-6 text-medium-emphasis">
+                Este producto no tiene existencias
+              </td>
+            </tr>
+            <tr v-for="(ex, i) in existencias" :key="i">
+              <td>{{ ex.artSKU || '-' }}</td>
+              <td>{{ ex.artNombre || '-' }}</td>
+              
+              <td>{{ textoSiNo(ex.artVender) }}</td>
+              <td>{{ textoEstadoArticulo(ex.artEstado) }}</td>
+              <td>{{ ex.existBodegaNombre || '-' }}</td>
+              <td>{{ formatearBolsa(ex.existBolsa) }}</td>
+              <td>
+                {{ ex.existPropietarioNombre || 'Propio' }}
+                <div v-if="ex.existPropietarioId != null" class="text-caption text-medium-emphasis">
+                  ID: {{ ex.existPropietarioId }}
+                </div>
+              </td>
+              <td>{{ ex.existCantidad }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existCosto) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existCosto * ex.existCantidad) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.artPrecio) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.artPrecio *  ex.existCantidad) }}</td>
+              <td class="columna-monto">{{ formatearMoneda((ex.artPrecio *  ex.existCantidad) - (ex.existCosto * ex.existCantidad)) }}</td>
+              <td>{{ ex.artPropiedades || '-' }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </div>
+    </v-card>
+
+    <ProductosSeleccionar
+      v-model="dialogProducto"
+      :id-empresa="idEmpresa"
+      @seleccionar="seleccionarProducto"
+    />
+  </v-container>
+</template>
+
+<script>
+import Swal from 'sweetalert2'
+import existenciaService from '@/services/existenciaService'
+import ProductosSeleccionar from '@/views/Inventario/Productos/ProductosSeleccionar.vue'
+import { useAuthStore } from '@/stores/auth'
+
+export default {
+  name: 'ExistenciaProducto',
+
+  components: { ProductosSeleccionar },
+
+  data() {
+    return {
+      productoSeleccionado: null,
+      dialogProducto: false,
+      existencias: [],
+      cargando: false,
+      opcionesBolsaEstado: [
+        { valor: 'DISPONIBLE', texto: 'Disponible' },
+        { valor: 'RESERVADO', texto: 'Reservado' },
+        { valor: 'PRESTADO_A_TALLER', texto: 'Prestado a taller' },
+        { valor: 'RECIBIDO_DE_TALLER', texto: 'Recibido de taller' },
+        { valor: 'EN_GARANTIA_EMPENO', texto: 'En garantía/empeño' },
+        { valor: 'EN_REPARACION', texto: 'En reparación' }
+      ]
+    }
+  },
+
+  computed: {
+    authStore() {
+      return useAuthStore()
+    },
+    idEmpresa() {
+      return this.authStore.empresaSeleccionada
+    }
+  },
+
+  methods: {
+    abrirDialogProducto() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      this.dialogProducto = true
+    },
+
+    seleccionarProducto(producto) {
+      this.productoSeleccionado = producto
+      this.existencias = []
+      this.consultar()
+    },
+
+    async consultar() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      if (!this.productoSeleccionado) return
+
+      this.cargando = true
+      try {
+        const { data } = await existenciaService.getExistenciasProducto({
+          idEmpresa: this.idEmpresa,
+          idProducto: this.productoSeleccionado.proId
+        })
+        this.existencias = data.data || []
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudieron consultar las existencias del producto'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.cargando = false
+      }
+    },
+
+    formatearBolsa(valor) {
+      const encontrada = this.opcionesBolsaEstado.find((opcion) => opcion.valor === valor)
+      return encontrada ? encontrada.texto : (valor || '-')
+    },
+
+    textoSiNo(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const normalizado = String(valor).trim().toUpperCase()
+      if (['1', 'TRUE', 'S', 'SI', 'SÍ'].includes(normalizado)) return 'Sí'
+      if (['0', 'FALSE', 'N', 'NO'].includes(normalizado)) return 'No'
+      return String(valor)
+    },
+
+    textoEstadoArticulo(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const normalizado = String(valor).trim().toUpperCase()
+      if (['1', 'TRUE', 'ACTIVO'].includes(normalizado)) return 'Activo'
+      if (['0', 'FALSE', 'INACTIVO'].includes(normalizado)) return 'Inactivo'
+      return String(valor)
+    },
+
+    formatearMoneda(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (Number.isNaN(numero)) return String(valor)
+      return `$ ${numero.toLocaleString('es-CO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}`
+    }
+  }
+}
+</script>
+
+<style scoped>
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
+  background-color: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  font-weight: 600;
+  white-space: nowrap;
+  border-bottom: none;
+}
+
+.tabla-listado :deep(.columna-monto) {
+  min-width: 160px;
+  white-space: nowrap;
+  text-align: right;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:first-child) {
+  border-top-left-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
+  border-top-right-radius: 4px;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
+  background-color: rgba(var(--v-theme-primary), 0.06);
+}
+</style>

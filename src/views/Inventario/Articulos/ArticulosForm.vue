@@ -45,15 +45,6 @@
               density="comfortable"
             />
           </v-col>
-          <v-col cols="12" sm="4">
-            <v-text-field
-              label="Unidad medida"
-              :model-value="productoSeleccionado ? productoSeleccionado.UnidadMedidaNombre : ''"
-              readonly
-              variant="outlined"
-              density="comfortable"
-            />
-          </v-col>
         </v-row>
 
         <v-text-field
@@ -210,109 +201,20 @@
       </v-form>
     </v-card>
 
-    <v-dialog v-model="dialogProducto" max-width="900">
-      <v-card class="pa-4">
-        <div class="d-flex align-center justify-space-between mb-4">
-          <span class="text-h6">Seleccionar producto</span>
-          <v-btn icon="mdi-close" variant="text" @click="dialogProducto = false" />
-        </div>
-
-        <v-row dense align="center" class="mb-2">
-          <v-col cols="12" sm="5">
-            <v-text-field
-              v-model="productosFiltros.textoFiltro"
-              label="Buscar"
-              maxlength="150"
-              clearable
-              density="compact"
-              variant="outlined"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="6" sm="3">
-            <v-select
-              v-model="productosFiltros.campoOrdenar"
-              :items="productosOpcionesCampoOrdenar"
-              item-title="texto"
-              item-value="valor"
-              label="Ordenar por"
-              density="compact"
-              variant="outlined"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="6" sm="2">
-            <v-select
-              v-model="productosFiltros.orden"
-              :items="opcionesOrden"
-              item-title="texto"
-              item-value="valor"
-              label="Orden"
-              density="compact"
-              variant="outlined"
-              hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="2">
-            <v-btn color="primary" variant="tonal" block @click="buscarProductos(1)">
-              Consultar
-            </v-btn>
-          </v-col>
-        </v-row>
-
-        <v-table density="compact">
-          <thead>
-            <tr>
-              <th></th>
-              <th>Nombre</th>
-              <th>Tipo de producto</th>
-              <th>Categoría</th>
-              <th>Unidad de medida</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="cargandoProductos">
-              <td colspan="5" class="text-center py-6">
-                <v-progress-circular indeterminate color="primary" />
-              </td>
-            </tr>
-            <tr v-else-if="!productos.length">
-              <td colspan="5" class="text-center py-6 text-medium-emphasis">
-                No hay productos para mostrar
-              </td>
-            </tr>
-            <tr v-for="prod in productos" :key="prod.proId">
-              <td class="text-center">
-                <v-btn icon="mdi-check-circle-outline" size="small" variant="text" color="primary" @click="seleccionarProducto(prod)" />
-              </td>
-              <td>{{ prod.proNombre }}</td>
-              <td>{{ prod.TipoProductoNombre }}</td>
-              <td>{{ prod.CategoriaNombre }}</td>
-              <td>{{ prod.UnidadMedidaNombre }}</td>
-            </tr>
-          </tbody>
-        </v-table>
-
-        <div class="d-flex align-center justify-center pa-4 ga-4">
-          <v-btn v-if="productosPagina > 1" variant="outlined" @click="buscarProductos(productosPagina - 1)">
-            Anterior
-          </v-btn>
-          <span>Página {{ productosPagina }} de {{ totalPaginasProductos }}</span>
-          <v-btn v-if="productosPagina < totalPaginasProductos" variant="outlined" @click="buscarProductos(productosPagina + 1)">
-            Siguiente
-          </v-btn>
-        </div>
-      </v-card>
-    </v-dialog>
+    <ProductosSeleccionar
+      v-model="dialogProducto"
+      :id-empresa="idEmpresa"
+      @seleccionar="seleccionarProducto"
+    />
   </v-container>
 </template>
 
 <script>
 import Swal from 'sweetalert2'
 import articuloService from '@/services/articuloService'
-import productoService from '@/services/productoService'
 import propiedadService from '@/services/propiedadService'
 import unidadMedidaService from '@/services/unidadMedidaService'
+import ProductosSeleccionar from '@/views/Inventario/Productos/ProductosSeleccionar.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const UNIDAD_MEDIDA_SIN_REGISTRO = 'SIN_UNIDAD_MEDIDA'
@@ -320,27 +222,12 @@ const UNIDAD_MEDIDA_SIN_REGISTRO = 'SIN_UNIDAD_MEDIDA'
 export default {
   name: 'ArticulosForm',
 
+  components: { ProductosSeleccionar },
+
   data() {
     return {
       productoSeleccionado: null,
       dialogProducto: false,
-      productos: [],
-      cargandoProductos: false,
-      productosCantData: 0,
-      productosPagina: 1,
-      productosFiltros: {
-        textoFiltro: '',
-        campoOrdenar: 1,
-        orden: 'ASC'
-      },
-      productosOpcionesCampoOrdenar: [
-        { valor: 1, texto: 'Nombre' },
-        { valor: 2, texto: 'Fecha de creación' }
-      ],
-      opcionesOrden: [
-        { valor: 'ASC', texto: 'Ascendente' },
-        { valor: 'DESC', texto: 'Descendente' }
-      ],
 
       nombre: '',
       descripcion: '',
@@ -394,10 +281,6 @@ export default {
 
     idArticulo() {
       return Number(this.$route.params.ArtId)
-    },
-
-    totalPaginasProductos() {
-      return Math.max(1, Math.ceil(this.productosCantData / 50))
     }
   },
 
@@ -431,39 +314,10 @@ export default {
 
     abrirDialogProducto() {
       this.dialogProducto = true
-      this.buscarProductos(1)
     },
 
-    async buscarProductos(pagina) {
-      this.cargandoProductos = true
-      try {
-        const { data } = await productoService.getActivas({
-          idEmpresa: this.idEmpresa,
-          campoOrdenar: this.productosFiltros.campoOrdenar,
-          orden: this.productosFiltros.orden,
-          pagina,
-          textoFiltro: this.productosFiltros.textoFiltro || ''
-        })
-        this.productos = data.data || []
-        this.productosCantData = data.cantData || 0
-        this.productosPagina = pagina
-      } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo consultar los productos'
-        Swal.fire('Error', mensaje, 'error')
-      } finally {
-        this.cargandoProductos = false
-      }
-    },
-
-    seleccionarProducto(prod) {
-      this.productoSeleccionado = {
-        proId: prod.proId,
-        proNombre: prod.proNombre,
-        TipoProductoNombre: prod.TipoProductoNombre,
-        CategoriaNombre: prod.CategoriaNombre,
-        UnidadMedidaNombre: prod.UnidadMedidaNombre
-      }
-      this.dialogProducto = false
+    seleccionarProducto(producto) {
+      this.productoSeleccionado = producto
     },
 
     agregarPropiedad() {
