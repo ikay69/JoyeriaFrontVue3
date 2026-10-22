@@ -90,7 +90,8 @@
                   />
                 </td>
                 <td>{{ art.artSKU }}</td>
-                <td>{{ art.artNombre }}
+                <td>
+                  {{ art.artNombre }}
                   <div v-if="art.artPropiedades" class="text-caption text-medium-emphasis">
                     {{ art.artPropiedades }}
                   </div>
@@ -207,16 +208,21 @@ export default {
         return
       }
 
+      // idBodega tiene que ir como entero: un "2" en texto lo rechaza el backend. null = todas.
+      const bodega = Number(this.idBodega)
+      const idBodega = Number.isInteger(bodega) && bodega > 0 ? bodega : null
+
       this.cargando = true
       try {
         const { data } = await articuloService.getParaVenta({
-          idEmpresa: this.idEmpresa,
-          idBodega: this.idBodega,
+          idEmpresa: Number(this.idEmpresa),
+          idBodega,
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
           pagina,
-          textoFiltro: this.filtros.textoFiltro || ''
+          textoFiltro: (this.filtros.textoFiltro || '').trim() || null
         })
+        // Una fila por articulo + bodega: cantData cuenta FILAS, no articulos.
         this.articulos = data.data || []
         this.cantData = data.cantData || 0
         this.pagina = pagina
@@ -238,16 +244,18 @@ export default {
       this.dialogVisible = false
     },
 
+    // artPrecio llega como CADENA ("350000.00") o null si el articulo no tiene precio
     formatearMoneda(valor) {
       const numero = Number(valor)
-      if (Number.isNaN(numero)) return valor
-      return `$ ${numero.toLocaleString('es-CO')}`
+      if (valor === null || valor === undefined || valor === '' || !Number.isFinite(numero)) return '-'
+      return `$ ${numero.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     },
 
+    // artCantidadDisponible llega como CADENA con 4 decimales ("5.2370", puede ser gramos)
     formatearCantidad(valor) {
       const numero = Number(valor)
-      if (Number.isNaN(numero)) return valor
-      return numero.toLocaleString('es-CO', { maximumFractionDigits: 2 })
+      if (valor === null || valor === undefined || valor === '' || !Number.isFinite(numero)) return '-'
+      return numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })
     }
   }
 }

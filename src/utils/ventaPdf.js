@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { lineasParaImpresion } from './lineasImpresion'
 
 const COLOR_PRIMARIO = [192, 165, 60]
 const COLOR_SECUNDARIO = [46, 46, 56]
@@ -127,7 +128,7 @@ export function generarPdfVenta({ venta, empresa }) {
   doc.setTextColor(...COLOR_SECUNDARIO)
   doc.text('DETALLE DE ARTÍCULOS', margen, y)
 
-  const lineas = Array.isArray(venta.lineas) ? venta.lineas : []
+  const lineas = lineasParaImpresion(venta.lineas)
   autoTable(doc, {
     startY: y + 3,
     margin: { left: margen, right: margen, bottom: 18 },

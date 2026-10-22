@@ -324,7 +324,6 @@ export default {
             Email: this.email,
             Direccion: this.direccion
           })
-          await Swal.fire('Éxito', data.msg || 'Cliente actualizado', 'success')
           const tipoDocumento = this.tiposDocumento.find(
             (tipo) => Number(tipo.tipDocId) === Number(this.idTipoDocumento)
           )
@@ -337,6 +336,8 @@ export default {
               Celular: this.celular
             }
           })
+          this.cerrar()
+          await Swal.fire('Éxito', data.msg || 'Cliente actualizado', 'success')
         } else {
           const { data } = await terceroService.create({
             idEmpresa: this.idEmpresa,
@@ -348,10 +349,10 @@ export default {
             Email: this.email,
             Direccion: this.direccion
           })
-          await Swal.fire('Éxito', data.msg || 'Cliente creado', 'success')
           this.$emit('guardado', { creado: true, cliente: null })
+          this.cerrar()
+          await Swal.fire('Éxito', data.msg || 'Cliente creado', 'success')
         }
-        this.cerrar()
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'Ocurrió un error al guardar el cliente'
         Swal.fire('Error', mensaje, 'error')

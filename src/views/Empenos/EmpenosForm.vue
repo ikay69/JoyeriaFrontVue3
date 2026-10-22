@@ -74,6 +74,7 @@
               v-model="fechaInicio"
               label="Fecha de inicio"
               type="date"
+              :max="hoy()"
               :rules="[reglas.requerido]"
               variant="outlined"
               density="comfortable"
@@ -82,12 +83,13 @@
           <v-col cols="12" sm="6" md="3">
             <v-text-field
               v-model="tasaInteresPeriodo"
-              label="Tasa de interés (%)"
+              label="Tasa de interés mensual (%)"
               type="number"
-              min="0"
-              max="999.99"
+              min="0.01"
+              max="100"
               step="0.01"
-              :rules="[reglas.requerido]"
+              hint="Vacío = 10 %"
+              persistent-hint
               variant="outlined"
               density="comfortable"
             />
@@ -108,7 +110,22 @@
             <v-text-field
               label="Monto inicial"
               :model-value="formatearMoneda(montoInicial)"
+              hint="Suma de los avalúos"
+              persistent-hint
               readonly
+              variant="outlined"
+              density="comfortable"
+            />
+          </v-col>
+          <v-col cols="12" sm="6" md="3">
+            <v-text-field
+              v-model="idEmpenoOrigen"
+              label="Id del empeño que reemplaza"
+              type="number"
+              min="1"
+              step="1"
+              hint="Opcional: empeño REFINANCIADO de origen"
+              persistent-hint
               variant="outlined"
               density="comfortable"
             />
@@ -214,9 +231,9 @@
                     v-model.number="fila.Cantidad"
                     control-variant="hidden"
                     type="number"
-                    min="0.01"
-                    step="0.01"
-                    :precision="2"
+                    min="0.0001"
+                    step="0.0001"
+                    :precision="4"
                     variant="outlined"
                     density="compact"
                     hide-details
@@ -314,6 +331,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 
 const MAXIMO_DECIMAL_12_2 = 9999999999.99
+const MAXIMO_CANTIDAD_12_4 = 99999999.9999
 
 export default {
   name: 'EmpenosForm',
@@ -325,7 +343,6 @@ export default {
       dialogTercero: false,
       dialogClienteForm: false,
       clienteParaEditar: null,
-      abrirSelectorDespuesDeAlta: false,
       dialogArticulo: false,
       dialogArticuloNuevo: false,
       filaActiva: null,
@@ -334,6 +351,7 @@ export default {
       terceroCiudadDoc: '',
       fechaInicio: '',
       tasaInteresPeriodo: '',
+      idEmpenoOrigen: '',
       metodoPago: 'EFECTIVO',
       lineas: [],
       bodegas: [],
@@ -376,14 +394,6 @@ export default {
     idEmpresa() {
       this.limpiarFormulario()
       this.cargarBodegas()
-    },
-    dialogClienteForm(visible) {
-      if (!visible && this.abrirSelectorDespuesDeAlta) {
-        this.abrirSelectorDespuesDeAlta = false
-        this.$nextTick(() => {
-          this.dialogTercero = true
-        })
-      }
     }
   },
 
@@ -464,9 +474,10 @@ export default {
     onClienteGuardado({ creado, cliente }) {
       if (cliente) {
         this.clienteSeleccionado = cliente
+      } else if (creado) {
+        this.clienteSeleccionado = null
       }
       this.clienteParaEditar = null
-      this.abrirSelectorDespuesDeAlta = creado
     },
 
     onTerceroSeleccionado(cliente) {
@@ -519,6 +530,19 @@ export default {
       return null
     },
 
+    validarCantidad(valor, etiqueta) {
+      if (valor === null || valor === undefined || String(valor).trim() === '') {
+        return `${etiqueta} es obligatoria`
+      }
+      const numero = Number(valor)
+      if (!Number.isFinite(numero) || numero <= 0) return `${etiqueta} debe ser mayor a cero`
+      if (numero > MAXIMO_CANTIDAD_12_4) return `${etiqueta} excede el máximo permitido`
+      if (Number(numero.toFixed(4)) !== numero) {
+        return `${etiqueta} admite máximo cuatro decimales`
+      }
+      return null
+    },
+
     validarLineas() {
       if (!this.lineas.length) return 'Debe registrar al menos un artículo'
       if (this.lineas.length > 200) return 'No puede registrar más de 200 artículos'
@@ -549,7 +573,7 @@ export default {
           }
         }
 
-        const errorCantidad = this.validarDecimal(fila.Cantidad, `La cantidad de la línea ${numero}`)
+        const errorCantidad = this.validarCantidad(fila.Cantidad, `La cantidad de la línea ${numero}`)
         if (errorCantidad) return errorCantidad
         const errorAvaluo = this.validarDecimal(fila.ValorAvaluo, `El valor de avalúo de la línea ${numero}`)
         if (errorAvaluo) return errorAvaluo
@@ -578,15 +602,21 @@ export default {
         return 'La fecha de inicio es obligatoria y debe tener formato AAAA-MM-DD'
       }
 
-      const tasa = Number(this.tasaInteresPeriodo)
-      if (this.tasaInteresPeriodo === '' || this.tasaInteresPeriodo === null || this.tasaInteresPeriodo === undefined) {
-        return 'La tasa de interés es obligatoria'
+      if (this.fechaInicio > this.hoy()) return 'La fecha de inicio no puede ser futura'
+
+      if (this.tasaInteresPeriodo !== '' && this.tasaInteresPeriodo !== null && this.tasaInteresPeriodo !== undefined) {
+        const tasa = Number(this.tasaInteresPeriodo)
+        if (!Number.isFinite(tasa) || tasa <= 0 || tasa > 100) {
+          return 'La tasa debe ser mayor a 0 y máximo 100'
+        }
+        if (Math.abs(tasa - Number(tasa.toFixed(2))) > 0.0000001) {
+          return 'La tasa admite máximo dos decimales'
+        }
       }
-      if (!Number.isFinite(tasa) || tasa < 0 || tasa > 999.99) {
-        return 'La tasa debe estar entre 0 y 999.99'
-      }
-      if (Math.abs(tasa - Number(tasa.toFixed(2))) > 0.0000001) {
-        return 'La tasa admite máximo dos decimales'
+
+      const origenTexto = String(this.idEmpenoOrigen ?? '').trim()
+      if (origenTexto !== '' && (!Number.isInteger(Number(origenTexto)) || Number(origenTexto) <= 0)) {
+        return 'El id del empeño de origen debe ser un entero positivo'
       }
 
       if (!['EFECTIVO', 'TRANSACCION'].includes(this.metodoPago)) {
@@ -611,6 +641,7 @@ export default {
             Nombre: String(fila.articuloNuevo.Nombre).trim(),
             Propiedades: (fila.articuloNuevo.Propiedades || []).map((propiedad) => ({
               idPropiedad: Number(propiedad.idPropiedad),
+              idUnidadMedida: propiedad.idUnidadMedida == null ? null : Number(propiedad.idUnidadMedida),
               Valor: String(propiedad.Valor).trim()
             }))
           }
@@ -653,9 +684,10 @@ export default {
         CodigoContrato: this.codigoContrato.trim(),
         TerceroCiudadDoc: this.terceroCiudadDoc.trim(),
         FechaInicio: this.fechaInicio,
-        TasaInteresPeriodo: Number(this.tasaInteresPeriodo),
+        TasaInteresPeriodo: String(this.tasaInteresPeriodo ?? '').trim() === '' ? null : Number(this.tasaInteresPeriodo),
         MetodoPago: this.metodoPago,
         MontoInicial: this.montoInicial,
+        idEmpenoOrigen: String(this.idEmpenoOrigen ?? '').trim() === '' ? null : Number(this.idEmpenoOrigen),
         Articulos: this.armarArticulos()
       }
 
@@ -685,7 +717,6 @@ export default {
       this.dialogTercero = false
       this.dialogClienteForm = false
       this.clienteParaEditar = null
-      this.abrirSelectorDespuesDeAlta = false
       this.dialogArticulo = false
       this.dialogArticuloNuevo = false
       this.filaActiva = null
@@ -694,9 +725,17 @@ export default {
       this.terceroCiudadDoc = ''
       this.fechaInicio = ''
       this.tasaInteresPeriodo = ''
+      this.idEmpenoOrigen = ''
       this.metodoPago = 'EFECTIVO'
       this.lineas = []
       this.agregarLinea()
+    },
+
+    hoy() {
+      const ahora = new Date()
+      const mes = String(ahora.getMonth() + 1).padStart(2, '0')
+      const dia = String(ahora.getDate()).padStart(2, '0')
+      return `${ahora.getFullYear()}-${mes}-${dia}`
     },
 
     cancelar() {

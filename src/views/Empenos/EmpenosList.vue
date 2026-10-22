@@ -2,9 +2,23 @@
   <v-container fluid class="pa-6">
     <div class="d-flex align-center justify-space-between mb-4">
       <h1 class="text-h5">Empeños</h1>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="irNuevo">
-        Agregar
-      </v-btn>
+      <div class="d-flex ga-2">
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-calendar-refresh"
+          :loading="actualizando"
+          :disabled="actualizando"
+          @click="actualizarPeriodos"
+        >
+          Actualizar periodos
+        </v-btn>
+        <v-btn variant="tonal" prepend-icon="mdi-alert-circle-outline" @click="dialogMora = true">
+          Reporte de mora
+        </v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="irNuevo">
+          Agregar
+        </v-btn>
+      </div>
     </div>
 
     <v-card class="pa-4">
@@ -43,7 +57,7 @@
         <v-col cols="6" sm="3">
           <v-text-field
             v-model="filtros.fechaInicio"
-            label="Desde"
+            label="Registrado desde"
             type="date"
             clearable
             density="compact"
@@ -54,9 +68,21 @@
         <v-col cols="6" sm="3">
           <v-text-field
             v-model="filtros.fechaFin"
-            label="Hasta"
+            label="Registrado hasta"
             type="date"
             clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="3">
+          <v-select
+            v-model="filtros.estadoEmpeno"
+            :items="opcionesEstado"
+            item-title="texto"
+            item-value="valor"
+            label="Estado"
             density="compact"
             variant="outlined"
             hide-details
@@ -69,7 +95,7 @@
           <v-text-field
             v-model="filtros.textoFiltro"
             label="Buscar"
-            maxlength="50"
+            maxlength="300"
             :disabled="!textoFiltroAplica"
             :hint="textoFiltroAplica ? 'Código de contrato, nombre o número de documento' : 'No aplica para este criterio de orden'"
             persistent-hint
@@ -193,6 +219,8 @@
       :id-empresa="idEmpresa"
       @seleccionar="onClienteSeleccionado"
     />
+
+    <EmpenosMoraDialog v-model="dialogMora" :id-empresa="idEmpresa" />
   </v-container>
 </template>
 
@@ -201,19 +229,22 @@ import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
 import { useAuthStore } from '@/stores/auth'
 import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+import EmpenosMoraDialog from '@/views/Empenos/EmpenosMoraDialog.vue'
 
 export default {
   name: 'EmpenosList',
 
-  components: { ClientesSeleccionar },
+  components: { ClientesSeleccionar, EmpenosMoraDialog },
 
   data() {
     return {
       cargando: false,
+      actualizando: false,
       empenos: [],
       cantData: 0,
       pagina: 1,
       dialogCliente: false,
+      dialogMora: false,
       clienteSeleccionado: null,
       filtros: {
         campoOrdenar: 7,
@@ -221,8 +252,17 @@ export default {
         textoFiltro: '',
         fechaInicio: null,
         fechaFin: null,
-        idTercero: 0
+        idTercero: 0,
+        estadoEmpeno: null
       },
+      opcionesEstado: [
+        { valor: null, texto: 'Todos' },
+        { valor: 'ACTIVO', texto: 'Activo' },
+        { valor: 'EN_MORA', texto: 'En mora' },
+        { valor: 'FINALIZADO', texto: 'Finalizado' },
+        { valor: 'REFINANCIADO', texto: 'Refinanciado' },
+        { valor: 'ADJUDICADO', texto: 'Adjudicado' }
+      ],
       opcionesCampoOrdenar: [
         { valor: 1, texto: 'Código de contrato' },
         { valor: 2, texto: 'Nombre del cliente' },
@@ -271,6 +311,36 @@ export default {
       this.buscar(1)
     },
 
+    async actualizarPeriodos() {
+      if (this.actualizando) return
+      const idEmpresa = Number(this.idEmpresa)
+      if (!Number.isInteger(idEmpresa) || idEmpresa <= 0) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+
+      this.actualizando = true
+      try {
+        const { data } = await empenoService.actualizarPeriodos({ idEmpresa })
+        const fallidos = Array.isArray(data.fallidos) ? data.fallidos : []
+        const resumen = `Empeños revisados: ${data.empenosTocados ?? 0}. ` +
+          `Períodos creados: ${data.periodosCreados ?? 0}. ` +
+          `Períodos atrasados: ${data.periodosAtrasados ?? 0}.`
+        if (fallidos.length) {
+          const ids = fallidos.map((f) => f.empenoId).join(', ')
+          await Swal.fire('Actualizado con errores', `${resumen} No se pudieron procesar los empeños: ${ids}.`, 'warning')
+        } else {
+          await Swal.fire('Éxito', resumen, 'success')
+        }
+        this.consultar()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudieron actualizar los periodos'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.actualizando = false
+      }
+    },
+
     irPagina(pagina) {
       this.buscar(pagina)
     },
@@ -295,10 +365,11 @@ export default {
           campoOrdenar: this.filtros.campoOrdenar,
           orden: this.filtros.orden,
           pagina,
-          textoFiltro: this.textoFiltroAplica ? String(this.filtros.textoFiltro || '').slice(0, 50) : '',
+          textoFiltro: this.textoFiltroAplica ? String(this.filtros.textoFiltro || '').slice(0, 300) : '',
           fechaInicio: this.filtros.fechaInicio || null,
           fechaFin: this.filtros.fechaFin || null,
-          idTercero
+          idTercero,
+          estadoEmpeno: this.filtros.estadoEmpeno || null
         })
         this.empenos = data.data || []
         this.cantData = data.cantData || 0
@@ -374,6 +445,7 @@ export default {
       return {
         FINALIZADO: 'success',
         ADJUDICADO: 'warning',
+        REFINANCIADO: 'info',
         EN_MORA: 'error'
       }[estado]
     }

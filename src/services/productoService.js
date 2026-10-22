@@ -6,7 +6,7 @@ export default {
     return http.post('/producto/getallproducto', payload)
   },
   create(payload) {
-    // payload: { idEmpresa, Nombre, Descripcion, idTipoProducto, idCategoria, idUnidadMedida, TipoSeguimiento }
+    // payload: { idEmpresa, Nombre, Descripcion, idTipoProducto, idCategoria (nullable), TipoSeguimiento }
     return http.post('/producto/newproducto', payload)
   },
   getById(payload) {
@@ -14,7 +14,7 @@ export default {
     return http.post('/producto/getidproducto', payload)
   },
   update(payload) {
-    // payload: { idEmpresa, idProducto, Nombre, Descripcion, idTipoProducto, idCategoria, idUnidadMedida, TipoSeguimiento, Estado }
+    // payload: { idEmpresa, idProducto, Nombre, Descripcion, idTipoProducto, idCategoria (nullable), TipoSeguimiento, Estado }
     return http.put('/producto/updateproducto', payload)
   },
     getActivas(payload) {

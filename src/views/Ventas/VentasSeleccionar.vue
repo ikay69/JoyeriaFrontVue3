@@ -240,7 +240,7 @@ export default {
 
       this.cargando = true
       try {
-        const { data } = await ventasService.getAll({
+        const { data } = await ventasService.getActivas({
           idEmpresa,
           pagina,
           fechaInicio: this.filtros.fechaInicio,

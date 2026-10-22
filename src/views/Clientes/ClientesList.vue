@@ -2,9 +2,15 @@
   <v-container fluid class="pa-6">
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-2">
       <h1 class="text-h5">Clientes</h1>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="irANuevo">
-        Agregar
-      </v-btn>
+      <div class="d-flex ga-2">
+        <input ref="archivoCsv" class="d-none" type="file" accept=".csv,text/csv" @change="manejarArchivoCsv">
+        <v-btn color="primary" prepend-icon="mdi-upload" :loading="subiendo" @click="abrirSelectorCsv">
+          Subir
+        </v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="irANuevo">
+          Agregar
+        </v-btn>
+      </div>
     </div>
 
     <v-card class="pa-4 mb-4" elevation="1">
@@ -121,12 +127,14 @@
 import Swal from 'sweetalert2'
 import terceroService from '@/services/terceroService'
 import { useAuthStore } from '@/stores/auth'
+import { parsearTercerosCsv, MAX_TERCEROS_IMPORTAR } from '@/utils/tercerosCsv'
 
 export default {
   name: 'ClientesList',
   data() {
     return {
       cargando: false,
+      subiendo: false,
       clientes: [],
       cantData: 0,
       pagina: 1,
@@ -205,6 +213,59 @@ export default {
 
     irANuevo() {
       this.$router.push({ name: 'ClientesNuevo' })
+    },
+
+    abrirSelectorCsv() {
+      this.$refs.archivoCsv?.click()
+    },
+
+    async manejarArchivoCsv(event) {
+      const archivo = event.target.files?.[0]
+      event.target.value = ''
+      if (!archivo) return
+
+      if (!archivo.name.toLowerCase().endsWith('.csv')) {
+        Swal.fire('Archivo no válido', 'Seleccione un archivo CSV', 'warning')
+        return
+      }
+
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+
+      const terceros = parsearTercerosCsv(await archivo.text(), 'CLIENTE')
+      if (!terceros.length) {
+        Swal.fire('Archivo vacío', 'El archivo no tiene clientes para importar', 'warning')
+        return
+      }
+      if (terceros.length > MAX_TERCEROS_IMPORTAR) {
+        Swal.fire('Archivo muy grande', `El archivo tiene ${terceros.length} filas; el máximo es ${MAX_TERCEROS_IMPORTAR}. Divídalo en varios archivos`, 'warning')
+        return
+      }
+
+      const confirmacion = await Swal.fire({
+        title: 'Importar clientes',
+        text: `Se importarán ${terceros.length} clientes. ¿Desea continuar?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Importar',
+        cancelButtonText: 'Cancelar'
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.subiendo = true
+      try {
+        const { data } = await terceroService.importar({ idEmpresa: this.idEmpresa, terceros })
+        const detalle = `Creados: ${data.creados}<br>Ya existían: ${data.ignorados}<br>Con rol agregado: ${data.rolesAsignados}`
+        Swal.fire({ title: data.msg || 'Importación finalizada', html: detalle, icon: 'success' })
+        this.consultar()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo importar el archivo'
+        Swal.fire('Error', `${mensaje}. No se guardó ningún registro`, 'error')
+      } finally {
+        this.subiendo = false
+      }
     },
 
     irAEditar(EmpId, TerId) {

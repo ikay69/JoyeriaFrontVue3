@@ -11,18 +11,19 @@ export default {
   },
   getById(payload) {
     // payload: { idEmpresa, idCategoria }
-    // Nota: el documento de la API solo mostraba "idEmpresa" en el body de
-    // ejemplo, pero para poder identificar el registro se envia tambien
-    // idCategoria (necesario para que el backend sepa cual categoria buscar).
     return http.post('/categoria/getidcategoria', payload)
   },
   update(payload) {
     // payload: { idEmpresa, idCategoria, Nombre, Estado }
     return http.put('/categoria/updatecategoria', payload)
   },
-    getActivas(payload) {
+  getActivas(payload) {
     // payload: { idEmpresa }
     return http.post('/categoria/getactivascategoria', payload)
+  },
+  eliminar(payload) {
+    // payload: { idEmpresa, idCategoria }
+    return http.post('/categoria/deletecategoria', payload)
   },
 
 }
