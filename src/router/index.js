@@ -161,6 +161,11 @@ const routes = [
         component: () => import('@/views/InformesInventario/ExistenciaArticulo.vue')
       },
       {
+        path: 'informes-inventario/existencia-producto',
+        name: 'ExistenciaProducto',
+        component: () => import('@/views/InformesInventario/ExistenciaProducto.vue')
+      },
+      {
         path: 'informes-inventario/ajustes/nuevo',
         name: 'AjusteNuevo',
         component: () => import('@/views/InformesInventario/AjusteForm.vue')
@@ -358,6 +363,18 @@ const routes = [
         name: 'EstadoCuentaTercero',
         component: () =>
           import('@/views/Contabilidad/EstadoCuentaTercero/EstadoCuentaTercero.vue')
+      },
+      {
+        path: 'contabilidad/estado-cuenta-tercero/por-cobrar',
+        name: 'EstadoCuentaPorCobrar',
+        component: () =>
+          import('@/views/Contabilidad/EstadoCuentaTercero/EstadoCuentaPorCobrar.vue')
+      },
+      {
+        path: 'contabilidad/estado-cuenta-tercero/por-pagar',
+        name: 'EstadoCuentaPorPagar',
+        component: () =>
+          import('@/views/Contabilidad/EstadoCuentaTercero/EstadoCuentaPorPagar.vue')
       },
 
       // Administracion

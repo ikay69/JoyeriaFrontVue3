@@ -5,8 +5,19 @@ export default {
     // payload: { idEmpresa, pagina, textoFiltro, BolsaEstado, idBodega }
     return http.post('/existencia/getexistencias', payload)
   },
-    getExistenciasArticulo(payload) {
+  getExistenciasArticulo(payload) {
     // payload: { idEmpresa, idArticulo }
     return http.post('/existencia/getexistenciasarticulo', payload)
+  },
+  getExistenciasProducto(payload) {
+    // payload: { idEmpresa, idProducto }
+    return http.post('/existencia/getexistenciasproducto', payload)
+  },
+  importarInventario(payload) {
+    // payload: { idEmpresa, articulos: [{ bodega, categoria, tipoProducto, producto, tipoSeguimiento,
+    //   articulo, existencia, cantidad, costoUnidad, precio, vender, tipoDocumento, numeroDocumento,
+    //   nombre, apellido }] }
+    // Solo administrador. Maximo 200 filas. Se escribe por etapas: si falla una, las anteriores quedan
+    return http.post('/existencia/importarinventario', payload)
   }
 }
