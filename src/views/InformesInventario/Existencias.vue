@@ -2,13 +2,35 @@
   <v-container fluid class="pa-6">
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-2">
       <h1 class="text-h5">Existencias</h1>
-      <v-btn
-        color="primary"
-        prepend-icon="mdi-plus"
-        @click="$router.push({ name: 'AjusteNuevo' })"
-      >
-        Nuevo ajuste
-      </v-btn>
+      <div class="d-flex ga-2">
+        <input ref="archivoCsv" class="d-none" type="file" accept=".csv,text/csv" @change="manejarArchivoCsv">
+        <v-btn
+          v-if="esAdministrador"
+          color="primary"
+          variant="outlined"
+          prepend-icon="mdi-download"
+          @click="descargarPlantilla"
+        >
+          Plantilla
+        </v-btn>
+        <v-btn
+          v-if="esAdministrador"
+          color="primary"
+          prepend-icon="mdi-upload"
+          :loading="subiendo"
+          :disabled="subiendo"
+          @click="abrirSelectorCsv"
+        >
+          Subir
+        </v-btn>
+        <v-btn
+          color="primary"
+          prepend-icon="mdi-plus"
+          @click="$router.push({ name: 'AjusteNuevo' })"
+        >
+          Nuevo ajuste
+        </v-btn>
+      </div>
     </div>
 
     <v-card class="pa-4 mb-4" elevation="1">
@@ -117,12 +139,16 @@ import Swal from 'sweetalert2'
 import existenciaService from '@/services/existenciaService'
 import bodegaService from '@/services/bodegaService'
 import { useAuthStore } from '@/stores/auth'
+import { useCatalogosStore } from '@/stores/catalogos'
+import { descargarCsv } from '@/utils/descargarCsv'
+import { parsearInventarioCsv, plantillaInventarioCsv, MAX_ARTICULOS_IMPORTAR } from '@/utils/inventarioCsv'
 
 export default {
   name: 'Existencias',
   data() {
     return {
       cargando: false,
+      subiendo: false,
       existencias: [],
       cantData: 0,
       pagina: 1,
@@ -152,6 +178,9 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    esAdministrador() {
+      return this.authStore.rol === 'ADMINISTRADOR'
     },
     totalPaginas() {
       return Math.max(1, Math.ceil(this.cantData / 50))
@@ -202,6 +231,80 @@ export default {
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargando = false
+      }
+    },
+
+    // La importacion crea bodegas/productos por nombre: el combo local y la cache compartida quedan viejos
+    refrescarCatalogos() {
+      useCatalogosStore().invalidar(this.idEmpresa)
+      this.cargarBodegas()
+    },
+
+    descargarPlantilla() {
+      descargarCsv('plantilla_inventario.csv', plantillaInventarioCsv())
+    },
+
+    abrirSelectorCsv() {
+      this.$refs.archivoCsv?.click()
+    },
+
+    async manejarArchivoCsv(event) {
+      const archivo = event.target.files?.[0]
+      event.target.value = ''
+      if (!archivo) return
+
+      if (!archivo.name.toLowerCase().endsWith('.csv')) {
+        Swal.fire('Archivo no válido', 'Seleccione un archivo CSV', 'warning')
+        return
+      }
+
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+
+      const articulos = parsearInventarioCsv(await archivo.text())
+      if (!articulos.length) {
+        Swal.fire('Archivo vacío', 'El archivo no tiene artículos para importar', 'warning')
+        return
+      }
+      if (articulos.length > MAX_ARTICULOS_IMPORTAR) {
+        Swal.fire('Archivo muy grande', `El archivo tiene ${articulos.length} filas; el máximo es ${MAX_ARTICULOS_IMPORTAR}. Divídalo en varios archivos`, 'warning')
+        return
+      }
+
+      // Cada fila crea un artículo nuevo: reenviar un archivo ya importado lo duplica
+      const confirmacion = await Swal.fire({
+        title: 'Importar inventario',
+        text: `Se crearán ${articulos.length} artículos con su existencia. ¿Desea continuar?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Importar',
+        cancelButtonText: 'Cancelar'
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.subiendo = true
+      try {
+        const { data } = await existenciaService.importarInventario({ idEmpresa: this.idEmpresa, articulos })
+        const detalle = [
+          `Artículos creados: ${data.articulosCreados}`,
+          `Bodegas creadas: ${data.bodegasCreadas}`,
+          `Categorías creadas: ${data.categoriasCreadas}`,
+          `Tipos de producto creados: ${data.tiposProductoCreados}`,
+          `Productos creados: ${data.productosCreados}`,
+          `Roles asignados: ${data.rolesAsignados}`
+        ].join('<br>')
+        Swal.fire({ title: data.msg || 'Importación finalizada', html: detalle, icon: 'success' })
+        this.refrescarCatalogos()
+        this.consultar()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo importar el archivo'
+        // Las etapas se guardan una a una: un fallo al escribir puede dejar catálogos ya creados
+        Swal.fire('Error', `${mensaje}. Corrija el archivo y vuelva a subirlo`, 'error')
+        this.refrescarCatalogos()
+      } finally {
+        this.subiendo = false
       }
     },
 

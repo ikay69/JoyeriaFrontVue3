@@ -39,6 +39,46 @@
       </v-row>
     </v-card>
 
+    <v-card v-if="productoSeleccionado" class="pa-4 mb-4" elevation="1">
+      <div v-if="cargando" class="d-flex justify-center py-2">
+        <v-progress-circular indeterminate color="primary" size="24" />
+      </div>
+      <div v-else>
+        <v-row dense class="mb-1">
+          <v-col v-for="total in totalesExistencia.slice(0, 3)" :key="`costo-${total.estado}`" cols="12" sm="6" md="4">
+            <div class="resumen-linea">
+              <span>Costo {{ total.texto }}:</span>
+              <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.costo) }}</span>
+            </div>
+          </v-col>
+        </v-row>
+        <v-row dense class="mb-1">
+          <v-col v-for="total in totalesExistencia.slice(0, 3)" :key="`precio-${total.estado}`" cols="12" sm="6" md="4">
+            <div class="resumen-linea">
+              <span>Precio {{ total.texto }}:</span>
+              <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.precio) }}</span>
+            </div>
+          </v-col>
+        </v-row>
+        <v-row dense class="mb-1">
+          <v-col v-for="total in totalesExistencia.slice(3)" :key="`costo-${total.estado}`" cols="12" sm="6" md="4">
+            <div class="resumen-linea">
+              <span>Costo {{ total.texto }}:</span>
+              <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.costo) }}</span>
+            </div>
+          </v-col>
+        </v-row>
+        <v-row dense>
+          <v-col v-for="total in totalesExistencia.slice(3)" :key="`precio-${total.estado}`" cols="12" sm="6" md="4">
+            <div class="resumen-linea">
+              <span>Precio {{ total.texto }}:</span>
+              <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.precio) }}</span>
+            </div>
+          </v-col>
+        </v-row>
+      </div>
+    </v-card>
+
     <v-card elevation="1">
       <div style="overflow-x: auto;">
         <v-table class="tabla-listado" density="compact">
@@ -131,12 +171,12 @@ export default {
       existencias: [],
       cargando: false,
       opcionesBolsaEstado: [
-        { valor: 'DISPONIBLE', texto: 'Disponible' },
-        { valor: 'RESERVADO', texto: 'Reservado' },
-        { valor: 'PRESTADO_A_TALLER', texto: 'Prestado a taller' },
-        { valor: 'RECIBIDO_DE_TALLER', texto: 'Recibido de taller' },
-        { valor: 'EN_GARANTIA_EMPENO', texto: 'En garantía/empeño' },
-        { valor: 'EN_REPARACION', texto: 'En reparación' }
+        { valor: 'DISPONIBLE', texto: 'Disponible', textoResumen: 'Disponible' },
+        { valor: 'RESERVADO', texto: 'Reservado', textoResumen: 'Reservado' },
+        { valor: 'EN_GARANTIA_EMPENO', texto: 'En garantía/empeño', textoResumen: 'En empeño' },
+        { valor: 'PRESTADO_A_TALLER', texto: 'Prestado a taller', textoResumen: 'Prestado' },
+        { valor: 'RECIBIDO_DE_TALLER', texto: 'Recibido de taller', textoResumen: 'Recibido' },
+        { valor: 'EN_REPARACION', texto: 'En reparación', textoResumen: 'En reparación' }
       ]
     }
   },
@@ -147,6 +187,24 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    totalesExistencia() {
+      return this.opcionesBolsaEstado.map((opcion) => {
+        const existenciasEstado = this.existencias.filter((ex) =>
+          String(ex.existBolsa || '').trim().toUpperCase() === opcion.valor
+        )
+
+        return {
+          estado: opcion.valor,
+          texto: opcion.textoResumen || opcion.texto,
+          costo: existenciasEstado.reduce((total, ex) =>
+            total + this.numeroSeguro(ex.existCosto) * this.numeroSeguro(ex.existCantidad), 0
+          ),
+          precio: existenciasEstado.reduce((total, ex) =>
+            total + this.numeroSeguro(ex.artPrecio) * this.numeroSeguro(ex.existCantidad), 0
+          )
+        }
+      })
     }
   },
 
@@ -208,6 +266,11 @@ export default {
       return String(valor)
     },
 
+    numeroSeguro(valor) {
+      const numero = Number(valor)
+      return Number.isFinite(numero) ? numero : 0
+    },
+
     formatearMoneda(valor) {
       if (valor === null || valor === undefined || valor === '') return '-'
       const numero = Number(valor)
@@ -222,6 +285,13 @@ export default {
 </script>
 
 <style scoped>
+.resumen-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
   background-color: rgb(var(--v-theme-primary));
   color: rgb(var(--v-theme-on-primary));
