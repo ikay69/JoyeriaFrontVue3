@@ -5,14 +5,14 @@
 
 export const MAX_TERCEROS_IMPORTAR = 200
 
-function detectarSeparador(primeraLinea) {
+export function detectarSeparador(primeraLinea) {
   const puntoYComa = (primeraLinea.match(/;/g) || []).length
   const comas = (primeraLinea.match(/,/g) || []).length
   return puntoYComa > comas ? ';' : ','
 }
 
 // Separa el texto en filas y celdas respetando comillas dobles ("a, b" y "")
-function leerFilas(texto, separador) {
+export function leerFilas(texto, separador) {
   const filas = []
   let fila = []
   let celda = ''
@@ -48,6 +48,17 @@ function leerFilas(texto, separador) {
   filas.push(fila)
 
   return filas.filter((f) => f.some((valor) => valor.trim() !== ''))
+}
+
+// Encabezado + dos filas de ejemplo (una sin documento ni celular, que son opcionales).
+// Separador ";" y BOM para que Excel en español lo abra en columnas y con tildes.
+export function plantillaTercerosCsv() {
+  const filas = [
+    ['tipoDocumento', 'numeroDocumento', 'nombre', 'apellidos', 'celular'],
+    ['CC', '1020304050', 'Maria', 'Gomez Perez', '3001234567'],
+    ['', '', 'Carlos', 'Ruiz', '']
+  ]
+  return '﻿' + filas.map((fila) => fila.join(';')).join('\r\n') + '\r\n'
 }
 
 function esEncabezado(fila) {

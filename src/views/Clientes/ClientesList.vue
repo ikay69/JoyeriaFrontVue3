@@ -4,6 +4,9 @@
       <h1 class="text-h5">Clientes</h1>
       <div class="d-flex ga-2">
         <input ref="archivoCsv" class="d-none" type="file" accept=".csv,text/csv" @change="manejarArchivoCsv">
+        <v-btn color="primary" variant="outlined" prepend-icon="mdi-download" @click="descargarPlantilla">
+          Plantilla
+        </v-btn>
         <v-btn color="primary" prepend-icon="mdi-upload" :loading="subiendo" @click="abrirSelectorCsv">
           Subir
         </v-btn>
@@ -127,7 +130,8 @@
 import Swal from 'sweetalert2'
 import terceroService from '@/services/terceroService'
 import { useAuthStore } from '@/stores/auth'
-import { parsearTercerosCsv, MAX_TERCEROS_IMPORTAR } from '@/utils/tercerosCsv'
+import { descargarCsv } from '@/utils/descargarCsv'
+import { parsearTercerosCsv, plantillaTercerosCsv, MAX_TERCEROS_IMPORTAR } from '@/utils/tercerosCsv'
 
 export default {
   name: 'ClientesList',
@@ -213,6 +217,10 @@ export default {
 
     irANuevo() {
       this.$router.push({ name: 'ClientesNuevo' })
+    },
+
+    descargarPlantilla() {
+      descargarCsv('plantilla_clientes.csv', plantillaTercerosCsv())
     },
 
     abrirSelectorCsv() {
