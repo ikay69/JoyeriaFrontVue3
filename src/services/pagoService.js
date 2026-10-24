@@ -7,6 +7,12 @@ export default {
     return http.post('/pago/getallpago', payload)
   },
 
+  exportarCsv(payload) {
+    // payload: { idEmpresa, fechaInicio, fechaFin } (solo ADMINISTRADOR, rango maximo 94 dias)
+    // Responde un archivo CSV (blob); los errores llegan como JSON dentro del blob.
+    return http.post('/pago/exportarpagoscsv', payload, { responseType: 'blob' })
+  },
+
   getById(payload) {
     // payload: { idEmpresa, idPago }
     return http.post('/pago/getidpago', payload)

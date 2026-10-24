@@ -1,6 +1,7 @@
 // Lee un CSV de inventario para /existencia/importarinventario.
 // Columnas en este orden: bodega, categoria, tipoProducto, producto, tipoSeguimiento, articulo,
-// existencia, cantidad, costoUnidad, precio, vender, tipoDocumento, numeroDocumento, nombre, apellido
+// existencia, cantidadGramos, cantidad, costoUnidad, precio, vender, tipoDocumento, numeroDocumento,
+// nombre, apellido
 // Acepta separador "," o ";" y una fila de encabezado opcional. Las celdas vacias viajan como null:
 // el backend decide que es obligatorio segun la bolsa y valida cada fila.
 
@@ -10,15 +11,16 @@ export const MAX_ARTICULOS_IMPORTAR = 200
 
 const COLUMNAS = [
   'bodega', 'categoria', 'tipoProducto', 'producto', 'tipoSeguimiento', 'articulo', 'existencia',
-  'cantidad', 'costoUnidad', 'precio', 'vender', 'tipoDocumento', 'numeroDocumento', 'nombre', 'apellido'
+  'cantidadGramos', 'cantidad', 'costoUnidad', 'precio', 'vender', 'tipoDocumento', 'numeroDocumento',
+  'nombre', 'apellido'
 ]
 
 // Encabezado + un ejemplo DISPONIBLE y uno RESERVADO (con propietario por documento).
 // Separador ";" y BOM para que Excel en español lo abra en columnas y con tildes.
 export function plantillaInventarioCsv() {
   const ejemplos = [
-    ['Vitrina', 'Anillos', 'Joyeria', 'Anillo oro 18k', 'UNIDAD', 'Anillo solitario oro 18k', 'DISPONIBLE', '1', '450000', '890000', '1', '', '', '', ''],
-    ['Vitrina', '', 'Joyeria', 'Anillo oro 18k', '', 'Anillo apartado para cliente', 'RESERVADO', '1', '', '950000', '1', 'CC', '1020304050', '', '']
+    ['Vitrina', 'Anillos', 'Joyeria', 'Anillo oro 18k', 'UNIDAD o CANTIDAD', 'Anillo solitario oro 18k', 'DISPONIBLE', '3.5', '1', '450000', '890000', '1', '', '', '', ''],
+    ['Vitrina', '', 'Joyeria', 'Anillo oro 18k', '', 'Anillo apartado para cliente', 'RESERVADO EN_GARANTIA_EMPENO PRESTADO_A_TALLER RECIBIDO_DE_TALLER EN_REPARACION', '', '1', '', '950000', '1', 'CC', '1020304050', '', '']
   ]
   return '﻿' + [COLUMNAS, ...ejemplos].map((fila) => fila.join(';')).join('\r\n') + '\r\n'
 }
@@ -46,13 +48,14 @@ export function parsearInventarioCsv(texto) {
     tipoSeguimiento: vacioANull(fila[4]),
     articulo: vacioANull(fila[5]),
     existencia: vacioANull(fila[6]),
-    cantidad: vacioANull(fila[7]),
-    costoUnidad: vacioANull(fila[8]),
-    precio: vacioANull(fila[9]),
-    vender: vacioANull(fila[10]),
-    tipoDocumento: vacioANull(fila[11]),
-    numeroDocumento: vacioANull(fila[12]),
-    nombre: vacioANull(fila[13]),
-    apellido: vacioANull(fila[14])
+    cantidadGramos: vacioANull(fila[7]),
+    cantidad: vacioANull(fila[8]),
+    costoUnidad: vacioANull(fila[9]),
+    precio: vacioANull(fila[10]),
+    vender: vacioANull(fila[11]),
+    tipoDocumento: vacioANull(fila[12]),
+    numeroDocumento: vacioANull(fila[13]),
+    nombre: vacioANull(fila[14]),
+    apellido: vacioANull(fila[15])
   }))
 }

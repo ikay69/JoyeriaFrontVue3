@@ -639,6 +639,8 @@ export default {
           linea.ArticuloNuevo = {
             idProducto: Number(fila.articuloNuevo.idProducto),
             Nombre: String(fila.articuloNuevo.Nombre).trim(),
+            Descripcion: fila.articuloNuevo.Descripcion ?? null,
+            CantidadGramos: fila.articuloNuevo.CantidadGramos ?? null,
             Propiedades: (fila.articuloNuevo.Propiedades || []).map((propiedad) => ({
               idPropiedad: Number(propiedad.idPropiedad),
               idUnidadMedida: propiedad.idUnidadMedida == null ? null : Number(propiedad.idUnidadMedida),

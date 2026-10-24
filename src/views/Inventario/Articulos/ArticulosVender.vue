@@ -63,18 +63,19 @@
                 <th>SKU</th>
                 <th>Nombre</th>
                 <th>Bodega</th>
+                <th class="text-right" title="Cantidad en gramos">Gr</th>
                 <th class="text-right">Disponible</th>
                 <th class="text-right">Precio</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="cargando">
-                <td colspan="6" class="text-center py-6">
+                <td colspan="7" class="text-center py-6">
                   <v-progress-circular indeterminate color="primary" />
                 </td>
               </tr>
               <tr v-else-if="!articulos.length">
-                <td colspan="6" class="text-center py-6 text-medium-emphasis">
+                <td colspan="7" class="text-center py-6 text-medium-emphasis">
                   No hay registros para mostrar
                 </td>
               </tr>
@@ -97,6 +98,7 @@
                   </div>
                 </td>
                 <td>{{ art.artBodegaNombre }}</td>
+                <td class="text-right">{{ formatearCantidad(art.artCantidadGramos) }}</td>
                 <td class="text-right">{{ formatearCantidad(art.artCantidadDisponible) }}</td>
                 <td class="text-right">{{ formatearMoneda(art.artPrecio) }}</td>
               </tr>

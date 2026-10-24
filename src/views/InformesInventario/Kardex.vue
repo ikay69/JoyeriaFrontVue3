@@ -29,32 +29,52 @@
             hide-details
           />
         </v-col>
-        <v-col cols="6" sm="3">
+        <v-col cols="6" sm="2">
           <v-text-field
             v-model="filtros.fechaInicio"
             label="Fecha inicio"
             type="date"
+            :disabled="filtros.historico"
             variant="outlined"
             density="compact"
             hide-details
           />
         </v-col>
-        <v-col cols="6" sm="3">
+        <v-col cols="6" sm="2">
           <v-text-field
             v-model="filtros.fechaFin"
             label="Fecha fin"
             type="date"
+            :disabled="filtros.historico"
             variant="outlined"
             density="compact"
             hide-details
           />
         </v-col>
         <v-col cols="12" sm="3">
+          <v-checkbox
+            v-model="filtros.historico"
+            label="Histórico completo"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="2">
           <v-btn color="primary" variant="tonal" block @click="consultar">
             Consultar
           </v-btn>
         </v-col>
       </v-row>
+      <div class="text-caption text-medium-emphasis mt-2">
+        <template v-if="filtros.historico">
+          Desde el primer movimiento del artículo, sin fechas. Los movimientos van del más viejo al más nuevo:
+          el saldo de la última fila de la última página es la existencia del artículo.
+        </template>
+        <template v-else>
+          Los movimientos van del más viejo al más nuevo. El saldo arranca en cero en la fecha inicio:
+          es el saldo dentro del rango, no la existencia del artículo.
+        </template>
+      </div>
     </v-card>
 
     <v-card elevation="1">
@@ -68,19 +88,21 @@
             <th>Propietario</th>
             <th>Cantidad</th>
             <th>Costo</th>
+            <th>Precio venta total</th>
             <th>Motivo</th>
             <th>Origen</th>
             <th>Saldo</th>
+            <th class="text-center">Detalle</th>
           </tr>
         </thead>
         <tbody>
           <tr v-if="cargando">
-            <td colspan="11" class="text-center py-6">
+            <td colspan="12" class="text-center py-6">
               <v-progress-circular indeterminate color="primary" />
             </td>
           </tr>
           <tr v-else-if="!movimientos.length">
-            <td colspan="11" class="text-center py-6 text-medium-emphasis">
+            <td colspan="12" class="text-center py-6 text-medium-emphasis">
               No hay movimientos para mostrar
             </td>
           </tr>
@@ -96,9 +118,19 @@
             <td>{{ mov.movPropietarioNombre || '-' }}</td>
             <td>{{ mov.movCantidad }}</td>
             <td>{{ mov.movCosto }}</td>
+            <td>{{ mov.movPrecioVentaTotal ?? '-' }}</td>
             <td>{{ mov.movMotivo }}</td>
             <td>{{ mov.movTipoOrigen }}</td>
             <td>{{ mov.movSaldo }}</td>
+            <td class="text-center">
+              <v-btn
+                icon="mdi-eye"
+                size="small"
+                variant="text"
+                title="Ver el movimiento"
+                @click="irADetalle(mov)"
+              />
+            </td>
           </tr>
         </tbody>
       </v-table>
@@ -110,6 +142,9 @@
         <span>Página {{ pagina }} de {{ totalPaginas }}</span>
         <v-btn v-if="pagina < totalPaginas" variant="outlined" @click="buscar(pagina + 1)">
           Siguiente
+        </v-btn>
+        <v-btn v-if="pagina < totalPaginas" variant="outlined" @click="buscar(totalPaginas)">
+          Última página
         </v-btn>
       </div>
     </v-card>
@@ -163,7 +198,9 @@ export default {
       filtros: {
         idBodega: 0,
         fechaInicio: fechaHoy,
-        fechaFin: fechaHoy
+        fechaFin: fechaHoy,
+        // true = desde el primer movimiento, sin fechas
+        historico: false
       }
     }
   },
@@ -216,16 +253,34 @@ export default {
         return
       }
 
+      const historico = this.filtros.historico === true
+      if (!historico) {
+        if (!this.filtros.fechaInicio || !this.filtros.fechaFin) {
+          Swal.fire('Atención', 'Las dos fechas son obligatorias, o marque Histórico completo', 'warning')
+          return
+        }
+        // El backend no valida el orden: un rango invertido responde vacio sin explicar por que.
+        if (this.filtros.fechaInicio > this.filtros.fechaFin) {
+          Swal.fire('Atención', 'La fecha inicial no puede ser mayor que la fecha final', 'warning')
+          return
+        }
+      }
+
       this.cargando = true
       try {
-        const { data } = await movimientoService.getKardex({
+        // historico tiene que ser booleano; con true las fechas no se envian (el backend las ignora)
+        const payload = {
           idEmpresa: this.idEmpresa,
           idArticulo: this.articuloSeleccionado.artId,
           idBodega: this.filtros.idBodega,
-          fechaInicio: this.filtros.fechaInicio,
-          fechaFin: this.filtros.fechaFin,
+          historico,
           pagina
-        })
+        }
+        if (!historico) {
+          payload.fechaInicio = this.filtros.fechaInicio
+          payload.fechaFin = this.filtros.fechaFin
+        }
+        const { data } = await movimientoService.getKardex(payload)
         this.movimientos = data.data || []
         this.cantData = data.cantData || 0
         this.pagina = pagina
@@ -235,6 +290,14 @@ export default {
       } finally {
         this.cargando = false
       }
+    },
+
+    // El EmpId sale de la fila (movEmpId), no del selector de empresa de la barra superior.
+    irADetalle(mov) {
+      this.$router.push({
+        name: 'KardexDetalle',
+        params: { EmpId: mov.movEmpId, MovId: mov.movId }
+      })
     },
 
     formatearFecha(fecha) {
