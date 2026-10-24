@@ -20,6 +20,16 @@
         </p>
       </div>
       <v-btn
+        v-if="pago"
+        icon="mdi-printer"
+        variant="tonal"
+        title="Imprimir"
+        aria-label="Imprimir pago"
+        :loading="imprimiendo"
+        :disabled="imprimiendo"
+        @click="imprimir"
+      />
+      <v-btn
         v-if="pago && esActivo && esAdministrador"
         color="error"
         variant="flat"
@@ -116,7 +126,9 @@
 <script>
 import Swal from 'sweetalert2'
 import pagoService from '@/services/pagoService'
+import empresaService from '@/services/empresaService'
 import { useAuthStore } from '@/stores/auth'
+import { generarTirillaPdfPagos } from '@/utils/tirillaPdfPagos'
 
 export default {
   name: 'PagosDetalle',
@@ -125,7 +137,8 @@ export default {
     return {
       pago: null,
       cargando: false,
-      anulando: false
+      anulando: false,
+      imprimiendo: false
     }
   },
 
@@ -188,6 +201,32 @@ export default {
         this.$router.push({ name: 'PagosList' })
       } finally {
         this.cargando = false
+      }
+    },
+
+    async imprimir() {
+      if (this.imprimiendo || !this.pago) return
+      this.imprimiendo = true
+      try {
+        let empresa = this.authStore.empresaActual || {}
+        let mensajeEmpresa = ''
+        try {
+          const { data } = await empresaService.getById({ idEmpresa: this.idEmpresa })
+          empresa = data?.data || empresa
+        } catch (errorEmpresa) {
+          mensajeEmpresa = errorEmpresa.response?.data?.msg ||
+            'No se pudieron cargar los datos completos de la empresa; se usaron los disponibles en la sesión.'
+        }
+
+        generarTirillaPdfPagos({ pago: this.pago, empresa })
+
+        if (mensajeEmpresa) {
+          await Swal.fire('Tirilla generada', mensajeEmpresa, 'warning')
+        }
+      } catch (error) {
+        await Swal.fire('Error', `No se pudo generar la tirilla: ${error.message || 'Error desconocido'}`, 'error')
+      } finally {
+        this.imprimiendo = false
       }
     },
 

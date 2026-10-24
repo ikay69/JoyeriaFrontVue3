@@ -124,7 +124,7 @@
           <thead>
             <tr>
               <th>Fecha</th>
-              <th>Tercero</th>
+              <th>Cliente</th>
               <th>Tipo venta</th>
               <th class="text-right">Subtotal</th>
               <th class="text-right">Saldo</th>

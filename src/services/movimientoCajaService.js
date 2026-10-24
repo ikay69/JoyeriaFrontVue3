@@ -11,6 +11,11 @@ export default {
     // tipoFiltro y motivoFiltro son arreglos, y el arreglo VACIO significa "todos" (no null).
     return http.post('/movimientocaja/getallmovimientocaja', payload)
   },
+  exportarCsv(payload) {
+    // payload: { idEmpresa, fechaInicio, fechaFin } (solo ADMINISTRADOR, fechas obligatorias, rango maximo 94 dias)
+    // Responde un archivo CSV (blob); los errores llegan como JSON dentro del blob.
+    return http.post('/movimientocaja/exportarmovimientoscajacsv', payload, { responseType: 'blob' })
+  },
   getSaldo(payload) {
     // payload: { idEmpresa, fechaInicio, fechaFin }
     // Depende SOLO de las fechas: ni el estado, ni el tipo, ni el motivo entran aqui. Por eso
