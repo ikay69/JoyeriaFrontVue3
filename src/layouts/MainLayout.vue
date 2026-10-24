@@ -124,6 +124,7 @@
         </v-list-group>
         <v-list-item :to="{ name: 'PagosList' }" prepend-icon="mdi-cash-plus" title="Pagos" />
         <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos"/>
+        <v-list-item :to="{ name: 'Informes' }" prepend-icon="mdi-file-chart" title="Informes" />
 
         <v-list-group value="contabilidad">
           <template #activator="{ props }">

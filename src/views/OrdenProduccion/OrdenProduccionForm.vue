@@ -172,6 +172,7 @@
                 <th style="min-width: 160px">Bodega</th>
                 <th class="text-center" style="width: 48px"></th>
                 <th class="text-center" style="width: 48px"></th>
+                <th class="text-center" style="width: 48px"></th>
                 <th style="min-width: 220px">Artículo</th>
                 <th style="min-width: 110px">Cantidad</th>
                 <th style="min-width: 140px">Costo unitario</th>
@@ -179,7 +180,7 @@
             </thead>
             <tbody>
               <tr v-if="!producidos.length">
-                <td colspan="6" class="text-center py-6 text-medium-emphasis">
+                <td colspan="7" class="text-center py-6 text-medium-emphasis">
                   Agregue al menos un artículo producido
                 </td>
               </tr>
@@ -198,11 +199,21 @@
                 </td>
                 <td class="text-center">
                   <v-btn
+                    icon="mdi-book-plus"
+                    size="small"
+                    variant="text"
+                    color="secondary"
+                    title="Dar de alta un artículo nuevo"
+                    @click="abrirArticuloNuevo(i)"
+                  />
+                </td>
+                <td class="text-center">
+                  <v-btn
                     icon="mdi-plus"
                     size="small"
                     variant="text"
                     color="primary"
-                    title="Elegir el artículo"
+                    title="Elegir un artículo existente"
                     @click="abrirSelectorArticulo('producidos', i)"
                   />
                 </td>
@@ -221,6 +232,9 @@
                   <div v-if="fila.articuloSKU" class="text-caption text-medium-emphasis">
                     {{ fila.articuloSKU }}
                   </div>
+                  <v-chip v-if="fila.articuloNuevo" size="x-small" color="secondary" variant="tonal">
+                    Nuevo
+                  </v-chip>
                 </td>
                 <td>
                   <v-number-input
@@ -302,6 +316,13 @@
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
     />
+
+    <ArticuloNuevoDialog
+      v-model="dialogArticuloNuevo"
+      :id-empresa="idEmpresa"
+      :valor-inicial="articuloNuevoInicial"
+      @guardar="onArticuloNuevoGuardado"
+    />
   </v-container>
 </template>
 
@@ -313,11 +334,12 @@ import { useCatalogosStore } from '@/stores/catalogos'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticulosProduccion from '@/views/Inventario/Articulos/ArticulosProduccion.vue'
 import TalleresSeleccionar from '@/views/Talleres/TalleresSeleccionar.vue'
+import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
 
 export default {
   name: 'OrdenProduccionForm',
 
-  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar },
+  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar, ArticuloNuevoDialog },
 
   data() {
     return {
@@ -329,6 +351,7 @@ export default {
       dialogArticulo: false,
       dialogArticuloProduccion: false,
       dialogTercero: false,
+      dialogArticuloNuevo: false,
       // { tabla: 'consumos' | 'producidos', indice: n } o null. La tabla hace falta porque hay
       // dos y el indice por si solo es ambiguo.
       filaActiva: null,
@@ -360,6 +383,11 @@ export default {
       const fila = this.consumos[this.filaActiva.indice]
       return fila?.BolsaEstado === 'RECIBIDO_DE_TALLER' ? fila.idPropietario : null
     },
+    // Lo ya escrito en la fila, para reabrir el dialogo y corregir en vez de empezar de cero.
+    articuloNuevoInicial() {
+      if (this.filaActiva?.tabla !== 'producidos') return null
+      return this.producidos[this.filaActiva.indice]?.articuloNuevo ?? null
+    },
     totalConsumos() {
       return this.redondear(this.consumos.reduce((total, fila) => {
         return total + (this.calcularSubtotal(fila) ?? 0)
@@ -386,6 +414,7 @@ export default {
       this.dialogArticulo = false
       this.dialogArticuloProduccion = false
       this.dialogTercero = false
+      this.dialogArticuloNuevo = false
     }
   },
 
@@ -428,6 +457,8 @@ export default {
       this.producidos.push({
         idBodega: null,
         idArticulo: null,
+        // idArticulo O articuloNuevo, nunca los dos: el backend responde 400 con ambos
+        articuloNuevo: null,
         articuloNombre: '',
         articuloSKU: '',
         Cantidad: 1,
@@ -498,7 +529,30 @@ export default {
           art.artCostoUnitario === '' || !Number.isFinite(costo)
           ? null
           : costo
+      } else {
+        // Elegir un articulo existente descarta el articulo nuevo de ESTA fila.
+        fila.articuloNuevo = null
       }
+      this.filaActiva = null
+    },
+
+    async abrirArticuloNuevo(indice) {
+      this.filaActiva = { tabla: 'producidos', indice }
+      // `valor-inicial` se calcula a partir de filaActiva: hay que dejar que la prop se
+      // propague antes de abrir, o el watcher del dialogo puede leer la fila anterior.
+      await this.$nextTick()
+      this.dialogArticuloNuevo = true
+    },
+
+    onArticuloNuevoGuardado(articuloNuevo) {
+      if (this.filaActiva?.tabla !== 'producidos') return
+      const fila = this.producidos[this.filaActiva.indice]
+      if (!fila) return
+      fila.articuloNuevo = articuloNuevo
+      fila.articuloNombre = articuloNuevo.Nombre
+      fila.articuloSKU = ''
+      // Dar de alta un articulo descarta el existente de ESTA fila.
+      fila.idArticulo = null
       this.filaActiva = null
     },
 
@@ -540,7 +594,7 @@ export default {
         const fila = this.producidos[i]
         const n = i + 1
         if (!fila.idBodega) return `Elija la bodega del producido ${n}`
-        if (!fila.idArticulo) return `Elija el artículo del producido ${n}`
+        if (!fila.idArticulo && !fila.articuloNuevo) return `Elija el artículo del producido ${n}`
         const errorCantidad = this.validarCantidad(fila.Cantidad, `La cantidad del producido ${n}`)
         if (errorCantidad) return errorCantidad
       }
@@ -578,12 +632,21 @@ export default {
             idPropietario: fila.BolsaEstado === 'RECIBIDO_DE_TALLER' ? Number(fila.idPropietario) : null,
             Cantidad: this.redondearCantidad(fila.Cantidad)
           })),
-          producidos: this.producidos.map((fila) => ({
-            idArticulo: Number(fila.idArticulo),
-            idBodega: Number(fila.idBodega),
-            Cantidad: this.redondearCantidad(fila.Cantidad),
-            CostoUnitario: this.normalizarCostoUnitario(fila.CostoUnitario)
-          }))
+          producidos: this.producidos.map((fila) => {
+            const linea = {
+              idBodega: Number(fila.idBodega),
+              Cantidad: this.redondearCantidad(fila.Cantidad),
+              CostoUnitario: this.normalizarCostoUnitario(fila.CostoUnitario)
+            }
+            if (fila.articuloNuevo) {
+              // `_producto` es solo para poder reabrir el dialogo: no viaja al backend.
+              const { _producto, ...articuloNuevo } = fila.articuloNuevo
+              linea.ArticuloNuevo = articuloNuevo
+            } else {
+              linea.idArticulo = Number(fila.idArticulo)
+            }
+            return linea
+          })
         })
         // El await es intencional: primero se ve el mensaje, despues se navega.
         await Swal.fire('Éxito', data.msg || 'Orden de producción registrada', 'success')

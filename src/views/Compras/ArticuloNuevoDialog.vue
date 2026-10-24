@@ -72,6 +72,18 @@
           class="mb-2"
         />
 
+        <v-text-field
+          v-model="cantidadGramos"
+          label="Cantidad en gramos (opcional)"
+          type="number"
+          step="0.0001"
+          min="0"
+          suffix="g"
+          :rules="[reglaGramos]"
+          variant="outlined"
+          class="mb-2"
+        />
+
         <div class="d-flex align-center justify-space-between mt-2 mb-2">
           <span class="text-subtitle-2">Propiedades</span>
           <v-btn
@@ -264,6 +276,8 @@ export default {
       productoSeleccionado: null,
       nombre: '',
       descripcion: '',
+      // '' = sin dato; se envia null
+      cantidadGramos: '',
       propiedades: [],
       propiedadesDisponibles: [],
       unidadesMedida: [
@@ -324,12 +338,14 @@ export default {
         this.productoSeleccionado = null
         this.nombre = ''
         this.descripcion = ''
+        this.cantidadGramos = ''
         this.propiedades = []
         return
       }
       this.productoSeleccionado = inicial._producto || null
       this.nombre = inicial.Nombre || ''
       this.descripcion = inicial.Descripcion || ''
+      this.cantidadGramos = inicial.CantidadGramos ?? ''
       this.propiedades = (inicial.Propiedades || []).map((p) => {
         const encontrada = this.propiedadesDisponibles.find((d) => d.Id === p.idPropiedad)
         return {
@@ -426,6 +442,14 @@ export default {
       fila.tipoDato = encontrada ? encontrada.TipoDato : ''
     },
 
+    reglaGramos(v) {
+      if (v === null || v === undefined || String(v).trim() === '') return true
+      const numero = Number(v)
+      if (!Number.isFinite(numero) || numero < 0) return 'Debe ser un número mayor o igual a cero'
+      if (numero >= 10000000000) return 'La cantidad de gramos supera el máximo permitido'
+      return true
+    },
+
     guardar() {
       if (!this.productoSeleccionado) {
         Swal.fire('Atención', 'Seleccione el producto del artículo nuevo', 'warning')
@@ -436,6 +460,14 @@ export default {
         Swal.fire('Atención', 'El nombre del artículo no puede estar vacío', 'warning')
         return
       }
+      const mensajeGramos = this.reglaGramos(this.cantidadGramos)
+      if (mensajeGramos !== true) {
+        Swal.fire('Atención', mensajeGramos, 'warning')
+        return
+      }
+      const cantidadGramos = String(this.cantidadGramos ?? '').trim() === ''
+        ? null
+        : Math.round((Number(this.cantidadGramos) + Number.EPSILON) * 10000) / 10000
 
       const propiedadesEnviar = this.propiedades
         .filter((fila) => fila.idPropiedad && String(fila.valor || '').trim() !== '')
@@ -451,6 +483,7 @@ export default {
         // formulario muestre algo distinto de lo que se va a guardar.
         Nombre: vNombre.toUpperCase(),
         Descripcion: String(this.descripcion || '').trim() || null,
+        CantidadGramos: cantidadGramos,
         Propiedades: propiedadesEnviar,
         // no viaja al backend: es para poder reabrir el dialogo mostrando el producto elegido
         _producto: this.productoSeleccionado

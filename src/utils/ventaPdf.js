@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { lineasParaImpresion } from './lineasImpresion'
+import { codigoImpresionVenta } from './codigoImpresionVenta'
 
 const COLOR_PRIMARIO = [192, 165, 60]
 const COLOR_SECUNDARIO = [46, 46, 56]
@@ -23,6 +24,15 @@ const formatearFecha = (valor) => {
   return fecha.toLocaleDateString('es-CO')
 }
 
+// detCantidadGramos llega como cadena ("3.5000") o null; Number(null) daria 0, por eso se
+// descarta antes de convertir.
+const formatearGramos = (valor) => {
+  if (valor === null || valor === undefined || String(valor).trim() === '') return '-'
+  const numero = Number(valor)
+  if (!Number.isFinite(numero)) return '-'
+  return numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })
+}
+
 const dato = (valor, alternativo = '-') => {
   if (valor === null || valor === undefined || String(valor).trim() === '') return alternativo
   return String(valor)
@@ -30,6 +40,7 @@ const dato = (valor, alternativo = '-') => {
 
 export function generarPdfVenta({ venta, empresa }) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
+  const codigo = codigoImpresionVenta(venta)
   const ventaAnulada = venta.ventaEstado === false ||
     venta.ventaEstado === 0 ||
     venta.ventaEstado === '0'
@@ -78,7 +89,7 @@ export function generarPdfVenta({ venta, empresa }) {
   doc.text('FACTURA DE VENTA', cajaX + 32.5, 22, { align: 'center' })
   doc.setFontSize(10)
   doc.setTextColor(...COLOR_SECUNDARIO)
-  doc.text(`N.º ${dato(venta.ventaId)}`, cajaX + 32.5, 30, { align: 'center' })
+  doc.text(`N.º ${codigo}`, cajaX + 32.5, 30, { align: 'center' })
   doc.setFont('helvetica', 'normal')
   doc.setFontSize(8)
   doc.text(`Fecha: ${formatearFecha(venta.ventaFecha)}`, cajaX + 32.5, 38, { align: 'center' })
@@ -132,13 +143,14 @@ export function generarPdfVenta({ venta, empresa }) {
   autoTable(doc, {
     startY: y + 3,
     margin: { left: margen, right: margen, bottom: 18 },
-    head: [['Artículo', 'Cantidad', 'Precio unitario', 'Total']],
+    head: [['Artículo', 'Gr', 'Cantidad', 'Precio unitario', 'Total']],
     body: lineas.length
       ? lineas.map((linea) => {
           const cantidad = Number(linea.detCantidad) || 0
           const precio = Number(linea.detPrecioVentaUnidad) || 0
           return [
             dato(linea.detArticuloNombre),
+            formatearGramos(linea.detCantidadGramos),
             cantidad.toLocaleString('es-CO', {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2
@@ -147,7 +159,7 @@ export function generarPdfVenta({ venta, empresa }) {
             formatearMoneda(cantidad * precio)
           ]
         })
-      : [['Sin artículos', '-', '-', '-']],
+      : [['Sin artículos', '-', '-', '-', '-']],
     theme: 'grid',
     styles: {
       font: 'helvetica',
@@ -164,9 +176,10 @@ export function generarPdfVenta({ venta, empresa }) {
     alternateRowStyles: { fillColor: [250, 249, 249] },
     columnStyles: {
       0: { cellWidth: 'auto' },
-      1: { cellWidth: 27, halign: 'right' },
-      2: { cellWidth: 38, halign: 'right' },
-      3: { cellWidth: 34, halign: 'right' }
+      1: { cellWidth: 18, halign: 'right' },
+      2: { cellWidth: 24, halign: 'right' },
+      3: { cellWidth: 34, halign: 'right' },
+      4: { cellWidth: 32, halign: 'right' }
     }
   })
 
@@ -215,5 +228,5 @@ export function generarPdfVenta({ venta, empresa }) {
     doc.text(`Página ${pagina} de ${totalPaginas}`, ancho - margen, alto - 8, { align: 'right' })
   }
 
-  doc.save(`factura-venta-${venta.ventaId}.pdf`)
+  doc.save(`factura-venta-${codigo}.pdf`)
 }

@@ -117,6 +117,7 @@
                 <th class="text-center" style="width: 48px"></th>
                 <th class="text-center" style="width: 48px"></th>
                 <th style="min-width: 220px">Artículo</th>
+                <th class="text-end" style="min-width: 80px" title="Cantidad en gramos">Gr</th>
                 <th style="min-width: 110px">Cantidad</th>
                 <th style="min-width: 140px">Precio Und</th>
                 <th class="text-end" style="min-width: 140px">Precio total</th>
@@ -124,7 +125,7 @@
             </thead>
             <tbody>
               <tr v-if="!lineas.length">
-                <td colspan="8" class="text-center py-6 text-medium-emphasis">
+                <td colspan="9" class="text-center py-6 text-medium-emphasis">
                   Agregue al menos una línea
                 </td>
               </tr>
@@ -177,6 +178,7 @@
                     {{ fila.artPropiedades }}
                   </div>
                 </td>
+                <td class="text-end">{{ formatearGramos(fila.artCantidadGramos) }}</td>
                 <td>
                   <v-number-input
                     v-model.number="fila.Cantidad"
@@ -553,15 +555,26 @@ export default {
         idArticulo: null,
         artNombre: '',
         artPropiedades: '',
+        // solo informativo: no viaja al backend
+        artCantidadGramos: null,
         Cantidad: 1,
         PrecioVentaUnidad: 0
       })
+    },
+
+    // artCantidadGramos llega como CADENA con 4 decimales ("5.2370") o null
+    formatearGramos(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return '-'
+      return numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })
     },
 
     limpiarArticulo(fila) {
       fila.idArticulo = null
       fila.artNombre = ''
       fila.artPropiedades = ''
+      fila.artCantidadGramos = null
       fila.PrecioVentaUnidad = 0
     },
 
@@ -585,6 +598,7 @@ export default {
       fila.idArticulo = Number(articulo.artId)
       fila.artNombre = articulo.artNombre
       fila.artPropiedades = articulo.artPropiedades || ''
+      fila.artCantidadGramos = articulo.artCantidadGramos ?? null
       fila.PrecioVentaUnidad = Number(articulo.artPrecio)
       this.filaActiva = null
     },
