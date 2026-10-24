@@ -13,6 +13,11 @@ export default {
     // payload: { idEmpresa, campoOrdenar, orden, pagina, textoFiltro, idTercero, fechaInicio, fechaFin }
     return http.post('/compra/getcomprasactivas', payload)
   },
+  exportarCsv(payload) {
+    // payload: { idEmpresa, fechaInicio, fechaFin } (solo ADMINISTRADOR, fechas obligatorias, rango maximo 94 dias)
+    // Responde un archivo CSV (blob); los errores llegan como JSON dentro del blob.
+    return http.post('/compra/exportarcomprascsv', payload, { responseType: 'blob' })
+  },
   getById(payload) {
     // payload: { idEmpresa, idCompra }
     return http.post('/compra/getidcompra', payload)

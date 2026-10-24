@@ -68,7 +68,7 @@
         />
 
         <v-row dense>
-          <v-col cols="12" sm="6">
+          <v-col cols="12" sm="4">
             <v-text-field
               v-model.number="precioVentaUnitario"
               label="Precio de venta unitario"
@@ -80,7 +80,20 @@
               class="mb-2"
             />
           </v-col>
-          <v-col cols="12" sm="6">
+          <v-col cols="12" sm="4">
+            <v-text-field
+              v-model="cantidadGramos"
+              label="Cantidad en gramos (opcional)"
+              type="number"
+              step="0.0001"
+              min="0"
+              suffix="g"
+              :rules="[reglas.gramos]"
+              variant="outlined"
+              class="mb-2"
+            />
+          </v-col>
+          <v-col cols="12" sm="4">
             <v-select
               v-model="vender"
               :items="opcionesVender"
@@ -232,6 +245,8 @@ export default {
       nombre: '',
       descripcion: '',
       precioVentaUnitario: 0,
+      // '' = sin dato; se envia null
+      cantidadGramos: '',
       vender: true,
       estado: true,
       usuario: '',
@@ -257,7 +272,14 @@ export default {
       ],
 
       reglas: {
-        requerido: (v) => (v !== null && v !== undefined && v !== '') || 'Campo obligatorio'
+        requerido: (v) => (v !== null && v !== undefined && v !== '') || 'Campo obligatorio',
+        gramos: (v) => {
+          if (v === null || v === undefined || String(v).trim() === '') return true
+          const numero = Number(v)
+          if (!Number.isFinite(numero) || numero < 0) return 'Debe ser un número mayor o igual a cero'
+          if (numero >= 10000000000) return 'La cantidad de gramos supera el máximo permitido'
+          return true
+        }
       }
     }
   },
@@ -350,6 +372,10 @@ export default {
         this.nombre = art.artNombre
         this.descripcion = art.artDescripcion
         this.precioVentaUnitario = Number(art.artPrecio)
+        // llega como cadena con 4 decimales ("5.2370") o null
+        this.cantidadGramos = art.artCantidadGramos === null || art.artCantidadGramos === undefined
+          ? ''
+          : String(Number(art.artCantidadGramos))
         this.vender = art.artVender === 1
         this.estado = art.artEstado === 1
         this.usuario = art.artUsuario
@@ -429,6 +455,11 @@ export default {
           Valor: fila.valor
         }))
 
+      // El update es un reemplazo completo: si no se manda, el peso se borra
+      const cantidadGramos = String(this.cantidadGramos ?? '').trim() === ''
+        ? null
+        : Math.round((Number(this.cantidadGramos) + Number.EPSILON) * 10000) / 10000
+
       this.guardando = true
       try {
         if (this.esEdicion) {
@@ -439,6 +470,7 @@ export default {
             Nombre: this.nombre,
             Descripcion: this.descripcion,
             PrecioVentaUnitario: this.precioVentaUnitario,
+            CantidadGramos: cantidadGramos,
             Vender: this.vender,
             Estado: this.estado,
             Propiedades: propiedadesEnviar
@@ -451,6 +483,7 @@ export default {
             Nombre: this.nombre,
             Descripcion: this.descripcion,
             PrecioVentaUnitario: this.precioVentaUnitario,
+            CantidadGramos: cantidadGramos,
             Vender: this.vender,
             Propiedades: propiedadesEnviar
           })

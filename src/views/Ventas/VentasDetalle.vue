@@ -155,6 +155,7 @@
                 <th>Artículo</th>
                 <th>Bodega</th>
                 <th class="text-center">Bolsa</th>
+                <th class="text-end" title="Cantidad en gramos">Gr</th>
                 <th class="text-end">Cantidad</th>
                 <th class="text-end">Precio unidad</th>
                 <th class="text-end">Total</th>
@@ -162,7 +163,7 @@
             </thead>
             <tbody>
               <tr v-if="!lineas.length">
-                <td colspan="6" class="text-center py-6 text-medium-emphasis">
+                <td colspan="7" class="text-center py-6 text-medium-emphasis">
                   Esta venta no tiene artículos
                 </td>
               </tr>
@@ -183,6 +184,7 @@
                     {{ esBolsa(linea) ? 'Sí' : 'No' }}
                   </v-chip>
                 </td>
+                <td class="text-end">{{ formatearGramos(linea.detCantidadGramos) }}</td>
                 <td class="text-end">{{ formatearCantidad(linea.detCantidad) }}</td>
                 <td class="text-end">{{ formatearMoneda(linea.detPrecioVentaUnidad) }}</td>
                 <td class="text-end">
@@ -594,6 +596,15 @@ export default {
       const numero = Number(valor)
       if (!Number.isFinite(numero)) return '-'
       return numero.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    },
+
+    // Llega como cadena con 4 decimales ("3.5000") o null si el articulo no tiene peso;
+    // Number(null) daria 0, por eso null se descarta antes.
+    formatearGramos(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return '-'
+      return numero.toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 4 })
     },
 
     formatearMoneda(valor) {

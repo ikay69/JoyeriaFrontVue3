@@ -9,6 +9,12 @@ export default {
     return http.post('/venta/getallventa', payload)
   },
 
+  exportarCsv(payload) {
+    // payload: { idEmpresa, fechaInicio, fechaFin } (solo ADMINISTRADOR, rango maximo 94 dias)
+    // Responde un archivo CSV (blob); los errores llegan como JSON dentro del blob.
+    return http.post('/venta/exportarventascsv', payload, { responseType: 'blob' })
+  },
+
   getActivas(payload) {
     // Mismo payload que getAll; solo trae ventas con Estado = TRUE
     return http.post('/venta/getactivasventa', payload)

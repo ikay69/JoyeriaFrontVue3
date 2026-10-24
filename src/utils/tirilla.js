@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf'
 import { lineasParaImpresion } from './lineasImpresion'
+import { codigoImpresionVenta } from './codigoImpresionVenta'
 
 const dato = (valor, alternativo = '-') => {
   if (valor === null || valor === undefined || String(valor).trim() === '') return alternativo
@@ -12,6 +13,14 @@ const formatearNumero = (valor) => {
   return numero.toLocaleString('es-CO', { maximumFractionDigits: 2 })
 }
 
+// detCantidadGramos llega como cadena ("3.5000") o null; null no se imprime.
+const textoGramos = (valor) => {
+  if (valor === null || valor === undefined || String(valor).trim() === '') return ''
+  const numero = Number(valor)
+  if (!Number.isFinite(numero)) return ''
+  return `Gr: ${numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })}`
+}
+
 const fechaGeneracion = () => {
   const ahora = new Date()
   const fecha = ahora.toLocaleDateString('es-CO')
@@ -21,11 +30,6 @@ const fechaGeneracion = () => {
     hour12: true
   })
   return `${fecha} ${hora}`
-}
-
-const codigoVenta = (venta) => {
-  const anio = String(venta.ventaFecha || new Date().getFullYear()).slice(0, 4)
-  return `V-${anio}-${String(venta.ventaId ?? '').padStart(4, '0')}`
 }
 
 const estaAnulada = (venta) =>
@@ -44,6 +48,8 @@ const formaPago = (tipo) => ({
 export function dibujarContenidoTirilla(doc, {
   venta,
   empresa,
+  // quien imprime lo genera una vez y lo comparte; si no llega, se genera aqui
+  codigo = codigoImpresionVenta(venta),
   x = 0,
   ancho,
   inicioY = 12,
@@ -80,7 +86,7 @@ export function dibujarContenidoTirilla(doc, {
     doc.setFont('helvetica', 'bold')
     doc.setFontSize(fuente)
     doc.setTextColor(35, 35, 35)
-    doc.text(`CONTINUACIÓN · VENTA ${dato(venta.ventaId)}`, x + ancho / 2, y, { align: 'center' })
+    doc.text(`CONTINUACIÓN · VENTA ${codigo}`, x + ancho / 2, y, { align: 'center' })
     y += altoLinea(fuente) + 1
     dibujarRegla()
   }
@@ -140,7 +146,7 @@ export function dibujarContenidoTirilla(doc, {
   if (telefono) textoCentrado(`Teléfono: ${telefono}`, fuentePequena)
   dibujarRegla()
 
-  textoEnvuelto(`CÓDIGO VENTA: ${codigoVenta(venta)}`, { estilo: 'bold', espacioDespues: 0.5 * escala })
+  textoEnvuelto(`CÓDIGO VENTA: ${codigo}`, { estilo: 'bold', espacioDespues: 0.5 * escala })
   textoEnvuelto(`FECHA GENERACIÓN: ${fechaGeneracion()}`, { tamano: fuentePequena })
   dibujarRegla()
 
@@ -174,7 +180,9 @@ export function dibujarContenidoTirilla(doc, {
     const cantidad = Number(linea.detCantidad) || 0
     const precio = Number(linea.detPrecioVentaUnidad) || 0
     const nombreLineas = envolver(dato(linea.detArticuloNombre), fuenteTabla, 'normal', anchoArticulo - 1)
-    const propiedades = String(linea.detArticuloPropiedades || '').trim()
+    const propiedades = [String(linea.detArticuloPropiedades || '').trim(), textoGramos(linea.detCantidadGramos)]
+      .filter(Boolean)
+      .join(' - ')
     const propiedadLineas = propiedades
       ? envolver(propiedades, fuenteTablaPequena, 'normal', anchoArticulo - 1)
       : []
@@ -266,9 +274,12 @@ export function dibujarContenidoTirilla(doc, {
 
 export function generarTirilla({ venta, empresa, anchoMm = 80 }) {
   const ancho = Number(anchoMm) === 50 ? 50 : 80
+  // El dibujo se hace dos veces (medir y luego imprimir): el mismo codigo en ambas.
+  const codigo = codigoImpresionVenta(venta)
   const opcionesDibujo = {
     venta,
     empresa,
+    codigo,
     x: 0,
     ancho,
     inicioY: 6,
@@ -288,6 +299,6 @@ export function generarTirilla({ venta, empresa, anchoMm = 80 }) {
     format: [ancho, alto]
   })
   dibujarContenidoTirilla(doc, opcionesDibujo)
-  doc.save(`tirilla-venta-${venta.ventaId}-${ancho}mm.pdf`)
+  doc.save(`tirilla-venta-${codigo}-${ancho}mm.pdf`)
 }
 

@@ -156,6 +156,11 @@ const routes = [
         component: () => import('@/views/InformesInventario/Kardex.vue')
       },
       {
+        path: 'informes-inventario/kardex/:EmpId/:MovId/detalle',
+        name: 'KardexDetalle',
+        component: () => import('@/views/InformesInventario/KardexDetalle.vue')
+      },
+      {
         path: 'informes-inventario/existencia-articulo',
         name: 'ExistenciaArticulo',
         component: () => import('@/views/InformesInventario/ExistenciaArticulo.vue')
@@ -169,6 +174,13 @@ const routes = [
         path: 'informes-inventario/ajustes/nuevo',
         name: 'AjusteNuevo',
         component: () => import('@/views/InformesInventario/AjusteForm.vue')
+      },
+
+      // Informes en CSV
+      {
+        path: 'informes',
+        name: 'Informes',
+        component: () => import('@/views/Informes/Informes.vue')
       },
 
       
