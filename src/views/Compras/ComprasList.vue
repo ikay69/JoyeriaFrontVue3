@@ -20,7 +20,7 @@
 
             <v-text-field
               :model-value="terceroSeleccionado ? terceroSeleccionado.Nombre : ''"
-              label="Tercero"
+              label="Proveedor o cliente"
               placeholder="Todos"
               readonly
               density="compact"
@@ -250,9 +250,9 @@ export default {
       },
       opcionesCampoOrdenar: [
         { valor: 1, texto: 'Documento soporte' },
-        { valor: 2, texto: 'Tipo doc. tercero' },
-        { valor: 3, texto: 'N° doc. tercero' },
-        { valor: 4, texto: 'Nombre del tercero' },
+        { valor: 2, texto: 'Tipo doc. Proveedor o cliente' },
+        { valor: 3, texto: 'N° doc. Proveedor o cliente' },
+        { valor: 4, texto: 'Nombre del Proveedor o cliente' },
         { valor: 5, texto: 'Fecha de creación' }
       ],
       opcionesOrden: [

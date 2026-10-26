@@ -70,9 +70,21 @@
           <v-col cols="12" sm="9" class="font-weight-medium">{{ dato(movimiento.movMotivo) }}</v-col>
 
           <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">Documento de origen:</v-col>
-          <v-col cols="12" sm="9" class="font-weight-medium">
+          <v-col cols="12" sm="5" class="font-weight-medium">
             {{ dato(movimiento.movTipoOrigen) }}
             <span v-if="movimiento.movOrigenId" class="text-medium-emphasis">#{{ movimiento.movOrigenId }}</span>
+          </v-col>
+          <v-col cols="12" sm="4" class="text-sm-right">
+            <v-btn
+              variant="tonal"
+              size="small"
+              prepend-icon="mdi-file-document-outline"
+              :disabled="!origenDisponible"
+              :title="origenDisponible ? '' : 'Este movimiento no tiene un documento al que ir'"
+              @click="irAlOrigen"
+            >
+              {{ origen ? origen.etiqueta : 'Ver origen' }}
+            </v-btn>
           </v-col>
 
           <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">Registrado por:</v-col>
@@ -108,6 +120,28 @@ export default {
     },
     idMovimiento() {
       return Number(this.$route.params.MovId)
+    },
+
+    // Destino del boton de origen. VENTA/COMPRA van directo; un AJUSTE depende del motivo.
+    origen() {
+      const mov = this.movimiento
+      if (!mov) return null
+      const venta = { etiqueta: 'Ver venta', ruta: 'VentasDetalle', paramId: 'VentaId' }
+      const compra = { etiqueta: 'Ver compra', ruta: 'CompraDetalle', paramId: 'ComId' }
+      const empeno = { etiqueta: 'Ver empeño', ruta: 'EmpenosDetalle', paramId: 'EmpenoId' }
+
+      if (mov.movTipoOrigen === 'VENTA') return venta
+      if (mov.movTipoOrigen === 'COMPRA') return compra
+      if (mov.movTipoOrigen === 'AJUSTE') {
+        if (mov.movMotivo === 'DEVOLUCION_VENTA') return venta
+        if (mov.movMotivo === 'DEVOLUCION_COMPRA') return compra
+        if (mov.movMotivo === 'EMPENO_DEVOLUCION') return empeno
+      }
+      return null
+    },
+
+    origenDisponible() {
+      return Boolean(this.origen && this.movimiento.movOrigenId)
     }
   },
 
@@ -152,6 +186,18 @@ export default {
       } finally {
         this.cargando = false
       }
+    },
+
+    // La empresa sale de la ruta (la del movimiento), no del selector.
+    irAlOrigen() {
+      if (!this.origenDisponible) return
+      this.$router.push({
+        name: this.origen.ruta,
+        params: {
+          EmpId: this.idEmpresa,
+          [this.origen.paramId]: this.movimiento.movOrigenId
+        }
+      })
     },
 
     volver() {
