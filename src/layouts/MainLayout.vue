@@ -111,7 +111,7 @@
         
         <v-list-item :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Fundir materiales" />
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
-        <v-list-group value="informesEmpenos">
+        <v-list-group value="informesEmpenos"  class="bg-red text-white">
           <template #activator="{ props }">
             <v-list-item
               v-bind="props"
@@ -119,10 +119,10 @@
               title="Inf Empeños"
             />
           </template>
-          <v-list-item :to="{ name: 'Empenos' }" title="Empeños" />
-          <v-list-item :to="{ name: 'EmpenosPagos' }" title="Pagos" />
+          <v-list-item :to="{ name: 'Empenos' }" title="Empeños"  class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'EmpenosPagos' }" title="Pagos"  class="bg-red text-white"/>
         </v-list-group>
-        <v-list-item :to="{ name: 'PagosList' }" prepend-icon="mdi-cash-plus" title="Pagos" />
+        <v-list-item :to="{ name: 'PagosList' }" prepend-icon="mdi-cash-plus" title="Pagos de clientes" />
         <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos"/>
         <v-list-item :to="{ name: 'Informes' }" prepend-icon="mdi-file-chart" title="Informes" />
 
@@ -132,8 +132,8 @@
           </template>
           <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" />
           <v-list-item :to="{ name: 'EstadoCuentaTercero' }" title="Estado de cuenta por tercero" class="bg-red text-white"/>
-          <v-list-item :to="{ name: 'EstadoCuentaPorCobrar' }" title="Estado de cuenta por cobrar" />
-          <v-list-item :to="{ name: 'EstadoCuentaPorPagar' }" title="Estado de cuenta por pagar" />
+          <v-list-item :to="{ name: 'EstadoCuentaPorCobrar' }" title="Estado de cuenta por cobrar" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'EstadoCuentaPorPagar' }" title="Estado de cuenta por pagar" class="bg-red text-white"/>
         </v-list-group>
 
         <v-list-group value="administracion">

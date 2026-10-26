@@ -450,6 +450,10 @@ export default {
         title: '¿Anular esta venta?',
         html:
           '<p style="text-align:left">La anulación marca la venta y guarda el motivo, quién la anuló y cuándo.</p>' +
+          // Sin esto el usuario supone que la caja y el inventario se corrigen solos, y no se corrigen.
+          '<p style="text-align:left">Anular <b>no revierte la caja, el inventario ni los pagos</b>: ' +
+          'si hay que devolver plata o mercancía, se hace a mano con un ajuste de caja, un ajuste de ' +
+          'inventario y la anulación de cada pago. <b>Una venta anulada no se puede reactivar.</b></p>' +
           '<p style="text-align:left">Escriba el motivo (entre 5 y 300 caracteres):</p>',
         input: 'textarea',
         inputAttributes: { maxlength: 300 },

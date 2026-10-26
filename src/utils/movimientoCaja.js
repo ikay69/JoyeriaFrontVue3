@@ -24,7 +24,7 @@ export const ORIGENES = [
   { valor: 'COMPRA', nombre: 'compra', ruta: 'CompraDetalle', paramId: 'ComId' },
   { valor: 'VENTA', nombre: 'venta', ruta: null, paramId: null },
   { valor: 'EMPENO', nombre: 'empeño', ruta: 'EmpenosDetalle', paramId: 'EmpenoId' },
-  { valor: 'GASTO', nombre: 'gasto', ruta: null, paramId: null },
+  { valor: 'GASTO', nombre: 'gasto', ruta: 'GastosDetalle', paramId: 'GasId' },
   { valor: 'ABONO', nombre: 'abono', ruta: null, paramId: null },
   { valor: 'CUOTA_COMPRA', nombre: 'cuota de compra', ruta: 'GastosDetalle', paramId: 'GasId' },
   { valor: 'CUOTA_VENTA', nombre: 'cuota de venta', ruta: null, paramId: null },
