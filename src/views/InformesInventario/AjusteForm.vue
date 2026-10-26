@@ -12,8 +12,9 @@
 
     <v-card class="pa-6 mt-4" elevation="1">
       <v-form ref="form" @submit.prevent="confirmar">
-        <v-row dense class="mb-2">
-          <v-col cols="12" sm="4">
+        <v-row dense class="mb-4">
+          <!-- Columna izquierda: tipo, motivo, estado y propietario. Derecha: bodega y documento. -->
+          <v-col cols="12" sm="6">
             <v-select
               v-model="form.TipoMovimiento"
               :items="opcionesTipoMovimiento"
@@ -24,8 +25,16 @@
               variant="outlined"
               density="comfortable"
             />
-          </v-col>
-          <v-col cols="12" sm="4">
+            <v-select
+              v-model="form.Motivo"
+              :items="opcionesMotivo"
+              item-title="texto"
+              item-value="valor"
+              label="Motivo"
+              :rules="[reglaRequerido]"
+              variant="outlined"
+              density="comfortable"
+            />
             <v-select
               v-model="form.BolsaEstado"
               :items="opcionesBolsaEstado"
@@ -36,8 +45,35 @@
               variant="outlined"
               density="comfortable"
             />
+
+            <div class="mb-1 text-subtitle-2">Propietario</div>
+            <div class="d-flex ga-2">
+              <v-btn
+                icon="mdi-arrow-right"
+                variant="tonal"
+                title="Seleccionar un tercero"
+                @click="dialogTercero = true"
+              />
+              <v-text-field
+                :model-value="textoPropietario"
+                readonly
+                variant="outlined"
+                density="comfortable"
+                hide-details
+                class="flex-grow-1"
+              />
+              <!-- Sin propietario el ajuste queda como "Propio" (idPropietario null): este boton es la
+                   unica forma de volver a ese estado despues de elegir un tercero. -->
+              <v-btn
+                variant="outlined"
+                :disabled="!terceroSeleccionado"
+                @click="marcarPropio"
+              >
+                Propio
+              </v-btn>
+            </div>
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6">
             <v-select
               v-model="form.idBodega"
               :items="bodegas"
@@ -49,35 +85,57 @@
               variant="outlined"
               density="comfortable"
             />
+            <!-- En una devolucion de venta el id sale de la ventanilla, no se teclea. -->
+            <div v-if="esDevolucionVenta" class="d-flex ga-2">
+              <v-btn
+                icon="mdi-arrow-right"
+                variant="tonal"
+                title="Seleccionar una venta"
+                @click="dialogVenta = true"
+              />
+              <v-text-field
+                :model-value="textoVenta"
+                :label="etiquetaOrigen"
+                placeholder="Seleccione una venta"
+                readonly
+                :rules="[() => Boolean(form.idOrigen) || 'Debe seleccionar una venta']"
+                variant="outlined"
+                density="comfortable"
+                class="flex-grow-1"
+              />
+            </div>
+            <!-- Igual para una devolucion de compra. -->
+            <div v-else-if="esDevolucionCompra" class="d-flex ga-2">
+              <v-btn
+                icon="mdi-arrow-right"
+                variant="tonal"
+                title="Seleccionar una compra"
+                @click="dialogCompra = true"
+              />
+              <v-text-field
+                :model-value="textoCompra"
+                :label="etiquetaOrigen"
+                placeholder="Seleccione una compra"
+                readonly
+                :rules="[() => Boolean(form.idOrigen) || 'Debe seleccionar una compra']"
+                variant="outlined"
+                density="comfortable"
+                class="flex-grow-1"
+              />
+            </div>
+            <v-text-field
+              v-else-if="requiereOrigen"
+              v-model="form.idOrigen"
+              :label="etiquetaOrigen"
+              type="number"
+              min="1"
+              step="1"
+              :rules="[reglaRequerido, reglaEnteroPositivo]"
+              variant="outlined"
+              density="comfortable"
+            />
           </v-col>
         </v-row>
-
-        <div class="mb-1 text-subtitle-2">Propietario</div>
-        <div class="d-flex ga-2 mb-4">
-          <v-btn
-            icon="mdi-arrow-right"
-            variant="tonal"
-            title="Seleccionar un tercero"
-            @click="dialogTercero = true"
-          />
-          <v-text-field
-            :model-value="textoPropietario"
-            readonly
-            variant="outlined"
-            density="comfortable"
-            hide-details
-            class="flex-grow-1"
-          />
-          <!-- Sin propietario el ajuste queda como "Propio" (idPropietario null): este boton es la
-               unica forma de volver a ese estado despues de elegir un tercero. -->
-          <v-btn
-            variant="outlined"
-            :disabled="!terceroSeleccionado"
-            @click="marcarPropio"
-          >
-            Propio
-          </v-btn>
-        </div>
 
         <div class="mb-1 text-subtitle-2">Artículo</div>
         <div class="d-flex ga-2 mb-2">
@@ -167,6 +225,18 @@
       @seleccionar="onTerceroSeleccionado"
     />
 
+    <VentasSeleccionarDevolucion
+      v-model="dialogVenta"
+      :id-empresa="idEmpresa"
+      @seleccionar="onVentaSeleccionada"
+    />
+
+    <CompraSeleccionarDevolucion
+      v-model="dialogCompra"
+      :id-empresa="idEmpresa"
+      @seleccionar="onCompraSeleccionada"
+    />
+
     <ArticulosSeleccionar
       v-model="dialogArticulo"
       :id-empresa="idEmpresa"
@@ -180,19 +250,25 @@ import Swal from 'sweetalert2'
 import movimientoService from '@/services/movimientoService'
 import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
+import VentasSeleccionarDevolucion from '@/views/Ventas/VentasSeleccionarDevolucion.vue'
+import CompraSeleccionarDevolucion from '@/views/Compras/CompraSeleccionarDevolucion.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 
 export default {
   name: 'AjusteForm',
 
-  components: { TercerosSeleccionar, ArticulosSeleccionar },
+  components: { TercerosSeleccionar, ArticulosSeleccionar, VentasSeleccionarDevolucion, CompraSeleccionarDevolucion },
 
   data() {
     return {
       guardando: false,
       dialogTercero: false,
       dialogArticulo: false,
+      dialogVenta: false,
+      ventaSeleccionada: null,
+      dialogCompra: false,
+      compraSeleccionada: null,
 
       bodegas: [],
       cargandoBodegas: false,
@@ -202,6 +278,8 @@ export default {
 
       form: {
         TipoMovimiento: 'ENTRADA',
+        Motivo: 'AJUSTE',
+        idOrigen: null,
         BolsaEstado: 'DISPONIBLE',
         idBodega: null,
         Cantidad: 1,
@@ -212,6 +290,12 @@ export default {
       opcionesTipoMovimiento: [
         { valor: 'ENTRADA', texto: 'Entrada' },
         { valor: 'SALIDA', texto: 'Salida' }
+      ],
+      opcionesMotivo: [
+        { valor: 'AJUSTE', texto: 'Ajuste' },
+        { valor: 'DEVOLUCION_VENTA', texto: 'Devolución de venta' },
+        { valor: 'DEVOLUCION_COMPRA', texto: 'Devolución de compra' },
+        { valor: 'EMPENO_DEVOLUCION', texto: 'Devolución de empeño' }
       ],
       // Mismas etiquetas legibles que Existencias.vue, pero sin la opcion "Todas": aqui el estado
       // es un dato del movimiento, no un filtro.
@@ -238,6 +322,46 @@ export default {
     },
     textoPropietario() {
       return this.terceroSeleccionado ? this.terceroSeleccionado.Nombre : 'Propio'
+    },
+    // Solo un AJUSTE puro carece de documento de origen.
+    requiereOrigen() {
+      return this.form.Motivo !== 'AJUSTE'
+    },
+    esDevolucionVenta() {
+      return this.form.Motivo === 'DEVOLUCION_VENTA'
+    },
+    textoVenta() {
+      const venta = this.ventaSeleccionada
+      if (!venta) return ''
+      return venta.ventaTercero ? `#${venta.ventaId} - ${venta.ventaTercero}` : `#${venta.ventaId}`
+    },
+    esDevolucionCompra() {
+      return this.form.Motivo === 'DEVOLUCION_COMPRA'
+    },
+    textoCompra() {
+      const compra = this.compraSeleccionada
+      if (!compra) return ''
+      const documento = compra.compraDocumentoSoporte ? ` - ${compra.compraDocumentoSoporte}` : ''
+      const tercero = compra.compraTercero ? ` - ${compra.compraTercero}` : ''
+      return `#${compra.compraId}${documento}${tercero}`
+    },
+    etiquetaOrigen() {
+      const etiquetas = {
+        DEVOLUCION_VENTA: 'ID de la venta',
+        DEVOLUCION_COMPRA: 'ID de la compra',
+        EMPENO_DEVOLUCION: 'ID del empeño'
+      }
+      return etiquetas[this.form.Motivo] || 'ID del documento'
+    }
+  },
+
+  watch: {
+    // Al volver a AJUSTE el id deja de aplicar: se limpia para no enviar un valor viejo.
+    // Tambien al cambiar entre motivos: un id tecleado o una venta elegida no valen para otro motivo.
+    'form.Motivo'() {
+      this.form.idOrigen = null
+      this.ventaSeleccionada = null
+      this.compraSeleccionada = null
     }
   },
 
@@ -255,6 +379,12 @@ export default {
     reglaMayorQueCero(valor) {
       const numero = Number(valor)
       if (Number.isNaN(numero) || numero <= 0) return 'Debe ser mayor que cero'
+      return true
+    },
+
+    reglaEnteroPositivo(valor) {
+      const numero = Number(valor)
+      if (!Number.isInteger(numero) || numero <= 0) return 'Debe ser un entero mayor a cero'
       return true
     },
 
@@ -284,6 +414,16 @@ export default {
 
     marcarPropio() {
       this.terceroSeleccionado = null
+    },
+
+    onVentaSeleccionada(venta) {
+      this.ventaSeleccionada = venta
+      this.form.idOrigen = venta.ventaId
+    },
+
+    onCompraSeleccionada(compra) {
+      this.compraSeleccionada = compra
+      this.form.idOrigen = compra.compraId
     },
 
     onArticuloSeleccionado(art) {
@@ -316,6 +456,8 @@ export default {
         idBodega: this.form.idBodega,
         idArticulo: this.articuloSeleccionado.artId,
         TipoMovimiento: this.form.TipoMovimiento,
+        Motivo: this.form.Motivo,
+        idOrigen: this.requiereOrigen ? Number(this.form.idOrigen) : null,
         BolsaEstado: this.form.BolsaEstado,
         idPropietario: this.terceroSeleccionado ? this.terceroSeleccionado.Id : null,
         Cantidad: Number(this.form.Cantidad),

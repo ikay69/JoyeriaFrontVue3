@@ -63,6 +63,48 @@
         />
       </div>
 
+      <v-row v-show="usaFiltrosExistencias" dense class="mt-2">
+        <v-col cols="12">
+          <v-text-field
+            v-model="filtrosExistencias.textoFiltro"
+            label="Buscar (nombre o SKU)"
+            :disabled="!usaFiltrosExistencias"
+            maxlength="150"
+            clearable
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-select
+            v-model="filtrosExistencias.idBodega"
+            :items="bodegas"
+            item-title="Nombre"
+            item-value="Id"
+            label="Bodega"
+            :loading="cargandoBodegas"
+            :disabled="!usaFiltrosExistencias"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="6">
+          <v-select
+            v-model="filtrosExistencias.BolsaEstado"
+            :items="opcionesBolsaEstado"
+            item-title="texto"
+            item-value="valor"
+            label="Estado"
+            :disabled="!usaFiltrosExistencias"
+            variant="outlined"
+            density="compact"
+            hide-details
+          />
+        </v-col>
+      </v-row>
+
       <div v-if="informeActual?.usaFechas" class="text-caption text-medium-emphasis mt-2">
         El rango de fechas es obligatorio y no puede superar los 94 días.
       </div>
@@ -100,6 +142,8 @@ import gastosService from '@/services/gastosService'
 import compraService from '@/services/compraService'
 import movimientoCajaService from '@/services/movimientoCajaService'
 import movimientoService from '@/services/movimientoService'
+import existenciaService from '@/services/existenciaService'
+import bodegaService from '@/services/bodegaService'
 import { useAuthStore } from '@/stores/auth'
 import { descargarCsv } from '@/utils/descargarCsv'
 import ProductosSeleccionar from '@/views/Inventario/Productos/ProductosSeleccionar.vue'
@@ -131,7 +175,15 @@ const INFORMES = [
       ventasService.exportarCsv({ idEmpresa, fechaInicio, fechaFin }),
     nombreArchivo: ({ fechaInicio, fechaFin }) => `ventas_${fechaInicio}_${fechaFin}.csv`
   },
-  { valor: 'VENTAARTICULOS', texto: 'Ventas artículos', usaFechas: true, usaProducto: false, descargar: null },
+  {
+    valor: 'VENTAARTICULOS',
+    texto: 'Ventas artículos',
+    usaFechas: true,
+    usaProducto: false,
+    descargar: ({ idEmpresa, fechaInicio, fechaFin }) =>
+      ventasService.exportarArticulosCsv({ idEmpresa, fechaInicio, fechaFin }),
+    nombreArchivo: ({ fechaInicio, fechaFin }) => `ventas_articulos_${fechaInicio}_${fechaFin}.csv`
+  },
   {
     valor: 'COMPRAS',
     texto: 'Compras',
@@ -141,7 +193,15 @@ const INFORMES = [
       compraService.exportarCsv({ idEmpresa, fechaInicio, fechaFin }),
     nombreArchivo: ({ fechaInicio, fechaFin }) => `compras_${fechaInicio}_${fechaFin}.csv`
   },
-  { valor: 'COMPRAS_ARTICULOS', texto: 'Compras artículos', usaFechas: true, usaProducto: false, descargar: null },
+  {
+    valor: 'COMPRAS_ARTICULOS',
+    texto: 'Compras artículos',
+    usaFechas: true,
+    usaProducto: false,
+    descargar: ({ idEmpresa, fechaInicio, fechaFin }) =>
+      compraService.exportarArticulosCsv({ idEmpresa, fechaInicio, fechaFin }),
+    nombreArchivo: ({ fechaInicio, fechaFin }) => `compras_articulos_${fechaInicio}_${fechaFin}.csv`
+  },
   { valor: 'EMPENOS', texto: 'Empeños', usaFechas: true, usaProducto: false, descargar: null },
   { valor: 'EMPENOSARTICULOS', texto: 'Empeños artículos', usaFechas: true, usaProducto: false, descargar: null },
   {
@@ -180,7 +240,16 @@ const INFORMES = [
       movimientoService.exportarCsv({ idEmpresa, fechaInicio, fechaFin }),
     nombreArchivo: ({ fechaInicio, fechaFin }) => `movimientos_${fechaInicio}_${fechaFin}.csv`
   },
-  { valor: 'EXISTENCIAS', texto: 'Existencias', usaFechas: false, usaProducto: false, descargar: null },
+  {
+    valor: 'EXISTENCIAS',
+    texto: 'Existencias',
+    usaFechas: false,
+    usaProducto: false,
+    usaFiltrosExistencias: true,
+    descargar: (parametros) => existenciaService.exportarCsv(parametros),
+    nombreArchivo: () => `existencias_${aFechaIso(new Date())}.csv`
+  },
+  { valor: 'KARDEXARTICULO', texto: 'Kardex por artículo', usaFechas: false, usaProducto: false, descargar: null },
   { valor: 'KARDESPRODUCTO', texto: 'Kardex por producto', usaFechas: false, usaProducto: true, descargar: null }
 ]
 
@@ -198,7 +267,25 @@ export default {
       productoSeleccionado: null,
       dialogProducto: false,
       descargando: false,
-      opcionesInforme: INFORMES
+      opcionesInforme: INFORMES,
+
+      bodegas: [{ Id: 0, Nombre: 'Todas' }],
+      cargandoBodegas: false,
+      bodegasCargadas: false,
+      filtrosExistencias: {
+        textoFiltro: '',
+        idBodega: 0,
+        BolsaEstado: ''
+      },
+      opcionesBolsaEstado: [
+        { valor: '', texto: 'Todas' },
+        { valor: 'DISPONIBLE', texto: 'Disponible' },
+        { valor: 'RESERVADO', texto: 'Reservado' },
+        { valor: 'PRESTADO_A_TALLER', texto: 'Prestado a taller' },
+        { valor: 'RECIBIDO_DE_TALLER', texto: 'Recibido de taller' },
+        { valor: 'EN_GARANTIA_EMPENO', texto: 'En garantía/empeño' },
+        { valor: 'EN_REPARACION', texto: 'En reparación' }
+      ]
     }
   },
 
@@ -214,16 +301,42 @@ export default {
     },
     informeActual() {
       return INFORMES.find((informe) => informe.valor === this.tipoInforme) || null
+    },
+    usaFiltrosExistencias() {
+      return !!this.informeActual?.usaFiltrosExistencias
     }
   },
 
   watch: {
     idEmpresa() {
       this.productoSeleccionado = null
+      // Las bodegas son de la empresa: se vuelven a pedir la proxima vez que se usen
+      this.bodegas = [{ Id: 0, Nombre: 'Todas' }]
+      this.filtrosExistencias.idBodega = 0
+      this.bodegasCargadas = false
+      if (this.usaFiltrosExistencias) this.cargarBodegas()
+    },
+    usaFiltrosExistencias(usa) {
+      if (usa && !this.bodegasCargadas) this.cargarBodegas()
     }
   },
 
   methods: {
+    async cargarBodegas() {
+      if (!this.idEmpresa) return
+      this.cargandoBodegas = true
+      try {
+        const { data } = await bodegaService.getActivas({ idEmpresa: this.idEmpresa })
+        this.bodegas = [{ Id: 0, Nombre: 'Todas' }, ...(data.data || [])]
+        this.bodegasCargadas = true
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudo cargar la lista de bodegas'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.cargandoBodegas = false
+      }
+    },
+
     propsOpcion(informe) {
       return { disabled: !informe.descargar }
     },
@@ -275,6 +388,12 @@ export default {
           return
         }
         parametros.idProducto = Number(this.productoSeleccionado.proId)
+      }
+
+      if (informe.usaFiltrosExistencias) {
+        parametros.textoFiltro = this.filtrosExistencias.textoFiltro || ''
+        parametros.BolsaEstado = this.filtrosExistencias.BolsaEstado || ''
+        parametros.idBodega = this.filtrosExistencias.idBodega || 0
       }
 
       this.descargando = true
