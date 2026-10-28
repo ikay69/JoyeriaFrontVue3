@@ -236,7 +236,7 @@
               <th class="text-end">Valor</th>
               <th>Fecha de pago</th>
               <th class="text-center">Estado</th>
-              <th v-if="esActiva" class="text-center" style="width: 100px">Acciones</th>
+              <th v-if="esActiva" class="text-center" style="width: 120px">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -251,14 +251,14 @@
               <td>{{ cuota.cuoFechaPago ? formatearFecha(cuota.cuoFechaPago) : '-' }}</td>
               <td class="text-center">
                 <v-chip
-                  :color="cuota.cuoEstado === 'CANCELADA' ? 'success' : 'grey'"
+                  :color="cuota.cuoEstado === 'PAGADA' ? 'success' : 'grey'"
                   size="small"
                   variant="tonal"
                 >
                   {{ etiquetaEstadoCuota(cuota.cuoEstado) }}
                 </v-chip>
               </td>
-              <td v-if="esActiva" class="text-center">
+              <td v-if="esActiva" class="text-center text-no-wrap">
                 <v-btn
                   icon="mdi-pencil" size="small" variant="text"
                   title="Editar esta cuota" @click="abrirCuotaEdicion(cuota)"
@@ -551,10 +551,9 @@ export default {
       guardandoEstadoInventario: false,
 
       formCredito: { NumeroCuotas: null, ValorCuota: null },
-      // 'CANCELADA' significa PAGADA. Al backend viajan los valores del contrato; el usuario lee
       opcionesEstadoCuota: [
         { valor: 'PENDIENTE', texto: 'Pendiente' },
-        { valor: 'CANCELADA', texto: 'Pagada' }
+        { valor: 'PAGADA', texto: 'Pagada' }
       ],
 
       opcionesEstadoPago:[
@@ -709,7 +708,7 @@ export default {
 
     
     etiquetaEstadoCuota(estado) {
-      return estado === 'CANCELADA' ? 'Pagada' : 'Pendiente'
+      return estado === 'PAGADA' ? 'Pagada' : 'Pendiente'
     },
 
     // El backend manda '2026-10-15T00:00:00.000Z' y el input type="date" necesita 'YYYY-MM-DD'.

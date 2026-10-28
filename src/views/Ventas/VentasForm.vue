@@ -116,7 +116,14 @@
                 <th style="min-width: 160px">Bodega</th>
                 <th class="text-center" style="width: 48px"></th>
                 <th class="text-center" style="width: 48px"></th>
-                <th style="min-width: 220px">Artículo</th>
+                <th
+                  style="min-width: 220px; cursor: pointer; user-select: none"
+                  title="Ordenar por nombre"
+                  @click="ordenarPorNombre"
+                >
+                  Artículo
+                  <v-icon size="small">{{ iconoOrdenNombre }}</v-icon>
+                </th>
                 <th class="text-end" style="min-width: 80px" title="Cantidad en gramos">Gr</th>
                 <th style="min-width: 110px">Cantidad</th>
                 <th style="min-width: 140px">Precio Und</th>
@@ -378,6 +385,7 @@ export default {
       bodegas: [],
       vendedores: [],
       lineas: [],
+      ordenNombre: null,
       cargandoBodegas: false,
       cargandoVendedores: false,
       guardando: false
@@ -418,6 +426,11 @@ export default {
           (Number(this.transaccion) || 0)
       )
     },
+    iconoOrdenNombre() {
+      if (this.ordenNombre === 'asc') return 'mdi-arrow-up'
+      if (this.ordenNombre === 'desc') return 'mdi-arrow-down'
+      return 'mdi-swap-vertical'
+    },
     bodegaArticuloActiva() {
       if (this.filaActiva === null) return null
       return this.lineas[this.filaActiva]?.idBodega ?? null
@@ -440,6 +453,19 @@ export default {
   },
 
   methods: {
+    // Reordena las lineas en el arreglo mismo para que los indices de las acciones sigan validos.
+    // Las lineas sin articulo quedan siempre al final.
+    ordenarPorNombre() {
+      this.ordenNombre = this.ordenNombre === 'asc' ? 'desc' : 'asc'
+      const signo = this.ordenNombre === 'asc' ? 1 : -1
+      this.lineas.sort((a, b) => {
+        if (!a.artNombre && !b.artNombre) return 0
+        if (!a.artNombre) return 1
+        if (!b.artNombre) return -1
+        return signo * a.artNombre.localeCompare(b.artNombre, 'es', { sensitivity: 'base' })
+      })
+    },
+
     redondear(valor) {
       return Math.round((Number(valor) || 0) * 100) / 100
     },

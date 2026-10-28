@@ -21,5 +21,11 @@ export default {
     //             valor con RECIBIDO_DE_TALLER; con DISPONIBLE viaja null.
     // producidos: { idArticulo, idBodega, Cantidad,CostoUnitario } — sin BolsaEstado ni propietario.
     return http.post('/produccion/nuevaorden', payload)
+  },
+  updateObservacion(payload) {
+    // payload: { idEmpresa, idOrden, Observaciones }
+    // Es PUT. Observaciones es obligatoria (no se puede dejar vacia), maximo 300 caracteres despues
+    // de recortar. Admin y vendedor: es la unica ruta de produccion que el vendedor puede llamar.
+    return http.put('/produccion/updateobservacionorden', payload)
   }
 }

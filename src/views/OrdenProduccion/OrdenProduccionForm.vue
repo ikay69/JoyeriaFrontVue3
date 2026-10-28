@@ -161,7 +161,19 @@
 
         <!-- ===================== PRODUCIDOS ===================== -->
         <div class="d-flex align-center justify-space-between mb-2">
-          <span class="text-subtitle-2">Artículos producidos</span>
+          <div class="d-flex align-center ga-2">
+            <span class="text-subtitle-2">Artículos producidos</span>
+            <!-- Crear un producto es solo de ADMINISTRADOR: a un vendedor el backend le responde 401. -->
+            <v-btn
+              v-if="esAdministrador"
+              size="small"
+              variant="tonal"
+              prepend-icon="mdi-plus"
+              @click="dialogProductoNuevo = true"
+            >
+              Nuevo Producto
+            </v-btn>
+          </div>
           <span class="text-caption text-medium-emphasis">{{ producidos.length }} / 200</span>
         </div>
 
@@ -323,6 +335,11 @@
       :valor-inicial="articuloNuevoInicial"
       @guardar="onArticuloNuevoGuardado"
     />
+
+    <ProductoNuevoDialog
+      v-model="dialogProductoNuevo"
+      :id-empresa="idEmpresa"
+    />
   </v-container>
 </template>
 
@@ -334,12 +351,13 @@ import { useCatalogosStore } from '@/stores/catalogos'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticulosProduccion from '@/views/Inventario/Articulos/ArticulosProduccion.vue'
 import TalleresSeleccionar from '@/views/Talleres/TalleresSeleccionar.vue'
-import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
+import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
+import ProductoNuevoDialog from '@/views/Inventario/Productos/ProductoNuevoDialog.vue'
 
 export default {
   name: 'OrdenProduccionForm',
 
-  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar, ArticuloNuevoDialog },
+  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
 
   data() {
     return {
@@ -352,6 +370,7 @@ export default {
       dialogArticuloProduccion: false,
       dialogTercero: false,
       dialogArticuloNuevo: false,
+      dialogProductoNuevo: false,
       // { tabla: 'consumos' | 'producidos', indice: n } o null. La tabla hace falta porque hay
       // dos y el indice por si solo es ambiguo.
       filaActiva: null,
@@ -373,6 +392,9 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    esAdministrador() {
+      return this.authStore.rol === 'ADMINISTRADOR'
     },
     idBodegaConsumoActiva() {
       if (this.filaActiva?.tabla !== 'consumos') return null

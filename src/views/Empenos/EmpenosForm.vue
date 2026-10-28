@@ -326,7 +326,7 @@ import empenoService from '@/services/empenoService'
 import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
-import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
+import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 

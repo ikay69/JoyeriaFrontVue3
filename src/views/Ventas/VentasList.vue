@@ -130,6 +130,7 @@
               <th class="text-right">Saldo</th>
               <th>Vendedor</th>
               <th>Estado de pago</th>
+              <th>Último pago</th>
               <th>Estado de inventario</th>
               <th>Venta</th>
               <th class="text-center">Detalle</th>
@@ -154,6 +155,8 @@
               <td class="text-right">{{ formatearMoneda(ven.ventaSaldo) }}</td>
               <td>{{ ven.ventaVendedor }}</td>
               <td>{{ ven.ventaEstadoPago || '-' }}</td>
+              <!-- null si la venta no tiene pagos (o es anterior al 2026-10-27) -->
+              <td>{{ ven.ventaFechaUltimoPago ? formatearFecha(ven.ventaFechaUltimoPago) : '-' }}</td>
               <td>{{ ven.ventaEstadoInventario || '-' }}</td>
               <td>
                 <v-chip :color="Number(ven.ventaEstado) === 1 ? 'success' : 'error'" size="small" variant="tonal">
@@ -394,12 +397,11 @@ export default {
 
     formatearFecha(fecha) {
       if (!fecha) return ''
-      return new Date(fecha).toLocaleString('es-CO', {
+      // Solo la fecha: la hora se ve en el detalle de la venta.
+      return new Date(fecha).toLocaleDateString('es-CO', {
         day: '2-digit',
         month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+        year: 'numeric'
       })
     },
 

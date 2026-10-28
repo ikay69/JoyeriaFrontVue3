@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { AVISO_VALIDAR_DOCUMENTO } from './avisoDocumento'
 
 const dato = (valor, alternativo = '-') => {
   if (valor === null || valor === undefined || String(valor).trim() === '') return alternativo
@@ -128,6 +129,8 @@ function dibujarContenidoTirillaPago(doc, { pago, empresa, x, ancho, inicioY, co
 
   dibujarRegla()
   centrado('¡Gracias por su pago!', fuente, 'bold')
+  dibujarRegla()
+  centrado(AVISO_VALIDAR_DOCUMENTO, fuentePequena, 'bold')
   dibujarRegla()
 
   // Copia del cliente: espacio para la firma de conformidad
