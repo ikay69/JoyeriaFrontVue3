@@ -5,7 +5,7 @@
       <div class="flex-grow-1">
         <h1 class="text-h5">Orden de producción {{ orden ? '#' + orden.ordId : '' }}</h1>
         <p class="text-body-2 text-medium-emphasis mb-0">
-          Una orden de producción no se edita ni se anula: solo se consulta.
+          Una orden de producción no se anula ni se modifica: solo se puede editar su observación.
         </p>
       </div>
     </div>
@@ -22,11 +22,31 @@
             <div class="text-caption text-medium-emphasis">Fecha</div>
             <div>{{ formatearFechaHora(orden.ordFecha) }}</div>
           </v-col>
-          <v-col cols="12" sm="8">
-            <div class="text-caption text-medium-emphasis">Observaciones</div>
-            <div>{{ orden.ordObservaciones || '-' }}</div>
-          </v-col>
         </v-row>
+
+        <v-textarea
+          v-model="observaciones"
+          label="Observaciones"
+          maxlength="300"
+          counter="300"
+          rows="3"
+          auto-grow
+          :rules="[reglaObservaciones]"
+          variant="outlined"
+          density="comfortable"
+          class="mt-3"
+        />
+        <div class="d-flex justify-end">
+          <v-btn
+            color="primary"
+            prepend-icon="mdi-content-save"
+            :loading="actualizando"
+            :disabled="!puedeActualizar"
+            @click="actualizarObservacion"
+          >
+            Actualizar observación
+          </v-btn>
+        </div>
       </v-card>
 
       <!--
@@ -104,7 +124,9 @@ export default {
   data() {
     return {
       orden: null,
-      cargando: false
+      cargando: false,
+      observaciones: '',
+      actualizando: false
     }
   },
 
@@ -118,6 +140,12 @@ export default {
 
     idOrden() {
       return Number(this.$route.params.OrdId)
+    },
+
+    // El backend rechaza la observacion vacia, asi que el boton espera texto y un cambio real.
+    puedeActualizar() {
+      const texto = this.observaciones.trim()
+      return texto !== '' && texto.length <= 300 && texto !== (this.orden?.ordObservaciones || '')
     },
 
     movimientos() {
@@ -163,12 +191,46 @@ export default {
           idOrden: this.idOrden
         })
         this.orden = data.data || null
+        this.observaciones = this.orden?.ordObservaciones || ''
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la orden de producción'
         await Swal.fire('Error', mensaje, 'error')
         this.$router.back()
       } finally {
         this.cargando = false
+      }
+    },
+
+    reglaObservaciones(valor) {
+      const texto = String(valor || '').trim()
+      if (!texto) return 'Las observaciones son obligatorias'
+      if (texto.length > 300) return 'Máximo 300 caracteres'
+      return true
+    },
+
+    async actualizarObservacion() {
+      if (this.actualizando || !this.puedeActualizar) return
+
+      const texto = this.observaciones.trim()
+      this.actualizando = true
+      try {
+        const { data } = await produccionService.updateObservacion({
+          idEmpresa: this.idEmpresa,
+          idOrden: this.idOrden,
+          Observaciones: texto
+        })
+        // La ruta no devuelve la orden: se actualiza el estado local, sin otra llamada.
+        this.orden.ordObservaciones = texto
+        this.observaciones = texto
+        await Swal.fire('Éxito', data.msg || 'Observaciones actualizadas', 'success')
+      } catch (error) {
+        // idOrden mal formado llega con la forma de express-validator: errors[0].msg
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo actualizar la observación'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.actualizando = false
       }
     },
 

@@ -30,24 +30,17 @@
         </div>
 
         <v-row dense class="mb-2">
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6">
             <v-text-field
               label="Tipo de producto"
               :model-value="productoSeleccionado ? productoSeleccionado.TipoProductoNombre : ''"
               readonly variant="outlined" density="comfortable" hide-details
             />
           </v-col>
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="6">
             <v-text-field
               label="Categoría"
               :model-value="productoSeleccionado ? productoSeleccionado.CategoriaNombre : ''"
-              readonly variant="outlined" density="comfortable" hide-details
-            />
-          </v-col>
-          <v-col cols="12" sm="4">
-            <v-text-field
-              label="Unidad medida"
-              :model-value="productoSeleccionado ? productoSeleccionado.UnidadMedidaNombre : ''"
               readonly variant="outlined" density="comfortable" hide-details
             />
           </v-col>
@@ -208,17 +201,16 @@
               <th>Nombre</th>
               <th>Tipo de producto</th>
               <th>Categoría</th>
-              <th>Unidad de medida</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="cargandoProductos">
-              <td colspan="5" class="text-center py-6">
+              <td colspan="4" class="text-center py-6">
                 <v-progress-circular indeterminate color="primary" />
               </td>
             </tr>
             <tr v-else-if="!productos.length">
-              <td colspan="5" class="text-center py-6 text-medium-emphasis">
+              <td colspan="4" class="text-center py-6 text-medium-emphasis">
                 No hay productos para mostrar
               </td>
             </tr>
@@ -232,7 +224,6 @@
               <td>{{ prod.proNombre }}</td>
               <td>{{ prod.TipoProductoNombre }}</td>
               <td>{{ prod.CategoriaNombre }}</td>
-              <td>{{ prod.UnidadMedidaNombre }}</td>
             </tr>
           </tbody>
         </v-table>
@@ -418,8 +409,7 @@ export default {
         proId: prod.proId,
         proNombre: prod.proNombre,
         TipoProductoNombre: prod.TipoProductoNombre,
-        CategoriaNombre: prod.CategoriaNombre,
-        UnidadMedidaNombre: prod.UnidadMedidaNombre
+        CategoriaNombre: prod.CategoriaNombre
       }
       this.dialogProducto = false
     },

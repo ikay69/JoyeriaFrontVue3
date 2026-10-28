@@ -18,7 +18,7 @@ const formatearFecha = (valor) => {
   return String(valor).slice(0, 10)
 }
 
-const etiquetaEstadoCuota = (estado) => (estado === 'CANCELADA' ? 'Pagada' : 'Pendiente')
+const etiquetaEstadoCuota = (estado) => (estado === 'PAGADA' ? 'Pagada' : 'Pendiente')
 
 const MARGEN_SUPERIOR = 18
 const MARGEN_INFERIOR = 20

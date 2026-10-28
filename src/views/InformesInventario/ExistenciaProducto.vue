@@ -94,36 +94,41 @@
               <th>Existencia</th>
               <th>Propietario</th>
               <th>Cantidad</th>
+              <th class="columna-gramos">Gramos und</th>
               <th class="columna-monto">Costo und</th>
               <th class="columna-monto">Costo total</th>
               <th class="columna-monto">Precio</th>
               <th class="columna-monto">Precio total</th>
-              <th class="columna-monto">Diff</th>
+              <th class="columna-monto">Utilidad</th>
               <th>Propiedades</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="cargando">
-              <td colspan="12" class="text-center py-6">
+              <td colspan="15" class="text-center py-6">
                 <v-progress-circular indeterminate color="primary" />
               </td>
             </tr>
             <tr v-else-if="!productoSeleccionado">
-              <td colspan="12" class="text-center py-6 text-medium-emphasis">
+              <td colspan="15" class="text-center py-6 text-medium-emphasis">
                 Seleccione un producto para ver sus existencias
               </td>
             </tr>
             <tr v-else-if="!existencias.length">
-              <td colspan="12" class="text-center py-6 text-medium-emphasis">
+              <td colspan="15" class="text-center py-6 text-medium-emphasis">
                 Este producto no tiene existencias
               </td>
             </tr>
-            <tr v-for="(ex, i) in existencias" :key="i">
-              <td>{{ ex.artSKU || '-' }}</td>
-              <td>{{ ex.artNombre || '-' }}</td>
-              
-              <td>{{ textoSiNo(ex.artVender) }}</td>
-              <td>{{ textoEstadoArticulo(ex.artEstado) }}</td>
+            <tr
+              v-for="(ex, i) in existencias"
+              :key="i"
+              :class="{ 'fila-perdida': utilidad(ex) < 0 }"
+            >
+              <td>{{ ex.existSKU || '-' }}</td>
+              <td>{{ ex.existArticuloNombre || '-' }}</td>
+
+              <td>{{ textoSiNo(ex.existVender) }}</td>
+              <td>{{ textoEstadoArticulo(ex.existArticuloEstado) }}</td>
               <td>{{ ex.existBodegaNombre || '-' }}</td>
               <td>{{ formatearBolsa(ex.existBolsa) }}</td>
               <td>
@@ -133,12 +138,13 @@
                 </div>
               </td>
               <td>{{ ex.existCantidad }}</td>
+              <td class="columna-gramos">{{ formatearGramos(ex.existCantGramos) }}</td>
               <td class="columna-monto">{{ formatearMoneda(ex.existCosto) }}</td>
               <td class="columna-monto">{{ formatearMoneda(ex.existCosto * ex.existCantidad) }}</td>
-              <td class="columna-monto">{{ formatearMoneda(ex.artPrecio) }}</td>
-              <td class="columna-monto">{{ formatearMoneda(ex.artPrecio *  ex.existCantidad) }}</td>
-              <td class="columna-monto">{{ formatearMoneda((ex.artPrecio *  ex.existCantidad) - (ex.existCosto * ex.existCantidad)) }}</td>
-              <td>{{ ex.artPropiedades || '-' }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existPrecio) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existPrecio *  ex.existCantidad) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(utilidad(ex)) }}</td>
+              <td>{{ ex.existPropiedades || '-' }}</td>
             </tr>
           </tbody>
         </v-table>
@@ -201,7 +207,7 @@ export default {
             total + this.numeroSeguro(ex.existCosto) * this.numeroSeguro(ex.existCantidad), 0
           ),
           precio: existenciasEstado.reduce((total, ex) =>
-            total + this.numeroSeguro(ex.artPrecio) * this.numeroSeguro(ex.existCantidad), 0
+            total + this.numeroSeguro(ex.existPrecio) * this.numeroSeguro(ex.existCantidad), 0
           )
         }
       })
@@ -238,7 +244,10 @@ export default {
         })
         this.existencias = data.data || []
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudieron consultar las existencias del producto'
+        // idProducto mal formado llega con la forma de express-validator: errors[0].msg
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudieron consultar las existencias del producto'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargando = false
@@ -264,6 +273,19 @@ export default {
       if (['1', 'TRUE', 'ACTIVO'].includes(normalizado)) return 'Activo'
       if (['0', 'FALSE', 'INACTIVO'].includes(normalizado)) return 'Inactivo'
       return String(valor)
+    },
+
+    // existCantGramos son los gramos de UNA unidad del articulo; null si no tiene registrados.
+    formatearGramos(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return '-'
+      return `${numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })} g`
+    },
+
+    // Precio total menos costo total de la bolsa. Una fila con utilidad negativa se pinta de rojo.
+    utilidad(ex) {
+      return (ex.existPrecio * ex.existCantidad) - (ex.existCosto * ex.existCantidad)
     },
 
     numeroSeguro(valor) {
@@ -300,6 +322,11 @@ export default {
   border-bottom: none;
 }
 
+.tabla-listado :deep(.columna-gramos) {
+  white-space: nowrap;
+  text-align: right;
+}
+
 .tabla-listado :deep(.columna-monto) {
   min-width: 160px;
   white-space: nowrap;
@@ -314,7 +341,21 @@ export default {
   border-top-right-radius: 4px;
 }
 
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr.fila-perdida > td) {
+  background-color: #ffebee;
+  border-top: 1px solid #ef9a9a;
+  border-bottom: 1px solid #ef9a9a;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr.fila-perdida > td:first-child) {
+  border-left: 4px solid #d32f2f;
+}
+
 .tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
   background-color: rgba(var(--v-theme-primary), 0.06);
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr.fila-perdida:hover > td) {
+  background-color: #ffebee;
 }
 </style>

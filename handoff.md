@@ -359,7 +359,7 @@ Las pendientes están marcadas **en rojo en el menú** (`class="bg-red text-whit
 | `src/views/Compras/ComprasList.vue` | grid con filtros completos, lápiz al detalle e impresora |
 | `src/views/Compras/CompraForm.vue` | **sólo alta** (~890 líneas, el archivo más grande del proyecto) |
 | `src/views/Compras/CompraDetalle.vue` | detalle de lectura, anulación y CRUD de cuotas |
-| `src/views/Compras/ArticuloNuevoDialog.vue` | alta de artículo embebida en una línea |
+| `src/views/Inventario/Articulos/ArticuloNuevoDialog.vue` | alta de artículo embebida en una línea |
 | `src/stores/catalogos.js` | **segundo store del proyecto**: caché de bodegas y propiedades por empresa |
 | `src/utils/compraPdf.js` | comprobante en PDF (jsPDF + jspdf-autotable) |
 
