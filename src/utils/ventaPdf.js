@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { lineasParaImpresion } from './lineasImpresion'
 import { codigoImpresionVenta } from './codigoImpresionVenta'
+import { AVISO_VALIDAR_DOCUMENTO } from './avisoDocumento'
 
 const COLOR_PRIMARIO = [192, 165, 60]
 const COLOR_SECUNDARIO = [46, 46, 56]
@@ -22,6 +23,15 @@ const formatearFecha = (valor) => {
   const fecha = new Date(valor)
   if (Number.isNaN(fecha.getTime())) return String(valor).slice(0, 10)
   return fecha.toLocaleDateString('es-CO')
+}
+
+// ventaFechaUltimoPago es fecha y hora, o null si la venta no tiene pagos (o es anterior al
+// 2026-10-27).
+const formatearFechaHora = (valor) => {
+  if (!valor) return '-'
+  const fecha = new Date(valor)
+  if (Number.isNaN(fecha.getTime())) return String(valor).slice(0, 10)
+  return fecha.toLocaleString('es-CO')
 }
 
 // detCantidadGramos llega como cadena ("3.5000") o null; Number(null) daria 0, por eso se
@@ -115,7 +125,8 @@ export function generarPdfVenta({ venta, empresa }) {
     ['Documento', `${dato(venta.ventaTerceroTipoDoc, '')} ${dato(venta.ventaTerceroNumeroDoc, '')}`.trim() || '-'],
     ['Tipo de venta', dato(venta.ventaTipoVenta)],
     ['Vendedor', dato(venta.ventaVendedor)],
-    ['Usuario', dato(venta.ventaUsuario)]
+    ['Usuario', dato(venta.ventaUsuario)],
+    ['Último pago', formatearFechaHora(venta.ventaFechaUltimoPago)]
   ]
 
   datosVenta.forEach(([etiqueta, valor], indice) => {
@@ -185,7 +196,7 @@ export function generarPdfVenta({ venta, empresa }) {
 
   let yTotales = doc.lastAutoTable.finalY + 8
   const altoTotales = 54
-  if (yTotales + altoTotales > alto - 18) {
+  if (yTotales + altoTotales > alto - 26) {
     doc.addPage()
     yTotales = 18
   }
@@ -224,6 +235,16 @@ export function generarPdfVenta({ venta, empresa }) {
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(7)
     doc.setTextColor(110, 110, 110)
+    if (pagina === totalPaginas) {
+      // Aviso en la ultima pagina, justo encima de la linea del pie.
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(7)
+      doc.setTextColor(...COLOR_TEXTO)
+      const lineasAviso = doc.splitTextToSize(AVISO_VALIDAR_DOCUMENTO, ancho - margen * 2)
+      doc.text(lineasAviso, ancho / 2, alto - 15.5 - (lineasAviso.length - 1) * 3, { align: 'center' })
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(110, 110, 110)
+    }
     doc.text('Gracias por su compra', margen, alto - 8)
     doc.text(`Página ${pagina} de ${totalPaginas}`, ancho - margen, alto - 8, { align: 'right' })
   }

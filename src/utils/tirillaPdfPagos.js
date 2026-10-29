@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf'
+import { AVISO_VALIDAR_DOCUMENTO } from './avisoDocumento'
 
 const dato = (valor, alternativo = '-') => {
   if (valor === null || valor === undefined || String(valor).trim() === '') return alternativo
@@ -41,7 +42,7 @@ const metodoPago = (metodo) => ({
 const estaAnulado = (pago) =>
   pago.pagoEstado === false || pago.pagoEstado === 0 || pago.pagoEstado === '0'
 
-function dibujarContenidoTirillaPago(doc, { pago, empresa, x, ancho, inicioY }) {
+function dibujarContenidoTirillaPago(doc, { pago, empresa, x, ancho, inicioY, conFirma = false }) {
   const fuente = 8.4
   const fuentePequena = 7
   const anchoInterior = ancho - 6
@@ -129,6 +130,16 @@ function dibujarContenidoTirillaPago(doc, { pago, empresa, x, ancho, inicioY }) 
   dibujarRegla()
   centrado('¡Gracias por su pago!', fuente, 'bold')
   dibujarRegla()
+  centrado(AVISO_VALIDAR_DOCUMENTO, fuentePequena, 'bold')
+  dibujarRegla()
+
+  // Copia del cliente: espacio para la firma de conformidad
+  if (conFirma) {
+    y += 14
+    dibujarRegla()
+    centrado('FIRMA', fuente, 'bold', { espacioDespues: 0.5 })
+    centrado('El cliente ha revisado la información de este recibo y confirma que es correcta.', fuentePequena)
+  }
 
   return y
 }
@@ -136,16 +147,32 @@ function dibujarContenidoTirillaPago(doc, { pago, empresa, x, ancho, inicioY }) 
 export function generarTirillaPdfPagos({ pago, empresa }) {
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
   const anchoPagina = doc.internal.pageSize.getWidth()
+  const altoPagina = doc.internal.pageSize.getHeight()
+  const mitad = anchoPagina / 2
   const anchoTirilla = 100
-  const x = (anchoPagina - anchoTirilla) / 2
+  // Cada copia se centra dentro de su mitad de la página
+  const margenMitad = (mitad - anchoTirilla) / 2
 
   dibujarContenidoTirillaPago(doc, {
     pago,
     empresa,
-    x,
+    x: margenMitad,
     ancho: anchoTirilla,
     inicioY: 16
   })
+
+  dibujarContenidoTirillaPago(doc, {
+    pago,
+    empresa,
+    x: mitad + margenMitad,
+    ancho: anchoTirilla,
+    inicioY: 16,
+    conFirma: true
+  })
+
+  doc.setDrawColor(40, 40, 40)
+  doc.setLineWidth(0.2)
+  doc.line(mitad, 10, mitad, altoPagina - 10)
 
   doc.save(`tirilla-pdf-pago-${pago.pagoId}.pdf`)
 }

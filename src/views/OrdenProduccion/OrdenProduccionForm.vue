@@ -156,12 +156,24 @@
           class="mb-6"
           @click="agregarConsumo"
         >
-          Agregar consumo
+          Consumo
         </v-btn>
 
         <!-- ===================== PRODUCIDOS ===================== -->
         <div class="d-flex align-center justify-space-between mb-2">
-          <span class="text-subtitle-2">Artículos producidos</span>
+          <div class="d-flex align-center ga-2">
+            <span class="text-subtitle-2">Artículos producidos</span>
+            <!-- Crear un producto es solo de ADMINISTRADOR: a un vendedor el backend le responde 401. -->
+            <v-btn
+              v-if="esAdministrador"
+              size="small"
+              variant="tonal"
+              prepend-icon="mdi-plus"
+              @click="dialogProductoNuevo = true"
+            >
+              Producto
+            </v-btn>
+          </div>
           <span class="text-caption text-medium-emphasis">{{ producidos.length }} / 200</span>
         </div>
 
@@ -274,7 +286,113 @@
           class="mb-4"
           @click="agregarProducido"
         >
-          Agregar producido
+           producido
+        </v-btn>
+
+        <div class="d-flex justify-end mb-6">
+          <div class="total-consumos" aria-label="Total de artículos producidos">
+            <div class="total-consumos__fila">
+              <span>Total producidos</span>
+              <span class="total-consumos__valor">{{ formatearMoneda(totalProducidos) }}</span>
+            </div>
+            <div class="total-consumos__fila">
+              <span>Total consumido - total producido</span>
+              <span class="total-consumos__valor">{{ formatearMoneda(diferenciaConsumoProducido) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===================== GASTOS ===================== -->
+        <div class="d-flex align-center justify-space-between mb-2">
+          <span class="text-subtitle-2">Gastos de la orden</span>
+          <span class="text-caption text-medium-emphasis">{{ gastos.length }} / 50</span>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <v-table density="compact" class="mb-2 tabla-listado">
+            <thead>
+              <tr>
+                <th style="min-width: 220px">Tipo de gasto</th>
+                <th style="min-width: 260px">Descripción</th>
+                <th style="min-width: 160px">Método de pago</th>
+                <th style="min-width: 160px">Monto</th>
+                <th class="text-center" style="width: 48px"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="!gastos.length">
+                <td colspan="5" class="text-center py-6 text-medium-emphasis">
+                  La orden no tiene gastos
+                </td>
+              </tr>
+              <tr v-for="(gasto, i) in gastos" :key="i">
+                <td>
+                  <v-select
+                    v-model="gasto.idTipoGasto"
+                    :items="tiposGasto"
+                    item-title="tipgasNombre"
+                    item-value="tipgasId"
+                    placeholder="Tipo de gasto"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </td>
+                <td>
+                  <v-text-field
+                    v-model="gasto.Descripcion"
+                    maxlength="255"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </td>
+                <td>
+                  <v-select
+                    v-model="gasto.MetodoPago"
+                    :items="opcionesMetodoPago"
+                    item-title="texto"
+                    item-value="valor"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </td>
+                <td>
+                  <v-number-input
+                    v-model.number="gasto.Monto"
+                    control-variant="hidden"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    prefix="$"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </td>
+                <td class="text-center">
+                  <v-btn
+                    icon="mdi-delete"
+                    size="small"
+                    variant="text"
+                    title="Quitar este gasto"
+                    @click="quitarGasto(i)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
+
+        <v-btn
+          variant="outlined"
+          prepend-icon="mdi-plus"
+          :disabled="gastos.length >= 50"
+          class="mb-4"
+          @click="agregarGasto"
+        >
+          Agregar gasto
         </v-btn>
 
         <div class="d-flex justify-end ga-2 mt-4">
@@ -323,35 +441,49 @@
       :valor-inicial="articuloNuevoInicial"
       @guardar="onArticuloNuevoGuardado"
     />
+
+    <ProductoNuevoDialog
+      v-model="dialogProductoNuevo"
+      :id-empresa="idEmpresa"
+    />
   </v-container>
 </template>
 
 <script>
 import Swal from 'sweetalert2'
 import produccionService from '@/services/produccionService'
+import tipoGastoService from '@/services/tipoGastoService'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticulosProduccion from '@/views/Inventario/Articulos/ArticulosProduccion.vue'
 import TalleresSeleccionar from '@/views/Talleres/TalleresSeleccionar.vue'
-import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
+import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
+import ProductoNuevoDialog from '@/views/Inventario/Productos/ProductoNuevoDialog.vue'
 
 export default {
   name: 'OrdenProduccionForm',
 
-  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar, ArticuloNuevoDialog },
+  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
 
   data() {
     return {
       observaciones: '',
       consumos: [],
       producidos: [],
+      gastos: [],
+      tiposGasto: [],
+      opcionesMetodoPago: [
+        { valor: 'EFECTIVO', texto: 'Efectivo' },
+        { valor: 'TRANSACCION', texto: 'Transacción' }
+      ],
       bodegas: [],
       guardando: false,
       dialogArticulo: false,
       dialogArticuloProduccion: false,
       dialogTercero: false,
       dialogArticuloNuevo: false,
+      dialogProductoNuevo: false,
       // { tabla: 'consumos' | 'producidos', indice: n } o null. La tabla hace falta porque hay
       // dos y el indice por si solo es ambiguo.
       filaActiva: null,
@@ -374,6 +506,9 @@ export default {
     idEmpresa() {
       return this.authStore.empresaSeleccionada
     },
+    esAdministrador() {
+      return this.authStore.rol === 'ADMINISTRADOR'
+    },
     idBodegaConsumoActiva() {
       if (this.filaActiva?.tabla !== 'consumos') return null
       return this.consumos[this.filaActiva.indice]?.idBodega ?? null
@@ -392,6 +527,15 @@ export default {
       return this.redondear(this.consumos.reduce((total, fila) => {
         return total + (this.calcularSubtotal(fila) ?? 0)
       }, 0))
+    },
+    // Un producido sin costo unitario suma cero: el servidor lo calcula al guardar.
+    totalProducidos() {
+      return this.redondear(this.producidos.reduce((total, fila) => {
+        return total + (this.calcularSubtotal(fila) ?? 0)
+      }, 0))
+    },
+    diferenciaConsumoProducido() {
+      return this.redondear(this.totalConsumos - this.totalProducidos)
     }
   },
 
@@ -404,9 +548,11 @@ export default {
     idEmpresa() {
       this.consumos = []
       this.producidos = []
+      this.gastos = []
       this.agregarConsumo()
       this.agregarProducido()
       this.cargarBodegas()
+      this.cargarTiposGasto()
       // Si no se limpian, apuntarian a indices de los arreglos viejos y los callbacks de los
       // dialogos leerian una fila undefined.
       this.filaActiva = null
@@ -420,11 +566,35 @@ export default {
 
   created() {
     this.cargarBodegas()
+    this.cargarTiposGasto()
     this.agregarConsumo()
     this.agregarProducido()
   },
 
   methods: {
+    async cargarTiposGasto() {
+      try {
+        const { data } = await tipoGastoService.getActivas({ idEmpresa: this.idEmpresa })
+        this.tiposGasto = data.data || data || []
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudieron cargar los tipos de gasto'
+        Swal.fire('Error', mensaje, 'error')
+      }
+    },
+
+    agregarGasto() {
+      this.gastos.push({
+        idTipoGasto: null,
+        Descripcion: '',
+        MetodoPago: 'EFECTIVO',
+        Monto: null
+      })
+    },
+
+    quitarGasto(indice) {
+      this.gastos.splice(indice, 1)
+    },
+
     async cargarBodegas() {
       try {
         this.bodegas = await this.catalogosStore.getBodegas(this.idEmpresa)
@@ -599,6 +769,17 @@ export default {
         if (errorCantidad) return errorCantidad
       }
 
+      for (let i = 0; i < this.gastos.length; i += 1) {
+        const gasto = this.gastos[i]
+        const n = i + 1
+        if (!gasto.idTipoGasto) return `Elija el tipo del gasto ${n}`
+        const descripcion = String(gasto.Descripcion ?? '').trim()
+        if (descripcion.length < 6 || descripcion.length > 255) {
+          return `La descripción del gasto ${n} debe tener entre 6 y 255 caracteres`
+        }
+        if (!(this.redondear(gasto.Monto) > 0)) return `El monto del gasto ${n} debe ser mayor que cero`
+      }
+
       return null
     },
 
@@ -646,7 +827,13 @@ export default {
               linea.idArticulo = Number(fila.idArticulo)
             }
             return linea
-          })
+          }),
+          gastos: this.gastos.map((gasto) => ({
+            idTipoGasto: Number(gasto.idTipoGasto),
+            Descripcion: String(gasto.Descripcion).trim(),
+            Monto: this.redondear(gasto.Monto),
+            MetodoPago: gasto.MetodoPago
+          }))
         })
         // El await es intencional: primero se ve el mensaje, despues se navega.
         await Swal.fire('Éxito', data.msg || 'Orden de producción registrada', 'success')

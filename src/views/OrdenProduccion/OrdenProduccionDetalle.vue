@@ -5,7 +5,7 @@
       <div class="flex-grow-1">
         <h1 class="text-h5">Orden de producción {{ orden ? '#' + orden.ordId : '' }}</h1>
         <p class="text-body-2 text-medium-emphasis mb-0">
-          Una orden de producción no se edita ni se anula: solo se consulta.
+          Una orden de producción no se anula ni se modifica: solo se puede editar su observación.
         </p>
       </div>
     </div>
@@ -22,11 +22,31 @@
             <div class="text-caption text-medium-emphasis">Fecha</div>
             <div>{{ formatearFechaHora(orden.ordFecha) }}</div>
           </v-col>
-          <v-col cols="12" sm="8">
-            <div class="text-caption text-medium-emphasis">Observaciones</div>
-            <div>{{ orden.ordObservaciones || '-' }}</div>
-          </v-col>
         </v-row>
+
+        <v-textarea
+          v-model="observaciones"
+          label="Observaciones"
+          maxlength="300"
+          counter="300"
+          rows="3"
+          auto-grow
+          :rules="[reglaObservaciones]"
+          variant="outlined"
+          density="comfortable"
+          class="mt-3"
+        />
+        <div class="d-flex justify-end">
+          <v-btn
+            color="primary"
+            prepend-icon="mdi-content-save"
+            :loading="actualizando"
+            :disabled="!puedeActualizar"
+            @click="actualizarObservacion"
+          >
+            Actualizar observación
+          </v-btn>
+        </div>
       </v-card>
 
       <!--
@@ -53,7 +73,8 @@
                 <th style="min-width: 140px">Bodega</th>
                 <th style="min-width: 170px">Bolsa</th>
                 <th class="text-end" style="min-width: 110px">Cantidad</th>
-                <th class="text-end" style="min-width: 140px">Costo</th>
+                <th class="text-end" style="min-width: 140px">Costo und</th>
+                <th class="text-end" style="min-width: 140px">Costo total</th>
               </tr>
             </thead>
             <tbody>
@@ -72,12 +93,68 @@
                 <td>{{ textoBolsa(mov.movBolsa) }}</td>
                 <td class="text-end">{{ formatearCantidad(mov.movCantidad) }}</td>
                 <td class="text-end">{{ formatearMoneda(mov.movCosto) }}</td>
+                <td class="text-end">{{ formatearMoneda(mov.movCosto * mov.movCantidad) }}</td>
               </tr>
             </tbody>
             <tfoot v-if="bloque.movimientos.length">
               <tr>
                 <td colspan="4" class="text-end font-weight-medium">Total</td>
                 <td class="text-end font-weight-medium">{{ formatearMoneda(bloque.total) }}</td>
+              </tr>
+            </tfoot>
+          </v-table>
+        </div>
+      </v-card>
+
+      <v-card class="pa-6 mb-4" elevation="1">
+        <div class="text-subtitle-2 mb-3">Gastos de la orden</div>
+
+        <div style="overflow-x: auto;">
+          <v-table density="compact">
+            <thead>
+              <tr>
+                <th style="min-width: 150px">Fecha</th>
+                <th style="min-width: 160px">Tipo de gasto</th>
+                <th style="min-width: 240px">Descripción</th>
+                <th style="min-width: 130px">Método de pago</th>
+                <th class="text-end" style="min-width: 140px">Monto</th>
+                <th class="text-center" style="min-width: 110px">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="!gastos.length">
+                <td colspan="6" class="text-center py-6 text-medium-emphasis">
+                  La orden no tiene gastos
+                </td>
+              </tr>
+              <tr v-for="gasto in gastos" :key="gasto.gasId">
+                <td>{{ formatearFechaHora(gasto.gasFecha) }}</td>
+                <td>{{ gasto.gasTipoGasto || '-' }}</td>
+                <td>
+                  {{ gasto.gasDescripcion || '-' }}
+                  <div v-if="!gastoActivo(gasto) && gasto.gasMotivoAnulacion" class="text-caption text-medium-emphasis">
+                    Anulado: {{ gasto.gasMotivoAnulacion }}
+                  </div>
+                </td>
+                <td>{{ textoMetodoPago(gasto.gasMetodoPago) }}</td>
+                <td class="text-end">{{ formatearMoneda(gasto.gasMonto) }}</td>
+                <td class="text-center">
+                  <v-chip :color="gastoActivo(gasto) ? 'success' : 'error'" size="small" variant="tonal">
+                    {{ gastoActivo(gasto) ? 'Activo' : 'Anulado' }}
+                  </v-chip>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-end font-weight-medium">Total activos</td>
+                <td class="text-end font-weight-medium">{{ formatearMoneda(totalGastosActivos) }}</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end font-weight-medium">Total anulados</td>
+                <td class="text-end font-weight-medium">{{ formatearMoneda(totalGastosAnulados) }}</td>
+                <td></td>
               </tr>
             </tfoot>
           </v-table>
@@ -104,7 +181,9 @@ export default {
   data() {
     return {
       orden: null,
-      cargando: false
+      cargando: false,
+      observaciones: '',
+      actualizando: false
     }
   },
 
@@ -120,8 +199,28 @@ export default {
       return Number(this.$route.params.OrdId)
     },
 
+    // El backend rechaza la observacion vacia, asi que el boton espera texto y un cambio real.
+    puedeActualizar() {
+      const texto = this.observaciones.trim()
+      return texto !== '' && texto.length <= 300 && texto !== (this.orden?.ordObservaciones || '')
+    },
+
     movimientos() {
       return this.orden && Array.isArray(this.orden.movimientos) ? this.orden.movimientos : []
+    },
+
+    gastos() {
+      return this.orden && Array.isArray(this.orden.gastos) ? this.orden.gastos : []
+    },
+
+    // Activos y anulados vienen mezclados; gasEstado 1 = activo, 0 = anulado. Se suma en crudo
+    // y se redondea una sola vez al final.
+    totalGastosActivos() {
+      return this.sumarGastos(this.gastos.filter((g) => this.gastoActivo(g)))
+    },
+
+    totalGastosAnulados() {
+      return this.sumarGastos(this.gastos.filter((g) => !this.gastoActivo(g)))
     },
 
     // Producido (ENTRADA) primero, consumido (SALIDA) despues.
@@ -163,6 +262,7 @@ export default {
           idOrden: this.idOrden
         })
         this.orden = data.data || null
+        this.observaciones = this.orden?.ordObservaciones || ''
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la orden de producción'
         await Swal.fire('Error', mensaje, 'error')
@@ -170,6 +270,53 @@ export default {
       } finally {
         this.cargando = false
       }
+    },
+
+    reglaObservaciones(valor) {
+      const texto = String(valor || '').trim()
+      if (!texto) return 'Las observaciones son obligatorias'
+      if (texto.length > 300) return 'Máximo 300 caracteres'
+      return true
+    },
+
+    async actualizarObservacion() {
+      if (this.actualizando || !this.puedeActualizar) return
+
+      const texto = this.observaciones.trim()
+      this.actualizando = true
+      try {
+        const { data } = await produccionService.updateObservacion({
+          idEmpresa: this.idEmpresa,
+          idOrden: this.idOrden,
+          Observaciones: texto
+        })
+        // La ruta no devuelve la orden: se actualiza el estado local, sin otra llamada.
+        this.orden.ordObservaciones = texto
+        this.observaciones = texto
+        await Swal.fire('Éxito', data.msg || 'Observaciones actualizadas', 'success')
+      } catch (error) {
+        // idOrden mal formado llega con la forma de express-validator: errors[0].msg
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo actualizar la observación'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.actualizando = false
+      }
+    },
+
+    gastoActivo(gasto) {
+      return gasto.gasEstado === 1 || gasto.gasEstado === true || gasto.gasEstado === '1'
+    },
+
+    sumarGastos(lista) {
+      return Math.round(lista.reduce((suma, g) => suma + (Number(g.gasMonto) || 0), 0) * 100) / 100
+    },
+
+    textoMetodoPago(valor) {
+      if (valor === 'EFECTIVO') return 'Efectivo'
+      if (valor === 'TRANSACCION') return 'Transacción'
+      return valor || '-'
     },
 
     textoBolsa(valor) {

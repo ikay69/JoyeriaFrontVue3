@@ -18,6 +18,12 @@ export default {
     // Responde un archivo CSV (blob); los errores llegan como JSON dentro del blob.
     return http.post('/compra/exportarcomprascsv', payload, { responseType: 'blob' })
   },
+  exportarArticulosCsv(payload) {
+    // payload: { idEmpresa, fechaInicio, fechaFin } (solo ADMINISTRADOR, fechas obligatorias, rango maximo 94 dias)
+    // Una fila por articulo comprado (linea de compra). El rango se mide por la fecha de la compra.
+    // Responde un archivo CSV (blob); los errores llegan como JSON dentro del blob.
+    return http.post('/compra/exportarcomprasarticuloscsv', payload, { responseType: 'blob' })
+  },
   getById(payload) {
     // payload: { idEmpresa, idCompra }
     return http.post('/compra/getidcompra', payload)

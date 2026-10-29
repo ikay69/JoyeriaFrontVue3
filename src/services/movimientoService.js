@@ -20,8 +20,9 @@ export default {
     return http.post('/movimiento/getidmovimiento', payload)
   },
   newAjuste(payload) {
-    // payload: { idEmpresa, idBodega, idArticulo, TipoMovimiento, BolsaEstado, idPropietario,
-    //            Cantidad, CostoUnitario, Observaciones }
+    // payload: { idEmpresa, idBodega, idArticulo, TipoMovimiento, Motivo, idOrigen, BolsaEstado,
+    //            idPropietario, Cantidad, CostoUnitario, Observaciones }
+    // idOrigen es null cuando Motivo es AJUSTE; en los demas motivos es un entero > 0.
     return http.post('/movimiento/newajuste', payload)
   }
 }

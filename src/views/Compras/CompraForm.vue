@@ -77,11 +77,24 @@
 
         <v-divider class="my-4" />
 
-        <div class="mb-1 text-subtitle-2">Tipo de compra</div>
-        <v-radio-group v-model="tipoCompra" inline hide-details class="mb-4">
-          <v-radio label="Contado" value="CONTADO" />
-          <v-radio label="Crédito" value="CREDITO" />
-        </v-radio-group>
+        <div class="d-flex align-start justify-space-between ga-2 flex-wrap">
+          <div>
+            <div class="mb-1 text-subtitle-2">Tipo de compra</div>
+            <v-radio-group v-model="tipoCompra" inline hide-details class="mb-4">
+              <v-radio label="Contado" value="CONTADO" />
+              <v-radio label="Crédito" value="CREDITO" />
+            </v-radio-group>
+          </div>
+          <!-- Crear un producto es solo de ADMINISTRADOR: a un vendedor el backend le responde 401. -->
+          <v-btn
+            v-if="esAdministrador"
+            variant="tonal"
+            prepend-icon="mdi-plus"
+            @click="dialogProductoNuevo = true"
+          >
+            Producto
+          </v-btn>
+        </div>
 
         <template v-if="esCredito">
           <v-divider class="my-4" />
@@ -427,6 +440,11 @@
       :valor-inicial="filaActiva !== null && lineas[filaActiva] ? lineas[filaActiva].articuloNuevo : null"
       @guardar="onArticuloNuevoGuardado"
     />
+
+    <ProductoNuevoDialog
+      v-model="dialogProductoNuevo"
+      :id-empresa="idEmpresa"
+    />
   </v-container>
 </template>
 
@@ -436,14 +454,15 @@ import compraService from '@/services/compraService'
 import ProveedoresSeleccionar from '@/views/Proveedores/ProveedoresSeleccionar.vue'
 import ProveedoresFormDialog from '@/views/Proveedores/ProveedoresFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
-import ArticuloNuevoDialog from '@/views/Compras/ArticuloNuevoDialog.vue'
+import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
+import ProductoNuevoDialog from '@/views/Inventario/Productos/ProductoNuevoDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 
 export default {
   name: 'CompraForm',
 
-  components: { ProveedoresSeleccionar, ProveedoresFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog },
+  components: { ProveedoresSeleccionar, ProveedoresFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
 
   data() {
     return {
@@ -452,6 +471,7 @@ export default {
       proveedorParaEditar: null,
       dialogArticulo: false,
       dialogArticuloNuevo: false,
+      dialogProductoNuevo: false,
       // fila para la que se abrio el selector de articulo: sin esto, el @seleccionar no sabria
       // a que linea pertenece el articulo elegido.
       filaActiva: null,
@@ -483,6 +503,9 @@ export default {
     },
     catalogosStore() {
       return useCatalogosStore()
+    },
+    esAdministrador() {
+      return this.authStore.rol === 'ADMINISTRADOR'
     },
     proveedorTexto() {
       if (!this.terceroSeleccionado) return ''

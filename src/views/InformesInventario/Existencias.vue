@@ -64,7 +64,7 @@
             :items="opcionesBolsaEstado"
             item-title="texto"
             item-value="valor"
-            label="Estado"
+            label="Existencia"
             density="compact"
             variant="outlined"
             hide-details
@@ -78,48 +78,107 @@
       </v-row>
     </v-card>
 
+    <!-- El listado es paginado (50 por pagina): estos totales cubren solo las filas de la pagina. -->
+    <v-card v-if="existencias.length" class="pa-4 mb-4" elevation="1">
+      <div class="text-caption text-medium-emphasis mb-2">Totales de las filas de esta página</div>
+      <v-row dense class="mb-1">
+        <v-col v-for="total in totalesExistencia.slice(0, 3)" :key="`costo-${total.estado}`" cols="12" sm="6" md="4">
+          <div class="resumen-linea">
+            <span>Costo {{ total.texto }}:</span>
+            <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.costo) }}</span>
+          </div>
+        </v-col>
+      </v-row>
+      <v-row dense class="mb-1">
+        <v-col v-for="total in totalesExistencia.slice(0, 3)" :key="`precio-${total.estado}`" cols="12" sm="6" md="4">
+          <div class="resumen-linea">
+            <span>Precio {{ total.texto }}:</span>
+            <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.precio) }}</span>
+          </div>
+        </v-col>
+      </v-row>
+      <v-row dense class="mb-1">
+        <v-col v-for="total in totalesExistencia.slice(3)" :key="`costo-${total.estado}`" cols="12" sm="6" md="4">
+          <div class="resumen-linea">
+            <span>Costo {{ total.texto }}:</span>
+            <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.costo) }}</span>
+          </div>
+        </v-col>
+      </v-row>
+      <v-row dense>
+        <v-col v-for="total in totalesExistencia.slice(3)" :key="`precio-${total.estado}`" cols="12" sm="6" md="4">
+          <div class="resumen-linea">
+            <span>Precio {{ total.texto }}:</span>
+            <span class="font-weight-medium text-no-wrap">{{ formatearMoneda(total.precio) }}</span>
+          </div>
+        </v-col>
+      </v-row>
+    </v-card>
+
     <v-card elevation="1">
-      <v-table class="tabla-listado" density="compact">
-        <thead>
-          <tr>
-            <th>Bodega</th>
-            <th>SKU</th>
-            <th>Artículo</th>
-            <th>Estado</th>
-            <th>Propietario</th>
-            <th>Cantidad</th>
-            <th>Costo Und</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-if="cargando">
-            <td colspan="8" class="text-center py-6">
-              <v-progress-circular indeterminate color="primary" />
-            </td>
-          </tr>
-          <tr v-else-if="!existencias.length">
-            <td colspan="8" class="text-center py-6 text-medium-emphasis">
-              No hay existencias para mostrar
-            </td>
-          </tr>
-          <tr v-for="ex in existencias" :key="ex.existId">
-            <td>{{ ex.existBodegaNombre }}</td>
-            <td>{{ ex.existSKU }}</td>
-            <td>
-              {{ ex.existArticuloNombre }}
-              <div v-if="ex.existArticuloNombre" class="text-caption text-medium-emphasis">
-                {{ ex.existPropiedades }}
-              </div>
-            </td>
-            <td>{{ formatearBolsa(ex.existBolsa) }}</td>
-            <td>{{ ex.existPropietarioNombre || '-' }}</td>
-            <td>{{ ex.existCantidad }}</td>
-            <td>{{ ex.existCosto }}</td>
-            <td>{{ formatearFecha(ex.existFecha) }}</td>
-          </tr>
-        </tbody>
-      </v-table>
+      <div style="overflow-x: auto;">
+        <v-table class="tabla-listado" density="compact">
+          <thead>
+            <tr>
+              <th>SKU</th>
+              <th style="min-width: 24ch;">Artículo</th>
+              <th>Vender</th>
+              <th>Estado</th>
+              <th>Bodega</th>
+              <th>Existencia</th>
+              <th>Propietario</th>
+              <th>Cantidad</th>
+              <th class="columna-gramos">Gramos und</th>
+              <th class="columna-monto">Costo und</th>
+              <th class="columna-monto">Costo total</th>
+              <th class="columna-monto">Precio</th>
+              <th class="columna-monto">Precio total</th>
+              <th class="columna-monto">Utilidad</th>
+              <th>Propiedades</th>
+              <th>Fecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-if="cargando">
+              <td colspan="16" class="text-center py-6">
+                <v-progress-circular indeterminate color="primary" />
+              </td>
+            </tr>
+            <tr v-else-if="!existencias.length">
+              <td colspan="16" class="text-center py-6 text-medium-emphasis">
+                No hay existencias para mostrar
+              </td>
+            </tr>
+            <tr
+              v-for="ex in existencias"
+              :key="ex.existId"
+              :class="{ 'fila-perdida': utilidad(ex) < 0 }"
+            >
+              <td>{{ ex.existSKU || '-' }}</td>
+              <td>{{ ex.existArticuloNombre || '-' }}</td>
+              <td>{{ textoSiNo(ex.existVender) }}</td>
+              <td>{{ textoEstadoArticulo(ex.existArticuloEstado) }}</td>
+              <td>{{ ex.existBodegaNombre || '-' }}</td>
+              <td>{{ formatearBolsa(ex.existBolsa) }}</td>
+              <td>
+                {{ ex.existPropietarioNombre || 'Propio' }}
+                <div v-if="ex.existPropietarioId != null" class="text-caption text-medium-emphasis">
+                  ID: {{ ex.existPropietarioId }}
+                </div>
+              </td>
+              <td>{{ ex.existCantidad }}</td>
+              <td class="columna-gramos">{{ formatearGramos(ex.existCantGramos) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existCosto) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existCosto * ex.existCantidad) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existPrecio) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(ex.existPrecio * ex.existCantidad) }}</td>
+              <td class="columna-monto">{{ formatearMoneda(utilidad(ex)) }}</td>
+              <td>{{ ex.existPropiedades || '-' }}</td>
+              <td>{{ formatearFecha(ex.existFecha) }}</td>
+            </tr>
+          </tbody>
+        </v-table>
+      </div>
 
       <div class="d-flex align-center justify-center pa-4 ga-4">
         <v-btn v-if="pagina > 1" variant="outlined" @click="buscar(pagina - 1)">
@@ -142,6 +201,16 @@ import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import { descargarCsv } from '@/utils/descargarCsv'
 import { parsearInventarioCsv, plantillaInventarioCsv, MAX_ARTICULOS_IMPORTAR } from '@/utils/inventarioCsv'
+
+// Etiquetas cortas del resumen de arriba, las mismas de ExistenciaProducto y ExistenciaArticulo.
+const RESUMEN_BOLSAS = [
+  { valor: 'DISPONIBLE', texto: 'Disponible' },
+  { valor: 'RESERVADO', texto: 'Reservado' },
+  { valor: 'EN_GARANTIA_EMPENO', texto: 'En empeño' },
+  { valor: 'PRESTADO_A_TALLER', texto: 'Prestado' },
+  { valor: 'RECIBIDO_DE_TALLER', texto: 'Recibido' },
+  { valor: 'EN_REPARACION', texto: 'En reparación' }
+]
 
 export default {
   name: 'Existencias',
@@ -184,6 +253,25 @@ export default {
     },
     totalPaginas() {
       return Math.max(1, Math.ceil(this.cantData / 50))
+    },
+    // Una linea por bolsa, en el mismo orden que ExistenciaProducto y ExistenciaArticulo.
+    totalesExistencia() {
+      return RESUMEN_BOLSAS.map((opcion) => {
+        const existenciasEstado = this.existencias.filter((ex) =>
+          String(ex.existBolsa || '').trim().toUpperCase() === opcion.valor
+        )
+
+        return {
+          estado: opcion.valor,
+          texto: opcion.texto,
+          costo: existenciasEstado.reduce((total, ex) =>
+            total + this.numeroSeguro(ex.existCosto) * this.numeroSeguro(ex.existCantidad), 0
+          ),
+          precio: existenciasEstado.reduce((total, ex) =>
+            total + this.numeroSeguro(ex.existPrecio) * this.numeroSeguro(ex.existCantidad), 0
+          )
+        }
+      })
     }
   },
   created() {
@@ -227,7 +315,9 @@ export default {
         this.cantData = data.cantData || 0
         this.pagina = pagina
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo consultar las existencias'
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo consultar las existencias'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargando = false
@@ -310,7 +400,51 @@ export default {
 
     formatearBolsa(valor) {
       const encontrada = this.opcionesBolsaEstado.find((o) => o.valor === valor)
-      return encontrada ? encontrada.texto : valor
+      return encontrada ? encontrada.texto : (valor || '-')
+    },
+
+    textoSiNo(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const normalizado = String(valor).trim().toUpperCase()
+      if (['1', 'TRUE', 'S', 'SI', 'SÍ'].includes(normalizado)) return 'Sí'
+      if (['0', 'FALSE', 'N', 'NO'].includes(normalizado)) return 'No'
+      return String(valor)
+    },
+
+    textoEstadoArticulo(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const normalizado = String(valor).trim().toUpperCase()
+      if (['1', 'TRUE', 'ACTIVO'].includes(normalizado)) return 'Activo'
+      if (['0', 'FALSE', 'INACTIVO'].includes(normalizado)) return 'Inactivo'
+      return String(valor)
+    },
+
+    // existCantGramos son los gramos de UNA unidad del articulo; null si no tiene registrados.
+    formatearGramos(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return '-'
+      return `${numero.toLocaleString('es-CO', { maximumFractionDigits: 4 })} g`
+    },
+
+    // Precio total menos costo total de la bolsa. Una fila con utilidad negativa se pinta de rojo.
+    utilidad(ex) {
+      return (ex.existPrecio * ex.existCantidad) - (ex.existCosto * ex.existCantidad)
+    },
+
+    numeroSeguro(valor) {
+      const numero = Number(valor)
+      return Number.isFinite(numero) ? numero : 0
+    },
+
+    formatearMoneda(valor) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (Number.isNaN(numero)) return String(valor)
+      return `$ ${numero.toLocaleString('es-CO', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      })}`
     },
 
     formatearFecha(fecha) {
@@ -328,6 +462,24 @@ export default {
 </script>
 
 <style scoped>
+.resumen-linea {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.tabla-listado :deep(.columna-gramos) {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.tabla-listado :deep(.columna-monto) {
+  min-width: 160px;
+  white-space: nowrap;
+  text-align: right;
+}
+
 /* El encabezado toma el mismo primary del tema definido en src/plugins/vuetify.js */
 .tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
   background-color: rgb(var(--v-theme-primary));
@@ -345,7 +497,21 @@ export default {
   border-top-right-radius: 4px;
 }
 
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr.fila-perdida > td) {
+  background-color: #ffebee;
+  border-top: 1px solid #ef9a9a;
+  border-bottom: 1px solid #ef9a9a;
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr.fila-perdida > td:first-child) {
+  border-left: 4px solid #d32f2f;
+}
+
 .tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
   background-color: rgba(var(--v-theme-primary), 0.06);
+}
+
+.tabla-listado :deep(.v-table__wrapper > table > tbody > tr.fila-perdida:hover > td) {
+  background-color: #ffebee;
 }
 </style>
