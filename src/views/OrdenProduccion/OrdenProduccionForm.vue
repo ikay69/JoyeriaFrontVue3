@@ -841,6 +841,22 @@ export default {
         return
       }
 
+      // La variacion de costo no impide guardar: solo se pide confirmar.
+      if (this.variacionCosto !== 0) {
+        const mensaje = this.variacionCosto > 0
+          ? '¡Alerta inflación de costo!'
+          : '¡Alerta Falta costo por asignar!'
+        const { isConfirmed } = await Swal.fire({
+          icon: 'warning',
+          title: mensaje,
+          text: '¿Está seguro de guardar?',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, guardar',
+          cancelButtonText: 'Cancelar'
+        })
+        if (!isConfirmed) return
+      }
+
       this.guardando = true
       try {
         const { data } = await produccionService.create({

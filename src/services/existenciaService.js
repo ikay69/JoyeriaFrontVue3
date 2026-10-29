@@ -24,5 +24,10 @@ export default {
     //   nombre, apellido }] }
     // Solo administrador. Maximo 200 filas. Se escribe por etapas: si falla una, las anteriores quedan
     return http.post('/existencia/importarinventario', payload)
+  },
+  eliminarExistenciaCero(payload){
+    // payload: { idEmpresa}
+    // Solo administrador.
+    return http.post('/existencia/deleteexistenciacero', payload)
   }
 }
