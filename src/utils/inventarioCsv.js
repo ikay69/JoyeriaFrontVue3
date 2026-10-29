@@ -20,7 +20,11 @@ const COLUMNAS = [
 export function plantillaInventarioCsv() {
   const ejemplos = [
     ['Vitrina', 'Anillos', 'Joyeria', 'Anillo oro 18k', 'UNIDAD o CANTIDAD', 'Anillo solitario oro 18k', 'DISPONIBLE', '3.5', '1', '450000', '890000', '1', '', '', '', ''],
-    ['Vitrina', '', 'Joyeria', 'Anillo oro 18k', '', 'Anillo apartado para cliente', 'RESERVADO EN_GARANTIA_EMPENO PRESTADO_A_TALLER RECIBIDO_DE_TALLER EN_REPARACION', '', '1', '', '950000', '1', 'CC', '1020304050', '', '']
+    ['Vitrina', '', 'Joyeria', 'Anillo oro 18k', '', 'Anillo apartado para cliente', 'RESERVADO', '', '1', '', '950000', '1', 'CC', '1020304050', '', '']
+    ['Vitrina', '', 'Joyeria', 'Anillo oro 18k', '', 'Anillo apartado para cliente', 'PRESTADO_A_TALLER', '', '1', '', '950000', '1', 'CC', '1020304050', '', '']
+    ['Vitrina', '', 'Joyeria', 'Anillo oro 18k', '', 'Anillo apartado para cliente', 'RECIBIDO_DE_TALLER', '', '1', '', '950000', '1', 'CC', '1020304050', '', '']
+    ['Vitrina', '', 'Joyeria', 'Anillo oro 18k', '', 'Anillo apartado para cliente', 'EN_REPARACION', '', '1', '', '950000', '1', 'CC', '1020304050', '', '']
+    ['Vitrina', '', 'Joyeria', 'balin oro 18k', '', 'balin apartado para cliente', 'EN_GARANTIA_EMPENO', '', '1', '', '950000', '1', '', '', 'Nombre', 'apellido']
   ]
   return '﻿' + [COLUMNAS, ...ejemplos].map((fila) => fila.join(';')).join('\r\n') + '\r\n'
 }
