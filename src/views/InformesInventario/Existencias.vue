@@ -331,7 +331,7 @@ export default {
     },
 
     cambioBodega() {
-      Swal.fire('Cambio de bodega', 'En proceso', 'info')
+      this.$router.push({ name: 'CambioBodega' })
     },
 
     async eliminarExistenciaCero() {

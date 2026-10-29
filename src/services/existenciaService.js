@@ -29,5 +29,12 @@ export default {
     // payload: { idEmpresa}
     // Solo administrador.
     return http.post('/existencia/deleteexistenciacero', payload)
+  },
+  cambioBodega(payload) {
+    // payload: { idEmpresa, idBodegaOrigen, idBodegaDestino,
+    //   articulos: [{ idArticulo, BolsaEstado, idPropietario, Cantidad, CostoUnidad }],
+    //   gastos: [{ idTipoGasto, Descripcion, Monto, MetodoPago }] }
+    // ADMINISTRADOR y VENDEDOR. Maximo 100 articulos y 50 gastos. Todo o nada.
+    return http.post('/existencia/cambiobodega', payload)
   }
 }
