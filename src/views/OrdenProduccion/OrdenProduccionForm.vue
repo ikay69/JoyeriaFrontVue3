@@ -43,7 +43,7 @@
 
           <div class="resumen-costos" aria-label="Resumen de costos de la orden">
             <div class="resumen-costos__fila">
-              <span>Total Consumido:</span>
+              <span>Total Fundido:</span>
               <span class="total-consumos__valor">{{ formatearMoneda(totalConsumos) }}</span>
             </div>
             <div class="resumen-costos__fila">
@@ -65,7 +65,7 @@
                   <template #activator="{ props }">
                     <v-icon v-bind="props" size="small" style="cursor: help">mdi-help-circle-outline</v-icon>
                   </template>
-                  Es el Total Producido - Total Consumido - Total Gasto
+                  Es el Total Producido - Total Fundido - Total Gasto
                 </v-tooltip>
                 :
               </span>
@@ -76,7 +76,7 @@
 
         <!-- ===================== CONSUMOS ===================== -->
         <div class="d-flex align-center justify-space-between mb-2">
-          <span class="text-subtitle-2">Artículos consumidos</span>
+          <span class="text-subtitle-2">Artículos fundidos</span>
           <div class="d-flex align-center ga-2">
             <span class="text-caption text-medium-emphasis">{{ consumos.length }} / 200</span>
             <v-btn
@@ -106,7 +106,7 @@
             <tbody>
               <tr v-if="!consumos.length">
                 <td colspan="8" class="text-center py-6 text-medium-emphasis">
-                  Agregue al menos un artículo consumido
+                  Agregue al menos un artículo fundido
                 </td>
               </tr>
               <tr v-for="(fila, i) in consumos" :key="i">
@@ -786,7 +786,7 @@ export default {
     // Se valida aqui para no gastar un viaje en un 400 evitable, y para poder decir QUE fila de
     // QUE tabla esta mal: el backend solo diria que el payload es invalido.
     validar() {
-      if (!this.consumos.length) return 'Agregue al menos un artículo consumido'
+      if (!this.consumos.length) return 'Agregue al menos un artículo fundido'
       if (!this.producidos.length) return 'Agregue al menos un artículo producido'
 
       for (let i = 0; i < this.consumos.length; i += 1) {

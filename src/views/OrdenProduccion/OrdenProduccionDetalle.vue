@@ -79,7 +79,7 @@
             </thead>
             <tbody>
               <tr v-if="!bloque.movimientos.length">
-                <td colspan="5" class="text-center py-6 text-medium-emphasis">
+                <td colspan="6" class="text-center py-6 text-medium-emphasis">
                   Sin movimientos de este tipo
                 </td>
               </tr>
@@ -98,7 +98,7 @@
             </tbody>
             <tfoot v-if="bloque.movimientos.length">
               <tr>
-                <td colspan="4" class="text-end font-weight-medium">Total</td>
+                <td colspan="5" class="text-end font-weight-medium">Total</td>
                 <td class="text-end font-weight-medium">{{ formatearMoneda(bloque.total) }}</td>
               </tr>
             </tfoot>
@@ -233,17 +233,21 @@ export default {
           movimientos: this.movimientos.filter((m) => m.movTipo === 'ENTRADA')
         },
         {
-          titulo: 'Artículos consumidos',
+          titulo: 'Artículos fundidos',
           tipo: 'SALIDA',
           color: 'error',
           movimientos: this.movimientos.filter((m) => m.movTipo === 'SALIDA')
         }
       ].map((bloque) => ({
         ...bloque,
-        // Se suma en crudo y se redondea UNA sola vez al final: redondear movimiento por
-        // movimiento arrastra el centavo cuando los costos traen mas de dos decimales.
+        // Suma la columna Costo total (costo unitario x cantidad). Se suma en crudo y se
+        // redondea UNA sola vez al final: redondear movimiento por movimiento arrastra el
+        // centavo cuando los costos traen mas de dos decimales.
         total: Math.round(
-          bloque.movimientos.reduce((suma, m) => suma + (Number(m.movCosto) || 0), 0) * 100
+          bloque.movimientos.reduce(
+            (suma, m) => suma + (Number(m.movCosto) || 0) * (Number(m.movCantidad) || 0),
+            0
+          ) * 100
         ) / 100
       }))
     }
