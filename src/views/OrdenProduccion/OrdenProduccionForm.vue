@@ -15,8 +15,64 @@
           counter="300"
           rows="2"
           variant="outlined"
-          class="mb-6"
+          class="mb-2"
         />
+
+        <!-- ===================== RESUMEN DE COSTOS ===================== -->
+        <div class="d-flex flex-wrap ga-4 mb-6">
+          <!-- Izquierda: la alerta, alineada con la fila de Variacion de costo (la ultima de la
+               derecha). Solo informativa: no impide registrar la orden. -->
+          <div class="flex-grow-1 d-flex flex-column justify-end resumen-alerta">
+            <v-chip
+              v-if="variacionCosto > 0"
+              variant="tonal"
+              color="amber-darken-2"
+              class="font-weight-bold align-self-start"
+            >
+              ¡Alerta inflación de costo!
+            </v-chip>
+            <v-chip
+              v-else-if="variacionCosto < 0"
+              variant="tonal"
+              color="error"
+              class="font-weight-bold align-self-start"
+            >
+              ¡Alerta Falta costo por asignar!
+            </v-chip>
+          </div>
+
+          <div class="resumen-costos" aria-label="Resumen de costos de la orden">
+            <div class="resumen-costos__fila">
+              <span>Total Consumido:</span>
+              <span class="total-consumos__valor">{{ formatearMoneda(totalConsumos) }}</span>
+            </div>
+            <div class="resumen-costos__fila">
+              <span>Total Gastos:</span>
+              <span class="total-consumos__valor">{{ formatearMoneda(totalGastos) }}</span>
+            </div>
+            <div class="resumen-costos__fila">
+              <span>Costo Real:</span>
+              <span class="total-consumos__valor">{{ formatearMoneda(costoReal) }}</span>
+            </div>
+            <div class="resumen-costos__fila">
+              <span>Total Producido:</span>
+              <span class="total-consumos__valor">{{ formatearMoneda(totalProducidos) }}</span>
+            </div>
+            <div class="resumen-costos__fila">
+              <span class="d-inline-flex align-center ga-1">
+                Variación de costo
+                <v-tooltip location="top" open-on-click>
+                  <template #activator="{ props }">
+                    <v-icon v-bind="props" size="small" style="cursor: help">mdi-help-circle-outline</v-icon>
+                  </template>
+                  Es el Total Producido - Total Consumido - Total Gasto
+                </v-tooltip>
+                :
+              </span>
+              <span class="total-consumos__valor">{{ formatearMoneda(variacionCosto) }}</span>
+            </div>
+          </div>
+        </div>
 
         <!-- ===================== CONSUMOS ===================== -->
         <div class="d-flex align-center justify-space-between mb-2">
@@ -138,15 +194,6 @@
               </tr>
             </tbody>
           </v-table>
-        </div>
-
-        <div class="d-flex justify-end mt-2 mb-4">
-          <div class="total-consumos" aria-label="Total de artículos consumidos">
-            <div class="total-consumos__fila">
-              <span>Total</span>
-              <span class="total-consumos__valor">{{ formatearMoneda(totalConsumos) }}</span>
-            </div>
-          </div>
         </div>
 
         <v-btn
@@ -289,19 +336,6 @@
            producido
         </v-btn>
 
-        <div class="d-flex justify-end mb-6">
-          <div class="total-consumos" aria-label="Total de artículos producidos">
-            <div class="total-consumos__fila">
-              <span>Total producidos</span>
-              <span class="total-consumos__valor">{{ formatearMoneda(totalProducidos) }}</span>
-            </div>
-            <div class="total-consumos__fila">
-              <span>Total consumido - total producido</span>
-              <span class="total-consumos__valor">{{ formatearMoneda(diferenciaConsumoProducido) }}</span>
-            </div>
-          </div>
-        </div>
-
         <!-- ===================== GASTOS ===================== -->
         <div class="d-flex align-center justify-space-between mb-2">
           <span class="text-subtitle-2">Gastos de la orden</span>
@@ -359,9 +393,10 @@
                   />
                 </td>
                 <td>
-                  <v-number-input
+                  <!-- v-text-field y no v-number-input: este ultimo solo actualiza el modelo al
+                       salir del campo, y el Total Gastos tiene que moverse mientras se escribe. -->
+                  <v-text-field
                     v-model.number="gasto.Monto"
-                    control-variant="hidden"
                     type="number"
                     min="0"
                     step="0.01"
@@ -534,8 +569,15 @@ export default {
         return total + (this.calcularSubtotal(fila) ?? 0)
       }, 0))
     },
-    diferenciaConsumoProducido() {
-      return this.redondear(this.totalConsumos - this.totalProducidos)
+    // Los gastos sin monto valido suman cero.
+    totalGastos() {
+      return this.redondear(this.gastos.reduce((total, gasto) => total + (Number(gasto.Monto) || 0), 0))
+    },
+    costoReal() {
+      return this.redondear(this.totalConsumos + this.totalGastos)
+    },
+    variacionCosto() {
+      return this.redondear(this.totalProducidos - this.totalConsumos - this.totalGastos)
     }
   },
 
@@ -918,16 +960,22 @@ export default {
   color: #fff;
 }
 
-.total-consumos {
+.resumen-costos {
   width: min(100%, 420px);
 }
 
-.total-consumos__fila {
+/* Altura de una fila del resumen, para que la alerta quede a la altura de Variacion de costo. */
+.resumen-alerta {
+  min-height: 34px;
+  min-width: 240px;
+}
+
+.resumen-costos__fila {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 190px;
   align-items: center;
   gap: 16px;
-  min-height: 52px;
+  min-height: 34px;
 }
 
 .total-consumos__valor {
