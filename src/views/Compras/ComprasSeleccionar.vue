@@ -281,7 +281,7 @@ export default {
       this.cargando = true
       try {
         const consultarCompras = this.tipoOrigen === 'COMPRA'
-          ? compraService.getComprasActivas
+          ? compraService.getAll
           : compraService.getComprasCredito
         const { data } = await consultarCompras({
           idEmpresa: this.idEmpresa,

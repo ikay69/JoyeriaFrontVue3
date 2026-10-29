@@ -2,6 +2,8 @@ import { jsPDF } from 'jspdf'
 import { lineasParaImpresion } from './lineasImpresion'
 import { codigoImpresionVenta } from './codigoImpresionVenta'
 
+import { AVISO_VALIDAR_DOCUMENTO } from './avisoDocumento'
+
 const dato = (valor, alternativo = '-') => {
   if (valor === null || valor === undefined || String(valor).trim() === '') return alternativo
   return String(valor)
@@ -30,6 +32,14 @@ const fechaGeneracion = () => {
     hour12: true
   })
   return `${fecha} ${hora}`
+}
+
+// ventaFechaUltimoPago es fecha y hora, o null si la venta no tiene pagos.
+const textoUltimoPago = (valor) => {
+  if (!valor) return '-'
+  const fecha = new Date(valor)
+  if (Number.isNaN(fecha.getTime())) return String(valor).slice(0, 10)
+  return fecha.toLocaleString('es-CO')
 }
 
 const estaAnulada = (venta) =>
@@ -257,6 +267,7 @@ export function dibujarContenidoTirilla(doc, {
     estilo: 'bold',
     espacioDespues: 0.5 * escala
   })
+  textoEnvuelto(`ÚLTIMO PAGO: ${textoUltimoPago(venta.ventaFechaUltimoPago)}`, { tamano: fuentePequena })
   textoEnvuelto(`VENDEDOR: ${dato(venta.ventaVendedor)}`, { tamano: fuentePequena })
   textoEnvuelto(`USUARIO: ${dato(venta.ventaUsuario)}`, { tamano: fuentePequena })
 
@@ -267,6 +278,8 @@ export function dibujarContenidoTirilla(doc, {
   asegurarEspacio(altoLinea(fuente) * 2 + 5 * escala)
   dibujarRegla()
   textoCentrado('¡Gracias por su compra!', fuente, 'bold')
+  dibujarRegla()
+  textoCentrado(AVISO_VALIDAR_DOCUMENTO, fuentePequena, 'bold')
   dibujarRegla()
 
   return y

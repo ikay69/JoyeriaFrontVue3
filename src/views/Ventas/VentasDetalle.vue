@@ -126,6 +126,10 @@
               <span>{{ venta.ventaEstadoInventario || '-' }}</span>
             </div>
             <div class="campo">
+              <span class="campo-rotulo">Fecha último pago:</span>
+              <span>{{ venta.ventaFechaUltimoPago ? formatearFecha(venta.ventaFechaUltimoPago) : '-' }}</span>
+            </div>
+            <div class="campo">
               <span class="campo-rotulo">Fecha de pago:</span>
               <span>{{ venta.ventaFechaPago ? formatearFecha(venta.ventaFechaPago) : '-' }}</span>
             </div>

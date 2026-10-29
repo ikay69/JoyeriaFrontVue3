@@ -37,10 +37,10 @@ export default {
   data() {
     return {
       accesos: [
-        { texto: 'Nueva venta', ruta: 'VentasNuevo', icono: 'mdi-cash-register' },
-        { texto: 'Nuevo pago', ruta: 'PagosNuevo', icono: 'mdi-cash-multiple' },
-        { texto: 'Nueva compra', ruta: 'CompraNueva', icono: 'mdi-cart-plus' },
-        { texto: 'Nuevo gasto', ruta: 'GastosNuevo', icono: 'mdi-receipt-text-plus' }
+        { texto: 'Venta', ruta: 'VentasNuevo', icono: 'mdi-cash-register' },
+        { texto: 'Pago de cliente', ruta: 'PagosNuevo', icono: 'mdi-cash-multiple' },
+        { texto: 'Compra', ruta: 'CompraNueva', icono: 'mdi-cart-plus' },
+        { texto: 'Gasto', ruta: 'GastosNuevo', icono: 'mdi-receipt-text-plus' }
       ]
     }
   },
