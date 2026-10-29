@@ -1,48 +1,43 @@
 <template>
   <v-container fluid class="pa-6">
-    <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-2">
-      <h1 class="text-h5">Existencias</h1>
-      <div class="d-flex ga-2">
-        <input ref="archivoCsv" class="d-none" type="file" accept=".csv,text/csv" @change="manejarArchivoCsv">
-        <v-btn
-          v-if="esAdministrador"
-          color="primary"
-          variant="outlined"
-          prepend-icon="mdi-download"
-          @click="descargarPlantilla"
-        >
-          Plantilla
-        </v-btn>
-        <v-btn
-          v-if="esAdministrador"
-          color="primary"
-          prepend-icon="mdi-upload"
-          :loading="subiendo"
-          :disabled="subiendo"
-          @click="abrirSelectorCsv"
-        >
-          Subir
-        </v-btn>
-        <v-btn
-          color="primary"
-          prepend-icon="mdi-plus"
-          @click="$router.push({ name: 'AjusteNuevo' })"
-        >
+    <h1 class="text-h5 mb-4">Existencias</h1>
+    <input ref="archivoCsv" class="d-none" type="file" accept=".csv,text/csv" @change="manejarArchivoCsv">
+    <v-row dense class="mb-4">
+      <v-col cols="12" sm="4">
+        <v-btn block color="primary" prepend-icon="mdi-plus" @click="$router.push({ name: 'AjusteNuevo' })">
           Nuevo ajuste
         </v-btn>
-      </div>
-    </div>
+      </v-col>
+      <v-col v-if="esAdministrador" cols="12" sm="4">
+        
+        <v-btn block color="primary"  prepend-icon="mdi-upload" :loading="subiendo" :disabled="subiendo"  @click="abrirSelectorCsv">
+          Subir
+        </v-btn>
+      </v-col>
+      <v-col cols="12" sm="4">
+        <v-btn block color="primary"  variant="outlined" prepend-icon="mdi-swap-horizontal" @click="cambioBodega">
+          Cambio bodega
+        </v-btn>
+      </v-col>
+      <v-col v-if="esAdministrador" cols="12" sm="4">
+        <v-btn block prepend-icon="mdi-update" color="primary"  variant="outlined" :loading="eliminandoCero"  :disabled="eliminandoCero"
+          title="Actualizar existencias"  @click="eliminarExistenciaCero" >
+          Actualizar
+        </v-btn>
+      </v-col>
+      <v-col v-if="esAdministrador" cols="12" sm="4">
+        <v-btn block prepend-icon="mdi-download" color="primary" variant="outlined"  @click="descargarPlantilla">
+          Plantilla
+        </v-btn>
+      </v-col>
+    </v-row>
 
     <v-card class="pa-4 mb-4" elevation="1">
       <v-row dense align="center">
         <v-col cols="12" sm="4">
-          <v-text-field
-            v-model="filtros.textoFiltro"
+          <v-text-field v-model="filtros.textoFiltro"
             label="Buscar (nombre o SKU)"
-            clearable
-            density="compact"
-            variant="outlined"
-            hide-details
+            clearable density="compact"  variant="outlined"  hide-details
           />
         </v-col>
         <v-col cols="6" sm="3">
@@ -218,6 +213,7 @@ export default {
     return {
       cargando: false,
       subiendo: false,
+      eliminandoCero: false,
       existencias: [],
       cantData: 0,
       pagina: 1,
@@ -332,6 +328,39 @@ export default {
 
     descargarPlantilla() {
       descargarCsv('plantilla_inventario.csv', plantillaInventarioCsv())
+    },
+
+    cambioBodega() {
+      Swal.fire('Cambio de bodega', 'En proceso', 'info')
+    },
+
+    async eliminarExistenciaCero() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+
+      const confirmacion = await Swal.fire({
+        title: 'Actualizar existencias',
+        text: '¿Desea actualizar las existencias de la empresa?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Actualizar',
+        cancelButtonText: 'Cancelar'
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.eliminandoCero = true
+      try {
+        const { data } = await existenciaService.eliminarExistenciaCero({ idEmpresa: this.idEmpresa })
+        Swal.fire('Listo', data?.msg || 'Existencias en cero eliminadas', 'success')
+        this.buscar(this.pagina)
+      } catch (error) {
+        const mensaje = error.response?.data?.msg || 'No se pudieron eliminar las existencias en cero'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.eliminandoCero = false
+      }
     },
 
     abrirSelectorCsv() {
