@@ -175,6 +175,11 @@ const routes = [
         name: 'AjusteNuevo',
         component: () => import('@/views/InformesInventario/AjusteForm.vue')
       },
+      {
+        path: 'informes-inventario/cambio-bodega',
+        name: 'CambioBodega',
+        component: () => import('@/views/InformesInventario/CambioBodega.vue')
+      },
 
       // Informes en CSV
       {
