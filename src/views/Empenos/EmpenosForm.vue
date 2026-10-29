@@ -135,7 +135,19 @@
         <v-divider class="my-4" />
 
         <div class="mb-2 d-flex align-center justify-space-between ga-4">
-          <span class="text-subtitle-2">Artículos recibidos</span>
+          <div class="d-flex align-center ga-2">
+            <span class="text-subtitle-2">Artículos recibidos</span>
+            <!-- Crear un producto es solo de ADMINISTRADOR: a un vendedor el backend le responde 401. -->
+            <v-btn
+              v-if="esAdministrador"
+              size="small"
+              variant="tonal"
+              prepend-icon="mdi-plus"
+              @click="dialogProductoNuevo = true"
+            >
+              Producto
+            </v-btn>
+          </div>
           <div class="d-flex align-center ga-2">
             <span class="text-caption text-medium-emphasis">{{ lineas.length }} / 200</span>
             <v-btn
@@ -317,6 +329,11 @@
       :valor-inicial="filaActiva !== null && lineas[filaActiva] ? lineas[filaActiva].articuloNuevo : null"
       @guardar="onArticuloNuevoGuardado"
     />
+
+    <ProductoNuevoDialog
+      v-model="dialogProductoNuevo"
+      :id-empresa="idEmpresa"
+    />
   </v-container>
 </template>
 
@@ -327,6 +344,7 @@ import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
+import ProductoNuevoDialog from '@/views/Inventario/Productos/ProductoNuevoDialog.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 
@@ -336,7 +354,7 @@ const MAXIMO_CANTIDAD_12_4 = 99999999.9999
 export default {
   name: 'EmpenosForm',
 
-  components: { ClientesSeleccionar, ClientesFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog },
+  components: { ClientesSeleccionar, ClientesFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
 
   data() {
     return {
@@ -345,6 +363,7 @@ export default {
       clienteParaEditar: null,
       dialogArticulo: false,
       dialogArticuloNuevo: false,
+      dialogProductoNuevo: false,
       filaActiva: null,
       clienteSeleccionado: null,
       codigoContrato: '',
@@ -377,6 +396,9 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    esAdministrador() {
+      return this.authStore.rol === 'ADMINISTRADOR'
     },
     clienteTexto() {
       if (!this.clienteSeleccionado) return ''

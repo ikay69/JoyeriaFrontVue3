@@ -92,7 +92,7 @@
             prepend-icon="mdi-plus"
             @click="dialogProductoNuevo = true"
           >
-            Nuevo Producto
+            Producto
           </v-btn>
         </div>
 
