@@ -73,7 +73,8 @@
                 <th style="min-width: 140px">Bodega</th>
                 <th style="min-width: 170px">Bolsa</th>
                 <th class="text-end" style="min-width: 110px">Cantidad</th>
-                <th class="text-end" style="min-width: 140px">Costo</th>
+                <th class="text-end" style="min-width: 140px">Costo und</th>
+                <th class="text-end" style="min-width: 140px">Costo total</th>
               </tr>
             </thead>
             <tbody>
@@ -92,12 +93,68 @@
                 <td>{{ textoBolsa(mov.movBolsa) }}</td>
                 <td class="text-end">{{ formatearCantidad(mov.movCantidad) }}</td>
                 <td class="text-end">{{ formatearMoneda(mov.movCosto) }}</td>
+                <td class="text-end">{{ formatearMoneda(mov.movCosto * mov.movCantidad) }}</td>
               </tr>
             </tbody>
             <tfoot v-if="bloque.movimientos.length">
               <tr>
                 <td colspan="4" class="text-end font-weight-medium">Total</td>
                 <td class="text-end font-weight-medium">{{ formatearMoneda(bloque.total) }}</td>
+              </tr>
+            </tfoot>
+          </v-table>
+        </div>
+      </v-card>
+
+      <v-card class="pa-6 mb-4" elevation="1">
+        <div class="text-subtitle-2 mb-3">Gastos de la orden</div>
+
+        <div style="overflow-x: auto;">
+          <v-table density="compact">
+            <thead>
+              <tr>
+                <th style="min-width: 150px">Fecha</th>
+                <th style="min-width: 160px">Tipo de gasto</th>
+                <th style="min-width: 240px">Descripción</th>
+                <th style="min-width: 130px">Método de pago</th>
+                <th class="text-end" style="min-width: 140px">Monto</th>
+                <th class="text-center" style="min-width: 110px">Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-if="!gastos.length">
+                <td colspan="6" class="text-center py-6 text-medium-emphasis">
+                  La orden no tiene gastos
+                </td>
+              </tr>
+              <tr v-for="gasto in gastos" :key="gasto.gasId">
+                <td>{{ formatearFechaHora(gasto.gasFecha) }}</td>
+                <td>{{ gasto.gasTipoGasto || '-' }}</td>
+                <td>
+                  {{ gasto.gasDescripcion || '-' }}
+                  <div v-if="!gastoActivo(gasto) && gasto.gasMotivoAnulacion" class="text-caption text-medium-emphasis">
+                    Anulado: {{ gasto.gasMotivoAnulacion }}
+                  </div>
+                </td>
+                <td>{{ textoMetodoPago(gasto.gasMetodoPago) }}</td>
+                <td class="text-end">{{ formatearMoneda(gasto.gasMonto) }}</td>
+                <td class="text-center">
+                  <v-chip :color="gastoActivo(gasto) ? 'success' : 'error'" size="small" variant="tonal">
+                    {{ gastoActivo(gasto) ? 'Activo' : 'Anulado' }}
+                  </v-chip>
+                </td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-end font-weight-medium">Total activos</td>
+                <td class="text-end font-weight-medium">{{ formatearMoneda(totalGastosActivos) }}</td>
+                <td></td>
+              </tr>
+              <tr>
+                <td colspan="4" class="text-end font-weight-medium">Total anulados</td>
+                <td class="text-end font-weight-medium">{{ formatearMoneda(totalGastosAnulados) }}</td>
+                <td></td>
               </tr>
             </tfoot>
           </v-table>
@@ -150,6 +207,20 @@ export default {
 
     movimientos() {
       return this.orden && Array.isArray(this.orden.movimientos) ? this.orden.movimientos : []
+    },
+
+    gastos() {
+      return this.orden && Array.isArray(this.orden.gastos) ? this.orden.gastos : []
+    },
+
+    // Activos y anulados vienen mezclados; gasEstado 1 = activo, 0 = anulado. Se suma en crudo
+    // y se redondea una sola vez al final.
+    totalGastosActivos() {
+      return this.sumarGastos(this.gastos.filter((g) => this.gastoActivo(g)))
+    },
+
+    totalGastosAnulados() {
+      return this.sumarGastos(this.gastos.filter((g) => !this.gastoActivo(g)))
     },
 
     // Producido (ENTRADA) primero, consumido (SALIDA) despues.
@@ -232,6 +303,20 @@ export default {
       } finally {
         this.actualizando = false
       }
+    },
+
+    gastoActivo(gasto) {
+      return gasto.gasEstado === 1 || gasto.gasEstado === true || gasto.gasEstado === '1'
+    },
+
+    sumarGastos(lista) {
+      return Math.round(lista.reduce((suma, g) => suma + (Number(g.gasMonto) || 0), 0) * 100) / 100
+    },
+
+    textoMetodoPago(valor) {
+      if (valor === 'EFECTIVO') return 'Efectivo'
+      if (valor === 'TRANSACCION') return 'Transacción'
+      return valor || '-'
     },
 
     textoBolsa(valor) {

@@ -209,9 +209,11 @@ export default {
       this.guardando = true
       try {
         const { data } = await productoService.create(payload)
-        await Swal.fire('Éxito', data.msg || 'Producto creado', 'success')
-        this.$emit('creado', await this.buscarCreado(payload.Nombre))
+        // Se cierra antes de avisar: esperar el aviso (y la busqueda del creado) con la
+        // ventanilla abierta la deja a la vista aunque el producto ya se guardo.
         this.cerrar()
+        Swal.fire('Éxito', data.msg || 'Producto creado', 'success')
+        this.$emit('creado', await this.buscarCreado(payload.Nombre))
       } catch (error) {
         // Los campos obligatorios y los ids mal formados llegan como errors[0].msg
         const mensaje = error.response?.data?.msg ||
