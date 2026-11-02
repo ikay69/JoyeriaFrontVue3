@@ -21,4 +21,9 @@ export default {
     // payload: { idEmpresa }
     return http.post('/tiposproducto/getactivastipoproducto', payload)
   },
+  eliminar(payload) {
+    // payload: { idEmpresa, idTipoProducto }
+    // Solo administrador. Borrado real; falla si algun producto usa el tipo
+    return http.post('/tiposproducto/deletetipoproducto', payload)
+  },
 }
