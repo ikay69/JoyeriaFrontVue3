@@ -36,5 +36,12 @@ export default {
     //   gastos: [{ idTipoGasto, Descripcion, Monto, MetodoPago }] }
     // ADMINISTRADOR y VENDEDOR. Maximo 100 articulos y 50 gastos. Todo o nada.
     return http.post('/existencia/cambiobodega', payload)
+  },
+  updateCosto(payload) {
+    // payload: { idEmpresa, idBodega, idArticulo, BolsaEstado, idPropietario, CostoUnitario, Observaciones }
+    // Solo administrador y es POST. Solo DISPONIBLE, RECIBIDO_DE_TALLER y EN_GARANTIA_EMPENO.
+    // idPropietario null con DISPONIBLE (un 0 se rechaza). Observaciones de 5 a 286 caracteres.
+    // Deja SALIDA y ENTRADA en el kardex con Motivo AJUSTE
+    return http.post('/existencia/updatecostoexistencia', payload)
   }
 }

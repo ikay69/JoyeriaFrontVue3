@@ -115,6 +115,7 @@
         <v-table class="tabla-listado" density="compact">
           <thead>
             <tr>
+              <th v-if="esAdministrador"></th>
               <th>SKU</th>
               <th style="min-width: 24ch;">Artículo</th>
               <th>Vender</th>
@@ -135,12 +136,12 @@
           </thead>
           <tbody>
             <tr v-if="cargando">
-              <td colspan="16" class="text-center py-6">
+              <td :colspan="cantidadColumnas" class="text-center py-6">
                 <v-progress-circular indeterminate color="primary" />
               </td>
             </tr>
             <tr v-else-if="!existencias.length">
-              <td colspan="16" class="text-center py-6 text-medium-emphasis">
+              <td :colspan="cantidadColumnas" class="text-center py-6 text-medium-emphasis">
                 No hay existencias para mostrar
               </td>
             </tr>
@@ -149,6 +150,18 @@
               :key="ex.existId"
               :class="{ 'fila-perdida': utilidad(ex) < 0 }"
             >
+              <td v-if="esAdministrador" class="text-center">
+                <!-- Solo las bolsas que llevan costo admiten el cambio -->
+                <v-btn
+                  icon="mdi-cash"
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  :title="llevaCosto(ex) ? 'Cambiar costo' : 'Esta existencia no lleva costo'"
+                  :disabled="!llevaCosto(ex)"
+                  @click="abrirDialogoCosto(ex)"
+                />
+              </td>
               <td>{{ ex.existSKU || '-' }}</td>
               <td>{{ ex.existArticuloNombre || '-' }}</td>
               <td>{{ textoSiNo(ex.existVender) }}</td>
@@ -185,6 +198,57 @@
         </v-btn>
       </div>
     </v-card>
+
+    <v-dialog v-model="dialogoCosto.abierto" max-width="520" :persistent="dialogoCosto.guardando">
+      <v-card v-if="dialogoCosto.existencia">
+        <v-card-title>Cambiar costo</v-card-title>
+        <v-card-text>
+          <div class="mb-4 text-body-2">
+            <div><strong>{{ dialogoCosto.existencia.existSKU }}</strong> · {{ dialogoCosto.existencia.existArticuloNombre }}</div>
+            <div>
+              {{ dialogoCosto.existencia.existBodegaNombre }} · {{ formatearBolsa(dialogoCosto.existencia.existBolsa) }}
+              <span v-if="dialogoCosto.existencia.existPropietarioNombre">
+                · {{ dialogoCosto.existencia.existPropietarioNombre }}
+              </span>
+            </div>
+            <div>Cantidad: {{ dialogoCosto.existencia.existCantidad }}</div>
+            <div>Costo actual: {{ formatearMoneda(dialogoCosto.existencia.existCosto) }}</div>
+          </div>
+
+          <v-text-field
+            v-model="dialogoCosto.costo"
+            label="Costo unitario nuevo"
+            type="number"
+            min="0"
+            prefix="$"
+            variant="outlined"
+            density="comfortable"
+          />
+          <v-textarea
+            v-model="dialogoCosto.observaciones"
+            label="Observaciones"
+            maxlength="286"
+            counter="286"
+            rows="3"
+            auto-grow
+            variant="outlined"
+            density="comfortable"
+          />
+          <div class="text-caption text-medium-emphasis">
+            Queda en el kardex como una salida y una entrada de todas las unidades.
+          </div>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn variant="text" :disabled="dialogoCosto.guardando" @click="dialogoCosto.abierto = false">
+            Cancelar
+          </v-btn>
+          <v-btn color="primary" variant="flat" :loading="dialogoCosto.guardando" @click="guardarCosto">
+            Guardar
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -207,6 +271,9 @@ const RESUMEN_BOLSAS = [
   { valor: 'EN_REPARACION', texto: 'En reparación' }
 ]
 
+// Las unicas bolsas que guardan costo y que acepta /updatecostoexistencia
+const BOLSAS_CON_COSTO = ['DISPONIBLE', 'RECIBIDO_DE_TALLER', 'EN_GARANTIA_EMPENO']
+
 export default {
   name: 'Existencias',
   data() {
@@ -217,6 +284,14 @@ export default {
       existencias: [],
       cantData: 0,
       pagina: 1,
+
+      dialogoCosto: {
+        abierto: false,
+        guardando: false,
+        existencia: null,
+        costo: '',
+        observaciones: ''
+      },
 
       bodegas: [{ Id: 0, Nombre: 'Todas' }],
       cargandoBodegas: false,
@@ -249,6 +324,9 @@ export default {
     },
     totalPaginas() {
       return Math.max(1, Math.ceil(this.cantData / 50))
+    },
+    cantidadColumnas() {
+      return this.esAdministrador ? 17 : 16
     },
     // Una linea por bolsa, en el mismo orden que ExistenciaProducto y ExistenciaArticulo.
     totalesExistencia() {
@@ -360,6 +438,61 @@ export default {
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.eliminandoCero = false
+      }
+    },
+
+    llevaCosto(ex) {
+      return BOLSAS_CON_COSTO.includes(String(ex.existBolsa || '').trim().toUpperCase())
+    },
+
+    abrirDialogoCosto(ex) {
+      this.dialogoCosto = {
+        abierto: true,
+        guardando: false,
+        existencia: ex,
+        costo: ex.existCosto != null ? String(Number(ex.existCosto)) : '',
+        observaciones: ''
+      }
+    },
+
+    async guardarCosto() {
+      const ex = this.dialogoCosto.existencia
+      const costoTexto = String(this.dialogoCosto.costo ?? '').trim()
+      const costo = Number(costoTexto)
+      const observaciones = String(this.dialogoCosto.observaciones || '').trim()
+
+      if (costoTexto === '' || !Number.isFinite(costo) || costo < 0) {
+        Swal.fire('Atención', 'El costo unitario debe ser un número mayor o igual a 0', 'warning')
+        return
+      }
+      if (observaciones.length < 5 || observaciones.length > 286) {
+        Swal.fire('Atención', 'Las observaciones deben tener entre 5 y 286 caracteres', 'warning')
+        return
+      }
+
+      const bolsa = String(ex.existBolsa).trim().toUpperCase()
+      this.dialogoCosto.guardando = true
+      try {
+        const { data } = await existenciaService.updateCosto({
+          idEmpresa: this.idEmpresa,
+          idBodega: ex.existBodegaId,
+          idArticulo: ex.existArticuloId,
+          BolsaEstado: bolsa,
+          // DISPONIBLE va sin propietario; las otras dos lo exigen
+          idPropietario: bolsa === 'DISPONIBLE' ? null : ex.existPropietarioId,
+          CostoUnitario: costo,
+          Observaciones: observaciones
+        })
+        this.dialogoCosto.abierto = false
+        await Swal.fire('Listo', data?.msg || 'Costo actualizado', 'success')
+        this.buscar(this.pagina)
+      } catch (error) {
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo actualizar el costo'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.dialogoCosto.guardando = false
       }
     },
 
