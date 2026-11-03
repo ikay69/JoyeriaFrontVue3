@@ -376,22 +376,53 @@ const routes = [
         props: true
       },
       {
-        path: 'contabilidad/estado-cuenta-tercero',
-        name: 'EstadoCuentaTercero',
+        path: 'contabilidad/cuentas-por-cobrar',
+        name: 'CuentasPorCobrar',
         component: () =>
-          import('@/views/Contabilidad/EstadoCuentaTercero/EstadoCuentaTercero.vue')
+          import('@/views/Contabilidad/Cuentas/CuentasPorCobrarList.vue')
+      },
+      // CuentaForm sirve para los dos tipos: la ruta le pasa el tipo como prop
+      {
+        path: 'contabilidad/cuentas-por-cobrar/nuevo',
+        name: 'CuentasPorCobrarNuevo',
+        component: () => import('@/views/Contabilidad/Cuentas/CuentaForm.vue'),
+        props: { tipo: 'POR_COBRAR' }
       },
       {
-        path: 'contabilidad/estado-cuenta-tercero/por-cobrar',
-        name: 'EstadoCuentaPorCobrar',
-        component: () =>
-          import('@/views/Contabilidad/EstadoCuentaTercero/EstadoCuentaPorCobrar.vue')
+        path: 'contabilidad/cuentas-por-cobrar/:EmpId/:EstcueId/editar',
+        name: 'CuentasPorCobrarEditar',
+        component: () => import('@/views/Contabilidad/Cuentas/CuentaForm.vue'),
+        props: (route) => ({ ...route.params, tipo: 'POR_COBRAR' })
       },
       {
-        path: 'contabilidad/estado-cuenta-tercero/por-pagar',
-        name: 'EstadoCuentaPorPagar',
+        path: 'contabilidad/cuentas-por-cobrar-sistema',
+        name: 'CuentasPorCobrarSistema',
         component: () =>
-          import('@/views/Contabilidad/EstadoCuentaTercero/EstadoCuentaPorPagar.vue')
+          import('@/views/Contabilidad/EstadoCuentasSistema/EstadoCuentaPorCobrar.vue')
+      },
+      {
+        path: 'contabilidad/cuentas-por-pagar-sistema',
+        name: 'CuentasPorPagarSistema',
+        component: () =>
+          import('@/views/Contabilidad/EstadoCuentasSistema/EstadoCuentaPorPagar.vue')
+      },
+      {
+        path: 'contabilidad/cuentas-por-pagar',
+        name: 'CuentasPorPagar',
+        component: () =>
+          import('@/views/Contabilidad/Cuentas/CuentasPorPagarList.vue')
+      },
+      {
+        path: 'contabilidad/cuentas-por-pagar/nuevo',
+        name: 'CuentasPorPagarNuevo',
+        component: () => import('@/views/Contabilidad/Cuentas/CuentaForm.vue'),
+        props: { tipo: 'POR_PAGAR' }
+      },
+      {
+        path: 'contabilidad/cuentas-por-pagar/:EmpId/:EstcueId/editar',
+        name: 'CuentasPorPagarEditar',
+        component: () => import('@/views/Contabilidad/Cuentas/CuentaForm.vue'),
+        props: (route) => ({ ...route.params, tipo: 'POR_PAGAR' })
       },
 
       // Administracion
