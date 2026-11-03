@@ -231,11 +231,11 @@ export default {
 
         // Si el tipo de producto ya no está activo, lo agregamos igual
         // para que el combo lo muestre seleccionado correctamente.
-        const existeTipo = this.tiposProducto.some((tp) => tp.tipDocId === data.data.proTipoProductoId)
+        const existeTipo = this.tiposProducto.some((tp) => tp.tipProId === data.data.proTipoProductoId)
         if (!existeTipo) {
           this.tiposProducto.push({
-            tipDocId: data.data.proTipoProductoId,
-            tipDocNombre: data.data.proTipoProductoNombre
+            tipProId: data.data.proTipoProductoId,
+            tipProNombre: data.data.proTipoProductoNombre
           })
         }
 

@@ -60,7 +60,7 @@
             <th>Estado</th>
             <th>Fecha de creación</th>
             <th>Usuario</th>
-            <th class="text-center">Editar</th>
+            <th class="text-center"></th>
           </tr>
         </thead>
         <tbody>
@@ -85,6 +85,7 @@
             <td>{{ tp.tipProUsuario }}</td>
             <td class="text-center">
               <v-btn icon="mdi-pencil" size="small" variant="text" @click="irAEditar(tp.tipProEmp, tp.tipProId)" />
+              <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="eliminar(tp)" />
             </td>
           </tr>
         </tbody>
@@ -185,6 +186,33 @@ export default {
 
     irAEditar(EmpId, TipProId) {
       this.$router.push({ name: 'TipoProductosEditar', params: { EmpId, TipProId } })
+    },
+
+    async eliminar(tp) {
+      // Borrado real: el backend lo rechaza si algun producto (activo o inactivo) usa el tipo
+      const confirmacion = await Swal.fire({
+        title: 'Eliminar tipo de producto',
+        text: `¿Desea eliminar el tipo de producto ${tp.tipProNombre}? Esta acción no se puede deshacer`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar'
+      })
+      if (!confirmacion.isConfirmed) return
+
+      try {
+        const { data } = await tipoProductoService.eliminar({
+          idEmpresa: tp.tipProEmp,
+          idTipoProducto: tp.tipProId
+        })
+        await Swal.fire('Éxito', data.msg || 'Tipo de producto eliminado', 'success')
+        this.buscar(this.pagina)
+      } catch (error) {
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo eliminar el tipo de producto'
+        Swal.fire('Error', mensaje, 'error')
+      }
     },
 
     formatearFecha(fecha) {
