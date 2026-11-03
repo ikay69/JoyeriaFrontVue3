@@ -131,9 +131,10 @@
             <v-list-item v-bind="props" prepend-icon="mdi-book-open-variant" title="Contabilidad" />
           </template>
           <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" />
-          <v-list-item :to="{ name: 'EstadoCuentaTercero' }" title="Estado de cuenta por tercero" class="bg-red text-white"/>
-          <v-list-item :to="{ name: 'EstadoCuentaPorCobrar' }" title="Estado de cuenta por cobrar" class="bg-red text-white"/>
-          <v-list-item :to="{ name: 'EstadoCuentaPorPagar' }" title="Estado de cuenta por pagar" class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'CuentasPorCobrar' }" title="Cuentas por cobrar" />
+          <v-list-item :to="{ name: 'CuentasPorPagar' }" title="Cuentas por pagar" />
+          <v-list-item :to="{ name: 'CuentasPorCobrarSistema' }" title="Cuentas por cobrar sistema" />
+          <v-list-item :to="{ name: 'CuentasPorPagarSistema' }" title="Cuentas por pagar sistema" />
         </v-list-group>
 
         <v-list-group value="administracion">
