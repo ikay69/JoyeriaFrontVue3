@@ -2,7 +2,8 @@ import http from '@/services/http'
 
 export default {
   getAll(payload) {
-    // payload: { idEmpresa, pagina, fechaInicio, fechaFin, textoFiltro }
+    // payload: { idEmpresa, pagina, fechaInicio, fechaFin, textoFiltro, estadoFiltro }
+    // estadoFiltro: 0 todas, 1 activas, 2 anuladas (numerico; null o texto se rechazan)
     // OJO: este listado NO acepta campoOrdenar ni orden, a diferencia de los otros once. Por eso
     // la pantalla no tiene esos dos v-select: no es un olvido al copiar el patron.
     // fechaInicio y fechaFin son AAAA-MM-DD o null; textoFiltro, 255 caracteres.
@@ -27,5 +28,11 @@ export default {
     // Es PUT. Observaciones es obligatoria (no se puede dejar vacia), maximo 300 caracteres despues
     // de recortar. Admin y vendedor: es la unica ruta de produccion que el vendedor puede llamar.
     return http.put('/produccion/updateobservacionorden', payload)
+  },
+  anular(payload) {
+    // payload: { idEmpresa, idOrden, MotivoAnulacion }
+    // Es PUT y SOLO ADMINISTRADOR. MotivoAnulacion de 5 a 255 caracteres ya recortado.
+    // No revierte inventario ni gastos, y una orden anulada no se reactiva.
+    return http.put('/produccion/anularorden', payload)
   }
 }

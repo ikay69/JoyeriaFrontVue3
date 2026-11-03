@@ -20,5 +20,10 @@ export default {
   getActivas(payload) {
     // payload: { idEmpresa }
     return http.post('/bodega/getactivasbodega', payload)
+  },
+  eliminar(payload) {
+    // payload: { idEmpresa, idBodega }
+    // Borrado real, SOLO ADMINISTRADOR. Solo borra una bodega que nunca se uso
+    return http.post('/bodega/deletebodega', payload)
   }
 }
