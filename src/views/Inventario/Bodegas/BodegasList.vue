@@ -85,6 +85,7 @@
             <td>{{ bod.bodUsuario }}</td>
             <td class="text-center">
               <v-btn icon="mdi-pencil" size="small" variant="text" @click="irAEditar(bod.bodEmp, bod.bodId)" />
+              <v-btn icon="mdi-delete" size="small" variant="text" color="error" title="Eliminar" @click="eliminar(bod)" />
             </td>
           </tr>
         </tbody>
@@ -185,6 +186,31 @@ export default {
 
     irAEditar(EmpId, BodId) {
       this.$router.push({ name: 'BodegasEditar', params: { EmpId, BodId } })
+    },
+
+    async eliminar(bod) {
+      const confirmacion = await Swal.fire({
+        title: '¿Eliminar la bodega?',
+        text: `Se eliminará "${bod.bodNombre}" y no se puede deshacer. Solo se puede eliminar una bodega que nunca se usó; si no, desactívela.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c62828'
+      })
+      if (!confirmacion.isConfirmed) return
+
+      try {
+        // La empresa sale de la fila, no del selector
+        const { data } = await bodegaService.eliminar({ idEmpresa: bod.bodEmp, idBodega: bod.bodId })
+        await Swal.fire('Éxito', data.msg || 'Bodega eliminada', 'success')
+        this.buscar(this.pagina)
+      } catch (error) {
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo eliminar la bodega'
+        Swal.fire('Error', mensaje, 'error')
+      }
     },
 
     formatearFecha(fecha) {

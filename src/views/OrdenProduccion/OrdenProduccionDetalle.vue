@@ -3,11 +3,32 @@
     <div class="d-flex align-center ga-3 mb-4">
       <v-btn icon="mdi-arrow-left" variant="tonal" size="small" @click="$router.back()" />
       <div class="flex-grow-1">
-        <h1 class="text-h5">Orden de producción {{ orden ? '#' + orden.ordId : '' }}</h1>
+        <h1 class="text-h5">
+          Orden de producción {{ orden ? '#' + orden.ordId : '' }}
+          <v-chip
+            v-if="orden"
+            :color="activa ? 'success' : 'error'"
+            size="small"
+            variant="tonal"
+            class="ml-2"
+          >
+            {{ activa ? 'Activa' : 'Anulada' }}
+          </v-chip>
+        </h1>
         <p class="text-body-2 text-medium-emphasis mb-0">
-          Una orden de producción no se anula ni se modifica: solo se puede editar su observación.
+          Una orden de producción no se modifica: solo se puede editar su observación o anularla.
         </p>
       </div>
+      <!-- Anular es SOLO ADMINISTRADOR, y una orden anulada no se reactiva ni se vuelve a anular -->
+      <v-btn
+        v-if="orden && activa && esAdministrador"
+        color="error"
+        prepend-icon="mdi-cancel"
+        :loading="anulando"
+        @click="anularOrden"
+      >
+        Anular
+      </v-btn>
     </div>
 
     <div v-if="cargando" class="text-center py-12">
@@ -15,6 +36,17 @@
     </div>
 
     <template v-else-if="orden">
+      <v-alert v-if="!activa" type="error" variant="tonal" class="mb-4">
+        <div class="font-weight-medium">Orden anulada</div>
+        <div>Motivo: {{ orden.ordMotivoAnulacion || '-' }}</div>
+        <div class="text-caption">
+          {{ formatearFechaHora(orden.ordFechaAnulacion) }} · {{ orden.ordUsuarioAnulador || '-' }}
+        </div>
+        <div class="text-caption mt-1">
+          El inventario y los gastos de la orden no se revierten al anular.
+        </div>
+      </v-alert>
+
       <v-card class="pa-6 mb-4" elevation="1">
         <div class="text-subtitle-2 mb-3">Cabecera</div>
         <v-row dense>
@@ -167,6 +199,7 @@
 <script>
 import Swal from 'sweetalert2'
 import produccionService from '@/services/produccionService'
+import { useAuthStore } from '@/stores/auth'
 
 // Las mismas dos bolsas del formulario, para que el detalle no diga RECIBIDO_DE_TALLER donde el
 // alta dice "Recibido de taller".
@@ -183,11 +216,22 @@ export default {
       orden: null,
       cargando: false,
       observaciones: '',
-      actualizando: false
+      actualizando: false,
+      anulando: false
     }
   },
 
   computed: {
+    esAdministrador() {
+      return useAuthStore().rol === 'ADMINISTRADOR'
+    },
+
+    // ordEstado: 1 activa, 0 anulada
+    activa() {
+      const estado = this.orden?.ordEstado
+      return estado === 1 || estado === true || estado === '1'
+    },
+
     // De la URL, NO del store: el selector de empresa vive en un v-app-bar persistente que no
     // navega, asi que si el usuario lo cambia con el detalle abierto, la consulta tiene que
     // seguir apuntando a la empresa de ESTA orden. Por eso tampoco hay watch sobre la empresa.
@@ -306,6 +350,49 @@ export default {
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.actualizando = false
+      }
+    },
+
+    async anularOrden() {
+      if (this.anulando) return
+
+      const { isConfirmed, value } = await Swal.fire({
+        title: `¿Anular la orden #${this.idOrden}?`,
+        text: 'El inventario y los gastos NO se revierten: ajústelos manualmente si corresponde. Una orden anulada no se puede reactivar.',
+        icon: 'warning',
+        input: 'textarea',
+        inputLabel: 'Motivo de anulación',
+        inputAttributes: { maxlength: 255 },
+        showCancelButton: true,
+        confirmButtonText: 'Anular',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c62828',
+        inputValidator: (valor) => {
+          const texto = String(valor || '').trim()
+          if (texto.length < 5) return 'El motivo debe tener al menos 5 caracteres'
+          if (texto.length > 255) return 'El motivo no puede superar los 255 caracteres'
+          return null
+        }
+      })
+      if (!isConfirmed) return
+
+      this.anulando = true
+      try {
+        const { data } = await produccionService.anular({
+          idEmpresa: this.idEmpresa,
+          idOrden: this.idOrden,
+          MotivoAnulacion: String(value).trim()
+        })
+        await Swal.fire('Orden anulada', data.msg || 'Orden de producción anulada', 'success')
+        // Se recarga para traer el motivo, la fecha y el usuario de la anulacion
+        await this.cargar()
+      } catch (error) {
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo anular la orden de producción'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.anulando = false
       }
     },
 

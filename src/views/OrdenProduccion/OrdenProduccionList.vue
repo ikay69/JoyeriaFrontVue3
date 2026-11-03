@@ -8,13 +8,13 @@
     </div>
 
     <!--
-      Solo tres filtros: este endpoint NO acepta campoOrdenar ni orden, a diferencia de los otros
-      once listados. Poner esos dos v-select aqui mostraria al usuario unos controles que no
-      viajan en la peticion.
+      Este endpoint NO acepta campoOrdenar ni orden, a diferencia de los otros once listados.
+      Poner esos dos v-select aqui mostraria al usuario unos controles que no viajan en la
+      peticion.
     -->
     <v-card class="pa-4 mb-4" elevation="1">
       <v-row dense align="center">
-        <v-col cols="12" sm="4">
+        <v-col cols="12" sm="3">
           <v-text-field
             v-model="filtros.textoFiltro"
             label="Buscar"
@@ -26,7 +26,7 @@
             hide-details="auto"
           />
         </v-col>
-        <v-col cols="6" sm="3">
+        <v-col cols="6" sm="2">
           <v-text-field
             v-model="filtros.fechaInicio"
             label="Fecha inicio"
@@ -37,12 +37,24 @@
             hide-details
           />
         </v-col>
-        <v-col cols="6" sm="3">
+        <v-col cols="6" sm="2">
           <v-text-field
             v-model="filtros.fechaFin"
             label="Fecha fin"
             type="date"
             clearable
+            density="compact"
+            variant="outlined"
+            hide-details
+          />
+        </v-col>
+        <v-col cols="12" sm="3">
+          <v-select
+            v-model="filtros.estadoFiltro"
+            :items="opcionesEstadoFiltro"
+            item-title="texto"
+            item-value="valor"
+            label="Estado"
             density="compact"
             variant="outlined"
             hide-details
@@ -64,17 +76,18 @@
               <th style="min-width: 90px">Orden</th>
               <th style="min-width: 150px">Fecha</th>
               <th>Observaciones</th>
+              <th class="text-center" style="width: 110px">Estado</th>
               <th class="text-center" style="width: 90px">Detalle</th>
             </tr>
           </thead>
           <tbody>
             <tr v-if="cargando">
-              <td colspan="4" class="text-center py-6">
+              <td colspan="5" class="text-center py-6">
                 <v-progress-circular indeterminate color="primary" />
               </td>
             </tr>
             <tr v-else-if="!ordenes.length">
-              <td colspan="4" class="text-center py-6 text-medium-emphasis">
+              <td colspan="5" class="text-center py-6 text-medium-emphasis">
                 No hay registros para mostrar
               </td>
             </tr>
@@ -87,6 +100,11 @@
                 </div>
               </td>
               <td>{{ ord.ordObservaciones || '-' }}</td>
+              <td class="text-center">
+                <v-chip :color="ordenActiva(ord) ? 'success' : 'error'" size="small" variant="tonal">
+                  {{ ordenActiva(ord) ? 'Activa' : 'Anulada' }}
+                </v-chip>
+              </td>
               <td class="text-center">
                 <v-btn
                   icon="mdi-eye"
@@ -143,8 +161,14 @@ export default {
         textoFiltro: '',
         // Arranca en el mes en curso: del dia 1 a hoy.
         fechaInicio: aFechaIso(new Date(hoy.getFullYear(), hoy.getMonth(), 1)),
-        fechaFin: aFechaIso(hoy)
-      }
+        fechaFin: aFechaIso(hoy),
+        estadoFiltro: 0
+      },
+      opcionesEstadoFiltro: [
+        { valor: 0, texto: 'Todas' },
+        { valor: 1, texto: 'Activas' },
+        { valor: 2, texto: 'Anuladas' }
+      ]
     }
   },
 
@@ -199,13 +223,16 @@ export default {
           // Vacio o null es "sin cota por ese lado", y las dos cotas son independientes.
           fechaInicio: this.filtros.fechaInicio || null,
           fechaFin: this.filtros.fechaFin || null,
-          textoFiltro: this.filtros.textoFiltro || ''
+          textoFiltro: this.filtros.textoFiltro || '',
+          estadoFiltro: this.filtros.estadoFiltro
         })
         this.ordenes = data.data || []
         this.cantData = data.cantData || 0
         this.pagina = pagina
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo consultar las órdenes de producción'
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudo consultar las órdenes de producción'
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cargando = false
@@ -223,6 +250,11 @@ export default {
         name: 'OrdenProduccionDetalle',
         params: { EmpId: ord.ordEmpId || this.idEmpresa, OrdId: ord.ordId }
       })
+    },
+
+    // ordEstado: 1 activa, 0 anulada
+    ordenActiva(ord) {
+      return ord.ordEstado === 1 || ord.ordEstado === true || ord.ordEstado === '1'
     },
 
     formatearFecha(valor) {
