@@ -14,7 +14,9 @@ export default {
     return http.post('/empresa/getempresaid', payload)
   },
   update(payload) {
-    // payload: { idEmpresa, passEmpresa, Nombre, TipoDocumento, NumeroDocumento, Celular, Telefono, Email, Direccion }
+    // payload: { idEmpresa, passEmpresa, Nombre, TipoDocumento, NumeroDocumento, Celular, Telefono, Email, Direccion,
+    //            Whatsapp, Instagram, Twitter, Facebook, Youtube }
+    // Reemplaza la ficha completa: lo que no se manda queda en null
     return http.put('/empresa/updateempresa', payload)
   },
   cambiarClave(payload) {

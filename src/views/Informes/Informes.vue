@@ -144,6 +144,7 @@ import movimientoCajaService from '@/services/movimientoCajaService'
 import movimientoService from '@/services/movimientoService'
 import existenciaService from '@/services/existenciaService'
 import bodegaService from '@/services/bodegaService'
+import terceroService from '@/services/terceroService'
 import { useAuthStore } from '@/stores/auth'
 import { descargarCsv } from '@/utils/descargarCsv'
 import ProductosSeleccionar from '@/views/Inventario/Productos/ProductosSeleccionar.vue'
@@ -250,7 +251,15 @@ const INFORMES = [
     nombreArchivo: () => `existencias_${aFechaIso(new Date())}.csv`
   },
   { valor: 'KARDEXARTICULO', texto: 'Kardex por artículo', usaFechas: false, usaProducto: false, descargar: null },
-  { valor: 'KARDESPRODUCTO', texto: 'Kardex por producto', usaFechas: false, usaProducto: true, descargar: null }
+  { valor: 'KARDESPRODUCTO', texto: 'Kardex por producto', usaFechas: false, usaProducto: true, descargar: null },
+  {
+    valor: 'TERCEROS',
+    texto: 'Terceros',
+    usaFechas: false,
+    usaProducto: false,
+    descargar: ({ idEmpresa }) => terceroService.exportarCsv({ idEmpresa }),
+    nombreArchivo: () => `terceros_${aFechaIso(new Date())}.csv`
+  }
 ]
 
 export default {
