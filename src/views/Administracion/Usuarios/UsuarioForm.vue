@@ -43,11 +43,11 @@
           :type="mostrarPassword ? 'text' : 'password'"
           :append-inner-icon="mostrarPassword ? 'mdi-eye-off' : 'mdi-eye'"
           @click:append-inner="mostrarPassword = !mostrarPassword"
-          maxlength="10"
-          counter="10"
-          hint="Solo letras y números, sin espacios ni acentos"
+          maxlength="15"
+          counter="15"
+          hint="Letras (sin acentos ni Ñ), números y . ! = # $ @ ¡ - _, sin espacios"
           persistent-hint
-          :rules="[reglas.requerido, reglas.maxPassword, reglas.soloAlfanumerico]"
+          :rules="[reglas.requerido, reglas.maxPassword, reglas.passPermitida]"
           variant="outlined"
           class="mb-2 mt-2"
         />
@@ -73,6 +73,28 @@
           variant="outlined"
           class="mb-2"
         />
+
+        <v-alert
+          v-if="esEdicion && !estado"
+          type="warning"
+          variant="tonal"
+          density="compact"
+          class="mb-4"
+        >
+          El estado del usuario es global: al desactivarlo no podrá entrar en ninguna de sus
+          empresas, no solo en esta.
+        </v-alert>
+
+        <v-alert
+          v-if="esEdicion && dejaDeSerAdministrador"
+          type="warning"
+          variant="tonal"
+          density="compact"
+          class="mb-4"
+        >
+          Este usuario dejará de ser administrador en todas sus empresas. Cada una de ellas debe
+          tener otro administrador activo; si no, el cambio será rechazado.
+        </v-alert>
 
         <div v-if="esEdicion && fechaCreacion" class="mb-4">
           <div class="text-caption text-medium-emphasis" style="font-size: 11px;">
@@ -102,18 +124,23 @@
     </v-card>
 
     <v-card v-if="esEdicion" class="pa-6 mt-4" max-width="560" elevation="1">
-      <h2 class="text-subtitle-1 mb-4">Cambiar contraseña</h2>
+      <h2 class="text-subtitle-1 mb-2">Cambiar contraseña</h2>
+      <p class="text-body-2 text-medium-emphasis mb-4">
+        Para confirmar el cambio escribe <strong>tu</strong> contraseña (la del usuario con el que
+        iniciaste sesión), aunque estés cambiando la de otro usuario. La contraseña nueva aplica en
+        todas las empresas del usuario.
+      </p>
       <v-form ref="passForm" @submit.prevent="cambiarPassword">
         <v-row dense align="center">
           <v-col cols="12" sm="5">
             <v-text-field
               v-model="passwordActual"
-              label="Contraseña actual"
+              label="Tu contraseña"
               :type="mostrarPasswordActual ? 'text' : 'password'"
               :append-inner-icon="mostrarPasswordActual ? 'mdi-eye-off' : 'mdi-eye'"
               @click:append-inner="mostrarPasswordActual = !mostrarPasswordActual"
-              maxlength="10"
-              :rules="[reglas.requerido, reglas.maxPassword, reglas.soloAlfanumerico]"
+              maxlength="15"
+              :rules="[reglas.requerido, reglas.maxPassword, reglas.passPermitida]"
               variant="outlined"
               hide-details="auto"
             />
@@ -125,8 +152,8 @@
               :type="mostrarPasswordNueva ? 'text' : 'password'"
               :append-inner-icon="mostrarPasswordNueva ? 'mdi-eye-off' : 'mdi-eye'"
               @click:append-inner="mostrarPasswordNueva = !mostrarPasswordNueva"
-              maxlength="10"
-              :rules="[reglas.requerido, reglas.maxPassword, reglas.soloAlfanumerico]"
+              maxlength="15"
+              :rules="[reglas.requerido, reglas.maxPassword, reglas.passPermitida]"
               variant="outlined"
               hide-details="auto"
             />
@@ -160,6 +187,7 @@ export default {
       apellidos: '',
       usuario: '',
       rol: null,
+      rolOriginal: null,
       estado: true,
       password: '',
       mostrarPassword: false,
@@ -188,8 +216,11 @@ export default {
         requerido: (v) => !!v || 'Campo obligatorio',
         maxNombre: (v) => (v ? v.length <= 150 : true) || 'Máximo 150 caracteres',
         maxUsuario: (v) => (v ? v.length <= 50 : true) || 'Máximo 50 caracteres',
-        maxPassword: (v) => (v ? v.length <= 10 : true) || 'Máximo 10 caracteres',
-        soloAlfanumerico: (v) => /^[a-zA-Z0-9]+$/.test(v || '') || 'Solo letras y números, sin espacios ni acentos'
+        maxPassword: (v) => (v ? v.length <= 15 : true) || 'Máximo 15 caracteres',
+        soloAlfanumerico: (v) => /^[a-zA-Z0-9]+$/.test(v || '') || 'Solo letras y números, sin espacios ni acentos',
+        passPermitida: (v) =>
+          /^[a-zA-Z0-9.!=#$@¡_-]+$/.test(v || '') ||
+          'Solo letras (sin acentos ni Ñ), números y . ! = # $ @ ¡ - _, sin espacios'
       }
     }
   },
@@ -211,6 +242,11 @@ export default {
 
     idUsuario() {
       return Number(this.$route.params.UsuId)
+    },
+
+    // al quitarle el rol o desactivarlo, el backend exige otro administrador en cada empresa
+    dejaDeSerAdministrador() {
+      return this.rolOriginal === 'ADMINISTRADOR' && (this.rol !== 'ADMINISTRADOR' || !this.estado)
     },
 
     fechaCreacionFormateada() {
@@ -246,11 +282,12 @@ export default {
         this.apellidos = u.usuApellido
         this.usuario = u.usuUsuario
         this.rol = u.usuRol
+        this.rolOriginal = u.usuRol
         this.estado = u.usuEstado === 1
         this.fechaCreacion = u.usuFecCreacion
         this.empresas = data.data.empresas || []
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo cargar el usuario'
+        const mensaje = this.mensajeError(error, 'No se pudo cargar el usuario')
         await Swal.fire('Error', mensaje, 'error')
         this.cancelar()
       } finally {
@@ -272,7 +309,8 @@ export default {
             apellidos: this.apellidos,
             user: this.usuario,
             rol: this.rol,
-            estado: this.estado
+            // updateuser solo acepta true/false booleano (1/0 o "true" -> "Estado invalido")
+            estado: this.estado === true
           })
           await Swal.fire('Éxito', data.msg || 'Datos actualizados', 'success')
         } else {
@@ -287,7 +325,7 @@ export default {
         }
         this.$router.back()
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'Ocurrió un error al guardar el usuario'
+        const mensaje = this.mensajeError(error, 'Ocurrió un error al guardar el usuario')
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.guardando = false
@@ -310,11 +348,16 @@ export default {
         this.passwordNueva = ''
         this.$refs.passForm.resetValidation()
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'No se pudo cambiar la contraseña'
+        const mensaje = this.mensajeError(error, 'No se pudo cambiar la contraseña')
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.cambiandoPassword = false
       }
+    },
+
+    // el backend responde {msg} o, con express-validator, {errors:[{msg}]}
+    mensajeError(error, porDefecto) {
+      return error.response?.data?.msg || error.response?.data?.errors?.[0]?.msg || porDefecto
     },
 
     cancelar() {

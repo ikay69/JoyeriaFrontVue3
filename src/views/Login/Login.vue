@@ -14,7 +14,8 @@
               v-model="nombre"
               label="Usuario"
               prepend-inner-icon="mdi-account"
-              :rules="[reglas.requerido]"
+              maxlength="50"
+              :rules="[reglas.requerido, reglas.soloAlfanumerico]"
               variant="outlined"
               density="comfortable"
               class="mb-2"
@@ -28,7 +29,8 @@
               :type="verPassword ? 'text' : 'password'"
               :append-inner-icon="verPassword ? 'mdi-eye-off' : 'mdi-eye'"
               @click:append-inner="verPassword = !verPassword"
-              :rules="[reglas.requerido]"
+              maxlength="15"
+              :rules="[reglas.requerido, reglas.passPermitida]"
               variant="outlined"
               density="comfortable"
               class="mb-2"
@@ -42,7 +44,8 @@
               :type="verClave ? 'text' : 'password'"
               :append-inner-icon="verClave ? 'mdi-eye-off' : 'mdi-eye'"
               @click:append-inner="verClave = !verClave"
-              :rules="[reglas.requerido]"
+              maxlength="10"
+              :rules="[reglas.requerido, reglas.soloAlfanumerico]"
               variant="outlined"
               density="comfortable"
               class="mb-4"
@@ -75,7 +78,13 @@ export default {
       verClave: false,
       cargando: false,
       reglas: {
-        requerido: (v) => !!v || 'Campo obligatorio'
+        requerido: (v) => !!v || 'Campo obligatorio',
+        // usuario y clave de empresa: solo letras sin tilde ni ñ y numeros (no distingue mayusculas)
+        soloAlfanumerico: (v) =>
+          /^[a-zA-Z0-9]*$/.test((v || '').trim()) || 'Solo letras y números, sin espacios ni acentos',
+        passPermitida: (v) =>
+          /^[a-zA-Z0-9.!=#$@¡_-]*$/.test((v || '').trim()) ||
+          'Solo letras (sin acentos ni Ñ), números y . ! = # $ @ ¡ - _, sin espacios'
       }
     }
   },
@@ -99,7 +108,11 @@ export default {
         this.authStore.setSession(data)
         this.$router.push({ name: 'Inicio' })
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'Usuario, contraseña o clave incorrectos'
+        // los campos vacios llegan con la forma de express-validator: errors[0].msg
+        const mensaje =
+          error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'Usuario, contraseña o clave incorrectos'
         Swal.fire('Error de inicio de sesión', mensaje, 'error')
       } finally {
         this.cargando = false

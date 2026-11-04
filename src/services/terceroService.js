@@ -58,5 +58,11 @@ export default {
     // payload: { idEmpresa, terceros: [{ tipoDocumento, numeroDocumento, nombre, apellidos, celular, tipo }] }
     // Maximo 200 filas, todo o nada
     return http.post('/tercero/importarterceros', payload)
+  },
+
+  exportarCsv(payload) {
+    // payload: { idEmpresa } (solo ADMINISTRADOR, sin filtros: todos los terceros)
+    // Responde un archivo CSV (blob); los errores llegan como JSON dentro del blob.
+    return http.post('/tercero/exportarterceroscsv', payload, { responseType: 'blob' })
   }
 }

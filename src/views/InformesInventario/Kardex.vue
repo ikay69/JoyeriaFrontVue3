@@ -116,12 +116,12 @@
             <td>{{ mov.movBodegaNombre }}</td>
             <td>{{ mov.movBolsa }}</td>
             <td>{{ mov.movPropietarioNombre || '-' }}</td>
-            <td>{{ mov.movCantidad }}</td>
-            <td>{{ mov.movCosto }}</td>
-            <td>{{ mov.movPrecioVentaTotal ?? '-' }}</td>
+            <td>{{ formatearCantidad(mov.movCantidad) }}</td>
+            <td>{{ formatearValor(mov.movCosto) }}</td>
+            <td>{{ formatearValor(mov.movPrecioVentaTotal) }}</td>
             <td>{{ mov.movMotivo }}</td>
             <td>{{ mov.movTipoOrigen }}</td>
-            <td>{{ mov.movSaldo }}</td>
+            <td>{{ formatearCantidad(mov.movSaldo) }}</td>
             <td class="text-center">
               <v-btn
                 icon="mdi-eye"
@@ -298,6 +298,26 @@ export default {
         name: 'KardexDetalle',
         params: { EmpId: mov.movEmpId, MovId: mov.movId }
       })
+    },
+
+    // es-CO: punto para los miles y coma para los decimales. Los numeros llegan como cadena
+    formatearNumero(valor, minimo, maximo) {
+      if (valor === null || valor === undefined || valor === '') return '-'
+      const numero = Number(valor)
+      if (!Number.isFinite(numero)) return String(valor)
+      return numero.toLocaleString('es-CO', {
+        minimumFractionDigits: minimo,
+        maximumFractionDigits: maximo
+      })
+    },
+
+    // La cantidad trae hasta 4 decimales (puede ser gramos)
+    formatearCantidad(valor) {
+      return this.formatearNumero(valor, 0, 4)
+    },
+
+    formatearValor(valor) {
+      return this.formatearNumero(valor, 2, 2)
     },
 
     formatearFecha(fecha) {
