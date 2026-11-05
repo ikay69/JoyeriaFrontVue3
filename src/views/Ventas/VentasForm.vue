@@ -67,6 +67,122 @@
           </v-col>
         </v-row>
 
+        <template v-if="esCredito">
+          <v-divider class="my-4" />
+          <div class="mb-2 text-subtitle-2">Condiciones del crédito</div>
+
+          <v-row dense>
+            <v-col cols="12" sm="4">
+              <v-number-input
+                v-model.number="numeroCuotas"
+                control-variant="hidden"
+                label="Número de cuotas"
+                type="number"
+                :min="1"
+                :max="MAX_CUOTAS"
+                step="1"
+                hint="Entre 1 y 24"
+                persistent-hint
+                variant="outlined"
+                density="comfortable"
+              />
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-number-input
+                v-model.number="valorCuota"
+                control-variant="hidden"
+                label="Valor de la cuota"
+                prefix="$"
+                type="number"
+                min="0"
+                step="0.01"
+                :disabled="cuotasEditadas"
+                :hint="cuotasEditadas ? 'Las cuotas tienen valores distintos' : ''"
+                persistent-hint
+                variant="outlined"
+                density="comfortable"
+                @update:model-value="sembrarCuotas"
+              />
+              <v-btn
+                v-if="cuotasEditadas"
+                variant="text"
+                size="small"
+                prepend-icon="mdi-undo"
+                class="mt-1"
+                @click="volverAValorUnico"
+              >
+                Volver a un valor único
+              </v-btn>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <v-text-field
+                v-model="fechaCompromiso"
+                label="Fecha de compromiso"
+                type="date"
+                :disabled="fechaCompromisoDeshabilitada"
+                :hint="fechaCompromisoDeshabilitada
+                  ? 'Con más de una cuota las fechas se registran en la tabla'
+                  : 'Obligatoria cuando hay una sola cuota'"
+                persistent-hint
+                variant="outlined"
+                density="comfortable"
+              />
+            </v-col>
+          </v-row>
+
+          <template v-if="cuotas.length">
+            <div class="mt-2 mb-2 d-flex align-center justify-space-between ga-4">
+              <span class="text-subtitle-2">Detalle de las cuotas</span>
+              <span class="text-subtitle-2">
+                Total cuotas:
+                <span class="font-weight-medium">{{ formatearMoneda(totalCuotas) }}</span>
+              </span>
+            </div>
+            <p class="text-caption text-medium-emphasis mb-2">
+              Las cuotas las pone quien financia con su propio interés: aquí sólo se transcriben.
+              Es normal que sumen más que el saldo. Cada cuota necesita valor y fecha, y las fechas
+              van en orden.
+            </p>
+            <v-table density="compact" class="mb-4 tabla-listado">
+              <thead>
+                <tr>
+                  <th style="width: 80px">N°</th>
+                  <th style="min-width: 150px">Valor</th>
+                  <th style="min-width: 170px">Fecha de pago</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="cuota in cuotas" :key="cuota.NumCuota">
+                  <td>{{ cuota.NumCuota }}</td>
+                  <td>
+                    <v-number-input
+                      v-model.number="cuota.ValorCuota"
+                      control-variant="hidden"
+                      prefix="$"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                      @update:model-value="onValorFilaEditado"
+                    />
+                  </td>
+                  <td>
+                    <v-text-field
+                      v-model="cuota.FechaPago"
+                      type="date"
+                      variant="outlined"
+                      density="compact"
+                      hide-details
+                    />
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </template>
+        </template>
+
         <div class="mt-4 mb-1 text-subtitle-2">Cliente</div>
         <div class="d-flex align-center ga-2">
           <v-btn
@@ -343,6 +459,8 @@ import ArticulosVender from '@/views/Inventario/Articulos/ArticulosVender.vue'
 
 const MAX_LINEAS = 200
 const MAX_DECIMAL_12_2 = 9999999999.99
+// /newventa admite de 1 a 24 cuotas en CREDITO
+const MAX_CUOTAS = 24
 
 export default {
   name: 'VentasForm',
@@ -376,6 +494,15 @@ export default {
       efectivo: 0,
       transaccion: 0,
       retiraInventario: false,
+
+      // datos de la venta a CREDITO (POR_ABONO y CONTADO no llevan cuotas)
+      MAX_CUOTAS,
+      numeroCuotas: 1,
+      valorCuota: null,
+      fechaCompromiso: null,
+      cuotas: [],
+      // true cuando se edito el valor de alguna fila: las cuotas ya no son iguales
+      cuotasEditadas: false,
 
       tiposVenta: [
         { valor: 'CONTADO', texto: 'Contado' },
@@ -434,12 +561,31 @@ export default {
     bodegaArticuloActiva() {
       if (this.filaActiva === null) return null
       return this.lineas[this.filaActiva]?.idBodega ?? null
+    },
+    esCredito() {
+      return this.tipoVenta === 'CREDITO'
+    },
+    // Con varias cuotas el backend ignora FechaCompromiso: las fechas van en el detalle
+    fechaCompromisoDeshabilitada() {
+      return Number(this.numeroCuotas) > 1
+    },
+    // Solo informativo: no se compara con el saldo
+    totalCuotas() {
+      return this.redondear(
+        this.cuotas.reduce((acumulado, cuota) => acumulado + (Number(cuota.ValorCuota) || 0), 0)
+      )
     }
   },
 
   watch: {
+    // Cada cambio de modalidad empieza el credito de cero: no deben viajar cuotas de un cambio
+    // de opinion (POR_ABONO y CONTADO con Cuotas responden 400).
     tipoVenta(valor) {
       if (valor === 'CONTADO') this.retiraInventario = false
+      this.limpiarCredito()
+    },
+    numeroCuotas() {
+      this.sincronizarCuotas()
     },
     idEmpresa() {
       this.reiniciarFormulario()
@@ -526,6 +672,7 @@ export default {
       this.efectivo = 0
       this.transaccion = 0
       this.retiraInventario = false
+      this.limpiarCredito()
       this.lineas = []
       this.siguienteClaveLinea = 1
       this.filaActiva = null
@@ -534,6 +681,131 @@ export default {
       this.clienteParaEditar = null
       this.dialogArticulo = false
       this.agregarLinea()
+    },
+
+    limpiarCredito() {
+      this.numeroCuotas = 1
+      this.valorCuota = null
+      this.fechaCompromiso = null
+      this.cuotas = []
+      this.cuotasEditadas = false
+    },
+
+    // La tabla existe solo con mas de una cuota: con una sola, el valor y la fecha van en la
+    // cabecera (ValorCuota y FechaCompromiso).
+    sincronizarCuotas() {
+      // Campo vacio = tecleo a medio camino: no se descarta el detalle ya cargado
+      if (this.numeroCuotas === '' || this.numeroCuotas === null || this.numeroCuotas === undefined) {
+        return
+      }
+      const cantidad = Number(this.numeroCuotas)
+      if (!Number.isInteger(cantidad)) return
+
+      if (cantidad === 1) {
+        this.cuotas = []
+        this.cuotasEditadas = false
+        return
+      }
+      // Fuera de rango no se reconstruye: validarCredito lo rechaza al guardar
+      if (cantidad < 2 || cantidad > MAX_CUOTAS) return
+
+      const anteriores = this.cuotas
+      this.cuotas = Array.from({ length: cantidad }, (sinUso, i) => {
+        const previa = anteriores[i]
+        if (previa) return previa
+        return {
+          NumCuota: i + 1,
+          ValorCuota: this.cuotasEditadas ? null : this.valorCuota,
+          FechaPago: null
+        }
+      })
+    },
+
+    // El valor de la cabecera es "el valor comun": al escribirlo, siembra todas las filas
+    sembrarCuotas() {
+      if (this.cuotasEditadas) return
+      this.cuotas.forEach((cuota) => {
+        cuota.ValorCuota = this.valorCuota
+      })
+    },
+
+    // Editar el valor de UNA fila significa que las cuotas no son iguales
+    onValorFilaEditado() {
+      if (this.cuotasEditadas) return
+      this.cuotasEditadas = true
+      this.valorCuota = null
+    },
+
+    volverAValorUnico() {
+      this.cuotasEditadas = false
+      this.valorCuota = null
+      this.cuotas.forEach((cuota) => {
+        cuota.ValorCuota = null
+      })
+    },
+
+    validarCredito() {
+      const numeroCuotas = Number(this.numeroCuotas)
+      if (!Number.isInteger(numeroCuotas) || numeroCuotas < 1 || numeroCuotas > MAX_CUOTAS) {
+        return `El número de cuotas debe ser un entero entre 1 y ${MAX_CUOTAS}`
+      }
+
+      if (numeroCuotas === 1) {
+        if (!(Number(this.valorCuota) > 0) || !this.esDecimal12_2(this.valorCuota)) {
+          return 'El valor de la cuota debe ser mayor a cero y tener máximo dos decimales'
+        }
+        if (!this.fechaCompromiso) {
+          return 'La fecha de compromiso es obligatoria cuando hay una sola cuota'
+        }
+        return null
+      }
+
+      if (this.cuotas.length !== numeroCuotas) {
+        return `El detalle debe traer exactamente ${numeroCuotas} cuotas`
+      }
+      for (let i = 0; i < this.cuotas.length; i++) {
+        const cuota = this.cuotas[i]
+        if (!(Number(cuota.ValorCuota) > 0) || !this.esDecimal12_2(cuota.ValorCuota)) {
+          return `El valor de la cuota ${cuota.NumCuota} debe ser mayor a cero y tener máximo dos decimales`
+        }
+        if (!cuota.FechaPago) {
+          return `La fecha de pago de la cuota ${cuota.NumCuota} es obligatoria`
+        }
+        // aaaa-mm-dd se compara bien como texto; el mismo dia si vale
+        if (i > 0 && cuota.FechaPago < this.cuotas[i - 1].FechaPago) {
+          return `La cuota ${cuota.NumCuota} no puede vencer antes que la cuota ${this.cuotas[i - 1].NumCuota}`
+        }
+      }
+      return null
+    },
+
+    // Los cuatro campos de credito del payload. Fuera de CREDITO van en null: el backend
+    // responde 400 si POR_ABONO o CONTADO traen detalle de cuotas.
+    armarCredito() {
+      if (!this.esCredito) {
+        return { NumeroCuotas: null, ValorCuota: null, FechaCompromiso: null, Cuotas: null }
+      }
+      const numeroCuotas = Number(this.numeroCuotas)
+      // 1 cuota: valor y fecha en la cabecera, sin detalle
+      if (numeroCuotas === 1) {
+        return {
+          NumeroCuotas: 1,
+          ValorCuota: Number(this.valorCuota),
+          FechaCompromiso: this.fechaCompromiso,
+          Cuotas: null
+        }
+      }
+      // varias cuotas: la cabecera se ignora y el detalle va completo
+      return {
+        NumeroCuotas: numeroCuotas,
+        ValorCuota: null,
+        FechaCompromiso: null,
+        Cuotas: this.cuotas.map((cuota) => ({
+          NumCuota: cuota.NumCuota,
+          ValorCuota: Number(cuota.ValorCuota),
+          FechaPago: cuota.FechaPago
+        }))
+      }
     },
 
     abrirSelectorTercero() {
@@ -728,6 +1000,7 @@ export default {
       } else if (!(this.saldo > 0)) {
         return 'Una venta a crédito o por abono debe quedar con saldo pendiente'
       }
+      if (this.esCredito) return this.validarCredito()
       return null
     },
 
@@ -765,6 +1038,7 @@ export default {
         ValorDescuento: Number(this.descuento),
         ValorEfectivo: Number(this.efectivo),
         ValorTransaccion: Number(this.transaccion),
+        ...this.armarCredito(),
         Articulos: this.armarArticulos()
       }
 

@@ -136,12 +136,12 @@
                   />
                 </td>
                 <td>
-                  <div v-if="fila.BolsaEstado === 'RECIBIDO_DE_TALLER'" class="d-flex ga-1 align-center">
+                  <div v-if="bolsaConPropietario(fila.BolsaEstado)" class="d-flex ga-1 align-center">
                     <v-btn
                       icon="mdi-account-search"
                       variant="tonal"
                       size="small"
-                      title="Elegir el propietario"
+                      :title="fila.BolsaEstado === 'RESERVADO' ? 'Elegir el cliente' : 'Elegir el taller'"
                       @click="abrirSelectorTercero(i)"
                     />
                     <span v-if="fila.propietarioNombre">{{ fila.propietarioNombre }}</span>
@@ -165,6 +165,12 @@
                       <div v-if="fila.articuloSKU" class="text-caption text-medium-emphasis">
                         {{ fila.articuloSKU }}
                       </div>
+                      <div
+                        v-if="fila.BolsaEstado === 'RESERVADO' && fila.cantidadDisponible !== null"
+                        class="text-caption text-medium-emphasis"
+                      >
+                        Reservado: {{ fila.cantidadDisponible }}
+                      </div>
                     </div>
                   </div>
                 </td>
@@ -177,7 +183,22 @@
                     @click="quitarFila('consumos', i)"
                   />
                 </td>
-                <td class="text-end">{{ formatearMoneda(fila.CostoUnitario) }}</td>
+                <!-- RESERVADO no guarda costo: lo escribe el usuario (opcional, vacio = 0). En las
+                     otras bolsas el costo es el promedio vigente y no se puede cambiar. -->
+                <td v-if="fila.BolsaEstado === 'RESERVADO'">
+                  <v-text-field
+                    v-model.number="fila.CostoUnitario"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    prefix="$"
+                    placeholder="0"
+                    variant="outlined"
+                    density="compact"
+                    hide-details
+                  />
+                </td>
+                <td v-else class="text-end">{{ formatearMoneda(fila.CostoUnitario) }}</td>
                 <td>
                   <v-number-input
                     v-model.number="fila.Cantidad"
@@ -470,6 +491,13 @@
       @seleccionar="onTerceroSeleccionado"
     />
 
+    <!-- Propietario de la bolsa RESERVADO: el cliente que dejo la pieza para fundir. -->
+    <ClientesSeleccionar
+      v-model="dialogCliente"
+      :id-empresa="idEmpresa"
+      @seleccionar="onTerceroSeleccionado"
+    />
+
     <ArticuloNuevoDialog
       v-model="dialogArticuloNuevo"
       :id-empresa="idEmpresa"
@@ -493,13 +521,22 @@ import { useCatalogosStore } from '@/stores/catalogos'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticulosProduccion from '@/views/Inventario/Articulos/ArticulosProduccion.vue'
 import TalleresSeleccionar from '@/views/Talleres/TalleresSeleccionar.vue'
+import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+import existenciaService from '@/services/existenciaService'
 import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
 import ProductoNuevoDialog from '@/views/Inventario/Productos/ProductoNuevoDialog.vue'
 
 export default {
   name: 'OrdenProduccionForm',
 
-  components: { ArticulosSeleccionar, ArticulosProduccion, TalleresSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
+  components: {
+    ArticulosSeleccionar,
+    ArticulosProduccion,
+    TalleresSeleccionar,
+    ClientesSeleccionar,
+    ArticuloNuevoDialog,
+    ProductoNuevoDialog
+  },
 
   data() {
     return {
@@ -517,6 +554,7 @@ export default {
       dialogArticulo: false,
       dialogArticuloProduccion: false,
       dialogTercero: false,
+      dialogCliente: false,
       dialogArticuloNuevo: false,
       dialogProductoNuevo: false,
       // { tabla: 'consumos' | 'producidos', indice: n } o null. La tabla hace falta porque hay
@@ -526,7 +564,8 @@ export default {
       indicePropietario: null,
       opcionesBolsa: [
         { valor: 'DISPONIBLE', texto: 'Disponible' },
-        { valor: 'RECIBIDO_DE_TALLER', texto: 'Recibido de taller' }
+        { valor: 'RECIBIDO_DE_TALLER', texto: 'Recibido de taller' },
+        { valor: 'RESERVADO', texto: 'Reservado (pieza del cliente)' }
       ]
     }
   },
@@ -602,6 +641,7 @@ export default {
       this.dialogArticulo = false
       this.dialogArticuloProduccion = false
       this.dialogTercero = false
+      this.dialogCliente = false
       this.dialogArticuloNuevo = false
     }
   },
@@ -661,7 +701,9 @@ export default {
         idPropietario: null,
         propietarioNombre: '',
         Cantidad: 1,
-        CostoUnitario: null
+        CostoUnitario: null,
+        // Solo RESERVADO: lo que el cliente tiene en esa bodega, para no pasarse
+        cantidadDisponible: null
       })
     },
 
@@ -686,14 +728,16 @@ export default {
       this.indicePropietario = null
     },
 
-    // Pasar de RECIBIDO_DE_TALLER a DISPONIBLE tiene que borrar el propietario ya elegido, o
-    // viajaria un idPropietario en una fila que, por contrato, no lo lleva.
+    // RECIBIDO_DE_TALLER lleva el taller y RESERVADO el cliente: al cambiar de bolsa el
+    // propietario elegido ya no sirve (y con DISPONIBLE no debe viajar ninguno).
     onBolsaCambiada(fila) {
       this.limpiarArticulo(fila)
-      if (fila.BolsaEstado !== 'RECIBIDO_DE_TALLER') {
-        fila.idPropietario = null
-        fila.propietarioNombre = ''
-      }
+      fila.idPropietario = null
+      fila.propietarioNombre = ''
+    },
+
+    bolsaConPropietario(bolsa) {
+      return bolsa === 'RECIBIDO_DE_TALLER' || bolsa === 'RESERVADO'
     },
 
     limpiarArticulo(fila) {
@@ -702,6 +746,7 @@ export default {
       fila.articuloSKU = ''
       fila.CostoUnitario = null
       fila.Cantidad = 1
+      fila.cantidadDisponible = null
     },
 
     abrirSelectorArticulo(tabla, indice) {
@@ -713,12 +758,18 @@ export default {
         }
         // Sin propietario el selector pediria la bolsa DISPONIBLE (idTercero null) y se
         // elegiria material de una bolsa distinta a la indicada en la fila.
-        if (fila.BolsaEstado === 'RECIBIDO_DE_TALLER' && !fila.idPropietario) {
+        if (this.bolsaConPropietario(fila.BolsaEstado) && !fila.idPropietario) {
           Swal.fire('Atención', 'Seleccione el propietario antes de elegir el artículo', 'warning')
           return
         }
         this.filaActiva = { tabla, indice }
-        this.dialogArticuloProduccion = true
+        // getproduccionarticulo solo trae DISPONIBLE y RECIBIDO_DE_TALLER: para RESERVADO se
+        // elige del catalogo y despues se comprueba la existencia del cliente.
+        if (fila.BolsaEstado === 'RESERVADO') {
+          this.dialogArticulo = true
+        } else {
+          this.dialogArticuloProduccion = true
+        }
         return
       }
       this.filaActiva = { tabla, indice }
@@ -733,6 +784,11 @@ export default {
       fila.idArticulo = art.artId
       fila.articuloNombre = art.artNombre || art.rtNombre || ''
       fila.articuloSKU = art.artSKU || ''
+      if (tabla === 'consumos' && fila.BolsaEstado === 'RESERVADO') {
+        this.filaActiva = null
+        this.cargarReservado(fila)
+        return
+      }
       if (tabla === 'consumos') {
         const disponible = Number(art.artCantidadDisponible)
         const costo = Number(art.artCostoUnitario)
@@ -768,9 +824,48 @@ export default {
       this.filaActiva = null
     },
 
+    // Busca la bolsa RESERVADO de ESE cliente en ESA bodega. Si no hay, se descarta el articulo:
+    // la orden se caeria con "Existencia insuficiente en la bolsa RESERVADO".
+    async cargarReservado(fila) {
+      const idArticulo = fila.idArticulo
+      try {
+        const { data } = await existenciaService.getExistenciasArticulo({
+          idEmpresa: this.idEmpresa,
+          idArticulo: Number(idArticulo)
+        })
+        // La fila pudo cambiar mientras llegaba la respuesta
+        if (fila.idArticulo !== idArticulo) return
+        const bolsa = (data.data || []).find((e) =>
+          e.existBolsa === 'RESERVADO' &&
+          Number(e.existBodegaId) === Number(fila.idBodega) &&
+          Number(e.existPropietarioId) === Number(fila.idPropietario)
+        )
+        const disponible = Number(bolsa?.existCantidad)
+        if (!bolsa || !(disponible > 0)) {
+          const articulo = fila.articuloNombre
+          this.limpiarArticulo(fila)
+          Swal.fire(
+            'Atención',
+            `${fila.propietarioNombre} no tiene "${articulo}" reservado en esa bodega`,
+            'warning'
+          )
+          return
+        }
+        fila.cantidadDisponible = this.redondearCantidad(disponible)
+        fila.Cantidad = fila.cantidadDisponible
+      } catch (error) {
+        this.limpiarArticulo(fila)
+        Swal.fire('Error', this.mensajeError(error, 'No se pudo consultar la existencia reservada'), 'error')
+      }
+    },
+
     abrirSelectorTercero(indice) {
       this.indicePropietario = indice
-      this.dialogTercero = true
+      if (this.consumos[indice]?.BolsaEstado === 'RESERVADO') {
+        this.dialogCliente = true
+      } else {
+        this.dialogTercero = true
+      }
     },
 
     onTerceroSeleccionado(tercero) {
@@ -798,8 +893,20 @@ export default {
         if (fila.BolsaEstado === 'RECIBIDO_DE_TALLER' && !fila.idPropietario) {
           return `Elija el propietario del consumo ${n}: con la bolsa Recibido de taller es obligatorio`
         }
+        if (fila.BolsaEstado === 'RESERVADO' && !fila.idPropietario) {
+          return `Elija el cliente del consumo ${n}: con la bolsa Reservado es obligatorio`
+        }
         const errorCantidad = this.validarCantidad(fila.Cantidad, `La cantidad del consumo ${n}`)
         if (errorCantidad) return errorCantidad
+        if (fila.BolsaEstado === 'RESERVADO') {
+          if (fila.cantidadDisponible !== null && Number(fila.Cantidad) > fila.cantidadDisponible) {
+            return `La cantidad del consumo ${n} supera lo reservado por el cliente (${fila.cantidadDisponible})`
+          }
+          const costo = fila.CostoUnitario
+          if (costo !== null && costo !== '' && !(Number(costo) >= 0)) {
+            return `El costo unitario del consumo ${n} debe ser mayor o igual a cero`
+          }
+        }
       }
 
       for (let i = 0; i < this.producidos.length; i += 1) {
@@ -861,16 +968,25 @@ export default {
       try {
         const { data } = await produccionService.create({
           idEmpresa: this.idEmpresa,
-          Observaciones: this.observaciones.trim(),
-          consumos: this.consumos.map((fila) => ({
-            idArticulo: Number(fila.idArticulo),
-            idBodega: Number(fila.idBodega),
-            BolsaEstado: fila.BolsaEstado,
-            // null con DISPONIBLE: el propietario solo existe para el material que devolvio el
-            // taller.
-            idPropietario: fila.BolsaEstado === 'RECIBIDO_DE_TALLER' ? Number(fila.idPropietario) : null,
-            Cantidad: this.redondearCantidad(fila.Cantidad)
-          })),
+          // El backend guarda "" tal cual: sin texto se manda null
+          Observaciones: this.observaciones.trim() || null,
+          consumos: this.consumos.map((fila) => {
+            const linea = {
+              idArticulo: Number(fila.idArticulo),
+              idBodega: Number(fila.idBodega),
+              BolsaEstado: fila.BolsaEstado,
+              // null con DISPONIBLE; el taller con RECIBIDO_DE_TALLER; el cliente con RESERVADO
+              idPropietario: this.bolsaConPropietario(fila.BolsaEstado) ? Number(fila.idPropietario) : null,
+              Cantidad: this.redondearCantidad(fila.Cantidad)
+            }
+            // CostoUnitario solo se admite en RESERVADO (en las otras bolsas se rechaza). Tiene
+            // que ir como NUMERO: un texto numerico se rechaza. null = 0.
+            if (fila.BolsaEstado === 'RESERVADO') {
+              const costo = fila.CostoUnitario
+              linea.CostoUnitario = costo === null || costo === '' ? null : this.redondear(costo)
+            }
+            return linea
+          }),
           producidos: this.producidos.map((fila) => {
             const linea = {
               idBodega: Number(fila.idBodega),
@@ -898,7 +1014,7 @@ export default {
         // Al volver, el List se reconstruye y su created() vuelve a consultar.
         this.$router.back()
       } catch (err) {
-        const mensaje = err.response?.data?.msg || 'Ocurrió un error al registrar la orden de producción'
+        const mensaje = this.mensajeError(err, 'Ocurrió un error al registrar la orden de producción')
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.guardando = false
@@ -947,6 +1063,11 @@ export default {
       const costo = Number(valor)
       if (!Number.isFinite(costo) || costo === 0) return null
       return this.redondear(costo)
+    },
+
+    // el backend responde {msg} o, con express-validator, {errors:[{msg}]}
+    mensajeError(error, porDefecto) {
+      return error.response?.data?.msg || error.response?.data?.errors?.[0]?.msg || porDefecto
     },
 
     cancelar() {
