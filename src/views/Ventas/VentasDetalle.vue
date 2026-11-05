@@ -148,6 +148,33 @@
           </v-col>
         </v-row>
 
+        <template v-if="esCredito">
+          <v-divider class="my-4" />
+          <v-row dense>
+            <v-col cols="12" sm="4">
+              <div class="campo">
+                <span class="campo-rotulo">Número cuotas:</span>
+                <span>{{ venta.ventaNumeroCuotas ?? '-' }}</span>
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <div class="campo">
+                <span class="campo-rotulo">Valor cuota:</span>
+                <span>
+                  {{ tieneCuotaCabecera
+                    ? formatearMoneda(venta.ventaValorCuota)
+                    : (cuotas.length ? 'Ver detalle de cuotas' : '-') }}
+                </span>
+              </div>
+            </v-col>
+            <v-col cols="12" sm="4">
+              <div class="campo">
+                <span class="campo-rotulo">Fecha compromiso:</span>
+                <span>{{ venta.ventaFechaCompromiso ? formatearDia(venta.ventaFechaCompromiso) : '-' }}</span>
+              </div>
+            </v-col>
+          </v-row>
+        </template>
       </v-card>
 
       <v-card class="pa-6 mb-4" elevation="1">
@@ -235,6 +262,86 @@
           </div>
         </div>
       </v-card>
+      <v-card v-if="esCredito" class="pa-6 mb-4" elevation="1">
+        <div class="d-flex align-center justify-space-between mb-3">
+          <span class="text-subtitle-2">Cuotas</span>
+          <v-btn
+            v-if="esActiva && numerosParaCrear.length"
+            color="primary"
+            variant="tonal"
+            size="small"
+            prepend-icon="mdi-plus"
+            @click="abrirCuotaNueva"
+          >
+            Agregar cuota
+          </v-btn>
+        </div>
+        <div style="overflow-x: auto;">
+          <v-table density="compact" class="tabla-listado">
+            <thead>
+              <tr>
+                <th style="width: 80px">N°</th>
+                <th class="text-end">Valor</th>
+                <th>Fecha de pago</th>
+                <th class="text-center">Estado</th>
+                <th v-if="esActiva" class="text-center" style="width: 120px">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <!-- Venta de UNA cuota: la cuota vive en la cabecera, no en "cuotas", y no tiene
+                   idCuota: no se puede editar ni borrar. -->
+              <tr v-if="tieneCuotaCabecera">
+                <td>1</td>
+                <td class="text-end">{{ formatearMoneda(venta.ventaValorCuota) }}</td>
+                <td>{{ venta.ventaFechaCompromiso ? formatearDia(venta.ventaFechaCompromiso) : '-' }}</td>
+                <td class="text-center">-</td>
+                <td v-if="esActiva" class="text-center text-caption text-medium-emphasis">
+                  No editable
+                </td>
+              </tr>
+              <tr v-else-if="!cuotas.length">
+                <td :colspan="esActiva ? 5 : 4" class="text-center py-6 text-medium-emphasis">
+                  No hay cuotas registradas
+                </td>
+              </tr>
+              <tr v-for="cuota in cuotas" :key="cuota.cuoId">
+                <td>{{ cuota.cuoNumCuota }}</td>
+                <td class="text-end">{{ formatearMoneda(cuota.cuoValorCuota) }}</td>
+                <td>{{ cuota.cuoFechaPago ? formatearDia(cuota.cuoFechaPago) : '-' }}</td>
+                <td class="text-center">
+                  <v-chip
+                    :color="cuota.cuoEstado === 'PAGADA' ? 'success' : 'grey'"
+                    size="small"
+                    variant="tonal"
+                  >
+                    {{ etiquetaEstadoCuota(cuota.cuoEstado) }}
+                  </v-chip>
+                </td>
+                <td v-if="esActiva" class="text-center text-no-wrap">
+                  <v-btn
+                    icon="mdi-pencil" size="small" variant="text"
+                    title="Editar esta cuota" @click="abrirCuotaEdicion(cuota)"
+                  />
+                  <v-btn
+                    icon="mdi-delete" size="small" variant="text"
+                    :disabled="!puedeBorrarCuotas"
+                    :title="puedeBorrarCuotas ? 'Borrar esta cuota' : 'La venta debe conservar al menos una cuota'"
+                    @click="borrarCuota(cuota)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </v-table>
+        </div>
+        <p v-if="tieneCuotaCabecera" class="text-caption text-medium-emphasis mt-3 mb-0">
+          Al agregar la cuota 2, la cuota única pasa al detalle y ya se puede editar.
+        </p>
+        <p class="text-caption text-medium-emphasis mt-3 mb-0">
+          Marcar una cuota como pagada no mueve caja ni recalcula el saldo de la venta: es un
+          registro informativo. El cobro se registra en el módulo de Pagos.
+        </p>
+      </v-card>
+
       <v-card v-if="venta.ventaTipoVenta !== 'CONTADO'" class="pa-6 mb-4" elevation="1">
         <div class="text-subtitle-2 mb-3">Pagos</div>
         <div style="overflow-x: auto;">
@@ -300,6 +407,107 @@
         </v-row>
       </v-card>
     </template>
+
+    <v-dialog v-model="dialogNueva" max-width="520">
+      <v-card class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <span class="text-h6">Agregar cuota</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogNueva = false" />
+        </div>
+
+        <v-select
+          v-model="formNueva.NumCuota"
+          :items="numerosParaCrear"
+          label="Número de cuota"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Los números libres, hasta una cuota más de las pactadas (máximo 24)"
+          persistent-hint
+        />
+
+        <v-text-field
+          v-model.number="formNueva.ValorCuota"
+          label="Valor de la cuota"
+          prefix="$"
+          type="number"
+          min="0"
+          step="0.01"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <v-text-field
+          v-model="formNueva.FechaPago"
+          label="Fecha de pago"
+          type="date"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Obligatoria. Debe quedar en orden con la cuota anterior y la siguiente"
+          persistent-hint
+        />
+
+        <p class="text-caption text-medium-emphasis mb-0">La cuota nace en estado Pendiente.</p>
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn variant="outlined" @click="dialogNueva = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoNueva" @click="crearCuota">Guardar</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="dialogEdicion" max-width="520">
+      <v-card class="pa-4">
+        <div class="d-flex align-center justify-space-between mb-4">
+          <span class="text-h6">Editar cuota {{ formEdicion.NumCuota }}</span>
+          <v-btn icon="mdi-close" variant="text" @click="dialogEdicion = false" />
+        </div>
+
+        <v-text-field
+          v-model.number="formEdicion.ValorCuota"
+          label="Valor de la cuota"
+          prefix="$"
+          type="number"
+          min="0"
+          step="0.01"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <v-text-field
+          v-model="formEdicion.FechaPago"
+          label="Fecha de pago"
+          type="date"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hint="Obligatoria: no se puede dejar vacía"
+          persistent-hint
+        />
+
+        <v-select
+          v-model="formEdicion.Estado"
+          :items="opcionesEstadoCuota"
+          item-title="texto"
+          item-value="valor"
+          label="Estado"
+          variant="outlined"
+          density="comfortable"
+          class="mb-2"
+          hide-details
+        />
+
+        <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn variant="outlined" @click="dialogEdicion = false">Cancelar</v-btn>
+          <v-btn color="primary" :loading="guardandoEdicion" @click="editarCuota">Guardar</v-btn>
+        </div>
+      </v-card>
+    </v-dialog>
 
     <v-dialog v-model="dialogEstadoPago" max-width="520">
       <v-card class="pa-4">
@@ -369,6 +577,18 @@ export default {
       venta: null,
       lineas: [],
       pagos: [],
+      cuotas: [],
+      dialogNueva: false,
+      guardandoNueva: false,
+      formNueva: { NumCuota: null, ValorCuota: null, FechaPago: null },
+      dialogEdicion: false,
+      guardandoEdicion: false,
+      // idCuota va dentro del formulario: cargar() reemplaza las filas de `cuotas` al recargar
+      formEdicion: { idCuota: null, NumCuota: null, ValorCuota: null, FechaPago: null, Estado: 'PENDIENTE' },
+      opcionesEstadoCuota: [
+        { valor: 'PENDIENTE', texto: 'Pendiente' },
+        { valor: 'PAGADA', texto: 'Pagada' }
+      ],
       dialogEstadoPago: false,
       guardandoEstadoPago: false,
       estadoPagoNuevo: '',
@@ -404,6 +624,35 @@ export default {
         this.venta?.ventaEstado === true ||
         this.venta?.ventaEstado === '1'
     },
+    esCredito() {
+      return this.venta?.ventaTipoVenta === 'CREDITO'
+    },
+    // Las cuotas pactadas. Las ventas a credito anteriores al 2026-11-04 lo traen null: cuentan 0.
+    cuotasPactadas() {
+      return Number(this.venta?.ventaNumeroCuotas) || 0
+    },
+    // Venta de UNA cuota creada asi: la cuota 1 esta en ventaValorCuota/ventaFechaCompromiso
+    tieneCuotaCabecera() {
+      return !this.cuotas.length &&
+        this.venta?.ventaValorCuota !== null &&
+        this.venta?.ventaValorCuota !== undefined
+    },
+    // Numeros que se pueden crear: los libres de 1..N mas el N+1 (tope 24). La cuota de la
+    // cabecera ocupa el 1, igual que una fila de "cuotas".
+    numerosParaCrear() {
+      const usados = new Set(this.cuotas.map((cuota) => Number(cuota.cuoNumCuota)))
+      if (this.tieneCuotaCabecera) usados.add(1)
+      const tope = Math.min(this.cuotasPactadas + 1, 24)
+      const libres = []
+      for (let numero = 1; numero <= tope; numero++) {
+        if (!usados.has(numero)) libres.push(numero)
+      }
+      return libres
+    },
+    // El backend no deja la venta sin cuotas: con ventaNumeroCuotas 1 o menos responde 400
+    puedeBorrarCuotas() {
+      return this.cuotasPactadas > 1
+    },
     sumaPagosActivos() {
       return this.pagos
         .filter((pago) => this.pagoActivo(pago))
@@ -438,8 +687,10 @@ export default {
           return
         }
         this.venta = respuesta.data
+        console.log(respuesta.data)
         this.lineas = Array.isArray(respuesta.data.lineas) ? respuesta.data.lineas : []
         this.pagos = Array.isArray(respuesta.data.pagos) ? respuesta.data.pagos : []
+        this.cuotas = Array.isArray(respuesta.data.cuotas) ? respuesta.data.cuotas : []
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'No se pudo cargar la venta'
         await Swal.fire('Error', mensaje, 'error')
@@ -489,6 +740,131 @@ export default {
         await Swal.fire('Error', mensaje, 'error')
       } finally {
         this.anulando = false
+      }
+    },
+
+    etiquetaEstadoCuota(estado) {
+      return estado === 'PAGADA' ? 'Pagada' : 'Pendiente'
+    },
+
+    // El backend manda '2026-11-19T05:00:00.000Z' y el input type="date" necesita 'aaaa-mm-dd'
+    aFechaInput(valor) {
+      if (!valor) return null
+      return String(valor).slice(0, 10)
+    },
+
+    // el backend responde {msg} o, con express-validator, {errors:[{msg}]}
+    mensajeError(error, porDefecto) {
+      return error.response?.data?.msg || error.response?.data?.errors?.[0]?.msg || porDefecto
+    },
+
+    abrirCuotaNueva() {
+      this.formNueva = {
+        NumCuota: this.numerosParaCrear[0] ?? null,
+        ValorCuota: null,
+        FechaPago: null
+      }
+      this.dialogNueva = true
+    },
+
+    abrirCuotaEdicion(cuota) {
+      this.formEdicion = {
+        idCuota: cuota.cuoId,
+        NumCuota: Number(cuota.cuoNumCuota),
+        ValorCuota: Number(cuota.cuoValorCuota),
+        FechaPago: this.aFechaInput(cuota.cuoFechaPago),
+        Estado: cuota.cuoEstado || 'PENDIENTE'
+      }
+      this.dialogEdicion = true
+    },
+
+    async crearCuota() {
+      const numero = Number(this.formNueva.NumCuota)
+      // El select queda vacio cuando no hay numeros libres: sin esto viajaria NumCuota null
+      if (!Number.isInteger(numero) || !this.numerosParaCrear.includes(numero)) {
+        Swal.fire('Atención', 'Elija el número de la cuota', 'warning')
+        return
+      }
+      if (!(Number(this.formNueva.ValorCuota) > 0)) {
+        Swal.fire('Atención', 'El valor de la cuota debe ser mayor a cero', 'warning')
+        return
+      }
+      if (!this.formNueva.FechaPago) {
+        Swal.fire('Atención', 'La fecha de pago de la cuota es obligatoria', 'warning')
+        return
+      }
+
+      this.guardandoNueva = true
+      try {
+        const { data } = await ventasService.createCuota({
+          idEmpresa: this.idEmpresa,
+          idVenta: this.ventaId,
+          NumCuota: numero,
+          ValorCuota: Number(this.formNueva.ValorCuota),
+          FechaPago: this.formNueva.FechaPago
+        })
+        this.dialogNueva = false
+        await Swal.fire('Éxito', data.msg || 'Cuota registrada', 'success')
+        await this.cargar()
+      } catch (error) {
+        Swal.fire('Error', this.mensajeError(error, 'No se pudo agregar la cuota'), 'error')
+      } finally {
+        this.guardandoNueva = false
+      }
+    },
+
+    async editarCuota() {
+      if (!(Number(this.formEdicion.ValorCuota) > 0)) {
+        Swal.fire('Atención', 'El valor de la cuota debe ser mayor a cero', 'warning')
+        return
+      }
+      if (!this.formEdicion.FechaPago) {
+        Swal.fire('Atención', 'La fecha de pago no se puede dejar vacía', 'warning')
+        return
+      }
+
+      this.guardandoEdicion = true
+      try {
+        // NumCuota no se edita en ventas: no se manda
+        const { data } = await ventasService.updateCuota({
+          idEmpresa: this.idEmpresa,
+          idCuota: this.formEdicion.idCuota,
+          Estado: this.formEdicion.Estado,
+          ValorCuota: Number(this.formEdicion.ValorCuota),
+          FechaPago: this.formEdicion.FechaPago
+        })
+        this.dialogEdicion = false
+        await Swal.fire('Éxito', data.msg || 'Cuota actualizada', 'success')
+        await this.cargar()
+      } catch (error) {
+        Swal.fire('Error', this.mensajeError(error, 'No se pudo actualizar la cuota'), 'error')
+      } finally {
+        this.guardandoEdicion = false
+      }
+    },
+
+    async borrarCuota(cuota) {
+      const esUltima = Number(cuota.cuoNumCuota) === this.cuotasPactadas
+      const { isConfirmed } = await Swal.fire({
+        title: `¿Borrar la cuota ${cuota.cuoNumCuota}?`,
+        text: esUltima
+          ? 'Se borra de forma definitiva y la venta queda con una cuota pactada menos.'
+          : 'Se borra de forma definitiva. El número queda libre para volver a crearla.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Borrar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#c62828'
+      })
+      if (!isConfirmed) return
+
+      try {
+        // Responde 204 SIN cuerpo: no hay data.msg que leer
+        await ventasService.deleteCuota({ idEmpresa: this.idEmpresa, idCuota: cuota.cuoId })
+        await Swal.fire('Éxito', 'Cuota borrada', 'success')
+        await this.cargar()
+      } catch (error) {
+        Swal.fire('Error', this.mensajeError(error, 'No se pudo borrar la cuota'), 'error')
       }
     },
 
@@ -598,6 +974,14 @@ export default {
         hour: '2-digit',
         minute: '2-digit'
       })
+    },
+
+    // Solo el dia (vencimientos y fecha de compromiso): sin hora, que no aplica
+    formatearDia(fecha) {
+      if (!fecha) return '-'
+      const [anio, mes, dia] = String(fecha).slice(0, 10).split('-')
+      if (!anio || !mes || !dia) return String(fecha)
+      return `${dia}/${mes}/${anio}`
     },
 
     formatearCantidad(valor) {

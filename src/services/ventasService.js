@@ -59,5 +59,23 @@ export default {
   anular(payload) {
     // payload: { idEmpresa, idVenta, MotivoAnulacion }
     return http.put('/venta/anularventa', payload)
+  },
+
+  createCuota(payload) {
+    // payload: { idEmpresa, idVenta, NumCuota, ValorCuota, FechaPago }
+    // La cuota nace PENDIENTE (Estado no se recibe). NumCuota hasta ventaNumeroCuotas + 1.
+    return http.post('/venta/newventacuota', payload)
+  },
+
+  updateCuota(payload) {
+    // payload: { idEmpresa, idCuota, Estado, ValorCuota, FechaPago } (al menos uno)
+    // NumCuota no se edita y FechaPago no se puede vaciar.
+    return http.put('/venta/updateventacuota', payload)
+  },
+
+  deleteCuota(payload) {
+    // payload: { idEmpresa, idCuota }
+    // DELETE con body: responde 204 sin cuerpo.
+    return http.delete('/venta/deleteventacuota', { data: payload })
   }
 }
