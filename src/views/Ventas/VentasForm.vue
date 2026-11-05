@@ -422,7 +422,7 @@
       </v-form>
     </v-card>
 
-    <ClientesSeleccionar
+    <TercerosSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
@@ -453,7 +453,7 @@ import empresaService from '@/services/empresaService'
 import { generarPdfVenta } from '@/utils/ventaPdf'
 import { generarTirillaPDF } from '@/utils/tirillaPDF'
 import { generarTirilla } from '@/utils/tirilla'
-import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosVender from '@/views/Inventario/Articulos/ArticulosVender.vue'
 
@@ -465,7 +465,7 @@ const MAX_CUOTAS = 24
 export default {
   name: 'VentasForm',
 
-  components: { ClientesSeleccionar, ClientesFormDialog, ArticulosVender },
+  components: { TercerosSeleccionar, ClientesFormDialog, ArticulosVender },
 
   data() {
     return {
@@ -1076,7 +1076,7 @@ export default {
           } else if (this.tipoImpresion === 'tirilla') {
             generarTirilla({ ...parametros, anchoMm: this.anchoTirilla })
           } else {
-            generarPdfVenta(parametros)
+            await generarPdfVenta(parametros)
           }
         } catch (errorPdf) {
           const mensaje = errorPdf.message || 'Error desconocido'

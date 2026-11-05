@@ -153,6 +153,98 @@
       </v-form>
     </v-card>
 
+    <!-- LOGO DE LA EMPRESA (foto de la factura): verlo vale para cualquier empresa con la que el
+         usuario tenga relacion activa; subir y eliminar solo la empresa del token -->
+    <v-card v-if="esAdministrador" class="pa-6 mb-4" max-width="760" elevation="1">
+      <h2 class="text-subtitle-1 mb-2">Logo de la empresa</h2>
+      <p class="text-body-2 text-medium-emphasis mb-4">
+        Imagen que se usará como logo en la factura. Formatos png, jpg o jpeg, máximo 500 KB.
+      </p>
+
+      <v-row dense align="center">
+        <v-col cols="12" sm="5" class="d-flex justify-center">
+          <v-sheet
+            width="220"
+            height="220"
+            border
+            rounded
+            class="d-flex align-center justify-center overflow-hidden"
+          >
+            <v-progress-circular v-if="cargandoFoto" indeterminate color="primary" />
+            <v-img
+              v-else-if="fotoVisible"
+              :src="fotoVisible"
+              width="220"
+              height="220"
+            />
+            <div v-else class="text-center text-medium-emphasis">
+              <v-icon icon="mdi-image-off-outline" size="48" />
+              <div class="text-caption mt-1">{{ errorFoto ? 'Logo no disponible' : 'Sin logo' }}</div>
+            </div>
+          </v-sheet>
+        </v-col>
+
+        <!-- otra empresa: solo se consulta -->
+        <v-col v-if="!puedeEditarGeneral" cols="12" sm="7">
+          <v-alert v-if="errorFoto" type="warning" variant="tonal" density="compact" class="mb-3">
+            {{ errorFoto }}
+          </v-alert>
+          <p class="text-body-2 text-medium-emphasis">
+            Para subir o eliminar el logo, selecciona esta empresa en la barra superior.
+          </p>
+        </v-col>
+
+        <v-col v-else cols="12" sm="7">
+          <v-alert v-if="errorFoto" type="warning" variant="tonal" density="compact" class="mb-3">
+            {{ errorFoto }}
+          </v-alert>
+          <input
+            ref="inputFoto"
+            type="file"
+            accept="image/png,image/jpeg"
+            class="d-none"
+            @change="seleccionarFoto"
+          />
+
+          <template v-if="fotoNueva">
+            <v-alert type="info" variant="tonal" density="compact" class="mb-3">
+              Vista previa de <strong>{{ fotoNuevaNombre }}</strong>. Aún no se ha guardado.
+            </v-alert>
+            <div class="d-flex flex-wrap ga-2">
+              <v-btn color="primary" prepend-icon="mdi-upload" :loading="subiendoFoto" @click="subirFoto">
+                Guardar logo
+              </v-btn>
+              <v-btn variant="outlined" :disabled="subiendoFoto" @click="descartarFotoNueva">
+                Descartar
+              </v-btn>
+            </div>
+          </template>
+
+          <div v-else class="d-flex flex-wrap ga-2">
+            <v-btn
+              color="primary"
+              variant="tonal"
+              prepend-icon="mdi-image-plus"
+              :disabled="cargandoFoto || eliminandoFoto"
+              @click="$refs.inputFoto.click()"
+            >
+              {{ fotoUrl ? 'Cambiar logo' : 'Subir logo' }}
+            </v-btn>
+            <v-btn
+              v-if="fotoUrl"
+              color="error"
+              variant="outlined"
+              prepend-icon="mdi-delete"
+              :loading="eliminandoFoto"
+              @click="eliminarFoto"
+            >
+              Eliminar logo
+            </v-btn>
+          </div>
+        </v-col>
+      </v-row>
+    </v-card>
+
     <!-- CAMBIAR CLAVE -->
     <v-card v-if="puedeEditarGeneral" class="pa-6 mb-4" max-width="760" elevation="1">
       <h2 class="text-subtitle-1 mb-2">Cambiar clave de la empresa</h2>
@@ -293,6 +385,7 @@
 import Swal from 'sweetalert2'
 import empresaService from '@/services/empresaService'
 import { useAuthStore } from '@/stores/auth'
+import { useLogoEmpresaStore } from '@/stores/logoEmpresa'
 
 export default {
   name: 'EmpresaForm',
@@ -342,6 +435,15 @@ export default {
       passEmpresaEstado: '',
       mostrarPassEstado: false,
       guardandoEstado: false,
+
+      // logo de la empresa
+      fotoUrl: null, // object URL de la foto guardada en el servidor
+      fotoNueva: null, // Data URL de la imagen elegida, pendiente de guardar
+      fotoNuevaNombre: '',
+      cargandoFoto: false,
+      errorFoto: '', // por que no se pudo traer el logo (p. ej. sin relacion con la empresa)
+      subiendoFoto: false,
+      eliminandoFoto: false,
 
       redesSociales: [
         { campo: 'Whatsapp', etiqueta: 'WhatsApp', icono: 'mdi-whatsapp' },
@@ -413,6 +515,11 @@ export default {
     // datos generales, clave y contraseña: solo admin Y solo la empresa en sesion
     puedeEditarGeneral() {
       return this.esAdministrador && this.esEmpresaEnSesion
+    },
+
+    // si hay una imagen elegida sin guardar se muestra esa; si no, la guardada
+    fotoVisible() {
+      return this.fotoNueva || this.fotoUrl
     }
   },
 
@@ -422,6 +529,12 @@ export default {
       this.nuevoEstado = Number(this.$route.query.estado) === 1
     }
     this.cargarEmpresa()
+    // traer la foto acepta cualquier empresa con relacion activa, no solo la del token
+    if (this.esAdministrador) this.cargarFoto()
+  },
+
+  beforeUnmount() {
+    this.liberarFotoUrl()
   },
 
   methods: {
@@ -557,6 +670,124 @@ export default {
       } finally {
         this.guardandoEstado = false
       }
+    },
+
+    // getfotoempresa responde la imagen (blob); 404 = la empresa no tiene foto
+    async cargarFoto() {
+      this.cargandoFoto = true
+      this.errorFoto = ''
+      try {
+        const resp = await empresaService.getFoto({ idEmpresa: this.idEmpresaObjetivo })
+        // los errores vienen en JSON aunque se pida un blob: mirar el Content-Type
+        if (!(resp.headers['content-type'] || '').startsWith('image/')) {
+          throw { response: { data: resp.data } }
+        }
+        this.liberarFotoUrl()
+        this.fotoUrl = URL.createObjectURL(resp.data)
+      } catch (error) {
+        this.liberarFotoUrl()
+        if (error.response?.status === 404) return // sin foto: no es un error
+        // se muestra en la tarjeta y no en un Swal: un administrador puede abrir empresas con
+        // las que no tiene relacion ("No existe relacion entre usuario y empresa") y eso no
+        // debe interrumpir la pantalla
+        this.errorFoto = await this.mensajeErrorBlob(error, 'No se pudo cargar el logo')
+      } finally {
+        this.cargandoFoto = false
+      }
+    },
+
+    seleccionarFoto(evento) {
+      const archivo = evento.target.files?.[0]
+      evento.target.value = '' // permite volver a elegir el mismo archivo
+      if (!archivo) return
+
+      if (!['image/png', 'image/jpeg'].includes(archivo.type)) {
+        Swal.fire('Archivo no válido', 'El logo debe ser png, jpg o jpeg', 'warning')
+        return
+      }
+      if (archivo.size > 500 * 1024) {
+        Swal.fire('Archivo muy grande', 'El logo no puede superar los 500 KB', 'warning')
+        return
+      }
+
+      const lector = new FileReader()
+      lector.onload = () => {
+        this.fotoNueva = lector.result // data:image/...;base64,...
+        this.fotoNuevaNombre = archivo.name
+      }
+      lector.onerror = () => {
+        Swal.fire('Error', 'No se pudo leer el archivo', 'error')
+      }
+      lector.readAsDataURL(archivo)
+    },
+
+    descartarFotoNueva() {
+      this.fotoNueva = null
+      this.fotoNuevaNombre = ''
+    },
+
+    async subirFoto() {
+      if (!this.fotoNueva) return
+      this.subiendoFoto = true
+      try {
+        const { data } = await empresaService.updateFoto({
+          idEmpresa: this.idEmpresaSesion,
+          Foto: this.fotoNueva
+        })
+        this.descartarFotoNueva()
+        useLogoEmpresaStore().invalidar(this.idEmpresaSesion) // la factura la vuelve a pedir
+        await this.cargarFoto() // se muestra la que quedo guardada en el servidor
+        Swal.fire('Éxito', data.msg || 'Foto de la empresa actualizada', 'success')
+      } catch (error) {
+        const mensaje = this.mensajeError(error, 'No se pudo subir el logo')
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.subiendoFoto = false
+      }
+    },
+
+    async eliminarFoto() {
+      const confirmacion = await Swal.fire({
+        title: 'Eliminar logo',
+        text: '¿Seguro que deseas eliminar el logo de la empresa?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        cancelButtonText: 'Cancelar'
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.eliminandoFoto = true
+      try {
+        const { data } = await empresaService.deleteFoto({ idEmpresa: this.idEmpresaSesion })
+        this.liberarFotoUrl()
+        useLogoEmpresaStore().invalidar(this.idEmpresaSesion)
+        Swal.fire('Éxito', data.msg || 'Foto de la empresa eliminada', 'success')
+      } catch (error) {
+        const mensaje = this.mensajeError(error, 'No se pudo eliminar el logo')
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.eliminandoFoto = false
+      }
+    },
+
+    liberarFotoUrl() {
+      if (this.fotoUrl) URL.revokeObjectURL(this.fotoUrl)
+      this.fotoUrl = null
+    },
+
+    // con responseType blob el JSON de error llega como Blob y hay que leerlo
+    async mensajeErrorBlob(error, porDefecto) {
+      const datos = error.response?.data
+      if (datos instanceof Blob) {
+        try {
+          const json = JSON.parse(await datos.text())
+          return json.msg || json.errors?.[0]?.msg || porDefecto
+        } catch {
+          return porDefecto
+        }
+      }
+      return this.mensajeError(error, porDefecto)
     },
 
     // el backend responde {msg} o, con express-validator, {errors:[{msg}]}
