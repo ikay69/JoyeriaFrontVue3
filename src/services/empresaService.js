@@ -30,5 +30,20 @@ export default {
   cambiarEstado(payload) {
     // payload: { idEmpresa, passEmpresa, newEstado }
     return http.put('/empresa/cambiarestadoempresa', payload)
+  },
+  updateFoto(payload) {
+    // payload: { idEmpresa, Foto } -- Foto es un Data URL base64 (png/jpg/jpeg, max 500 KB)
+    // Solo la empresa del token. Si ya tenia foto, la reemplaza
+    return http.put('/empresa/updatefotoempresa', payload)
+  },
+  deleteFoto(payload) {
+    // payload: { idEmpresa } -- DELETE con body: en axios va en { data }
+    return http.delete('/empresa/deletefotoempresa', { data: payload })
+  },
+  getFoto(payload) {
+    // payload: { idEmpresa } -- responde la IMAGEN (bytes), no JSON; los errores si vienen en JSON.
+    // ADMINISTRADOR y VENDEDOR; cualquier empresa con la que el usuario tenga relacion activa
+    // (no solo la del token)
+    return http.post('/empresa/getfotoempresa', payload, { responseType: 'blob' })
   }
 }

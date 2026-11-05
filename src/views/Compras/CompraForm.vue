@@ -415,7 +415,7 @@
       </v-form>
     </v-card>
 
-    <ProveedoresSeleccionar
+    <TercerosSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
@@ -451,7 +451,7 @@
 <script>
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
-import ProveedoresSeleccionar from '@/views/Proveedores/ProveedoresSeleccionar.vue'
+import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ProveedoresFormDialog from '@/views/Proveedores/ProveedoresFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
@@ -462,7 +462,7 @@ import { useCatalogosStore } from '@/stores/catalogos'
 export default {
   name: 'CompraForm',
 
-  components: { ProveedoresSeleccionar, ProveedoresFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
+  components: { TercerosSeleccionar, ProveedoresFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
 
   data() {
     return {

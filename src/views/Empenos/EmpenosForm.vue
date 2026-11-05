@@ -304,7 +304,7 @@
       </v-form>
     </v-card>
 
-    <ClientesSeleccionar
+    <TercerosSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
       @seleccionar="onTerceroSeleccionado"
@@ -340,7 +340,7 @@
 <script>
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
-import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
+import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
 import ArticuloNuevoDialog from '@/views/Inventario/Articulos/ArticuloNuevoDialog.vue'
@@ -354,7 +354,7 @@ const MAXIMO_CANTIDAD_12_4 = 99999999.9999
 export default {
   name: 'EmpenosForm',
 
-  components: { ClientesSeleccionar, ClientesFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
+  components: { TercerosSeleccionar, ClientesFormDialog, ArticulosSeleccionar, ArticuloNuevoDialog, ProductoNuevoDialog },
 
   data() {
     return {

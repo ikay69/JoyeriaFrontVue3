@@ -3,11 +3,20 @@ import autoTable from 'jspdf-autotable'
 import { lineasParaImpresion } from './lineasImpresion'
 import { codigoImpresionVenta } from './codigoImpresionVenta'
 import { AVISO_VALIDAR_DOCUMENTO } from './avisoDocumento'
+import { useLogoEmpresaStore } from '@/stores/logoEmpresa'
 
 const COLOR_PRIMARIO = [192, 165, 60]
 const COLOR_SECUNDARIO = [46, 46, 56]
 const COLOR_TEXTO = [48, 48, 48]
 const COLOR_SUAVE = [246, 243, 243]
+
+// Encabezado: linea base del nombre (15 pt) y de la primera linea de datos (8 pt)
+const Y_NOMBRE = 17
+const Y_DATOS = 25
+const ALTO_LINEA_NOMBRE = 6
+const mmDeFuente = (puntos) => puntos * 0.3528
+// tope visual del nombre: la linea base menos la altura de las mayusculas de helvetica
+const TOPE_NOMBRE = Y_NOMBRE - mmDeFuente(15) * 0.72
 
 const formatearMoneda = (valor) => {
   const numero = Number(valor)
@@ -48,7 +57,62 @@ const dato = (valor, alternativo = '-') => {
   return String(valor)
 }
 
-export function generarPdfVenta({ venta, empresa }) {
+// Logo de la empresa desde la cache (si no esta, se pide y se guarda). Si falla por algo distinto
+// a "no tiene foto", la factura se imprime igual, sin logo.
+async function obtenerLogo(idEmpresa) {
+  if (!idEmpresa) return null
+  try {
+    return await useLogoEmpresaStore().getLogo(idEmpresa)
+  } catch {
+    return null
+  }
+}
+
+// Bloque nombre + datos de la empresa. Devuelve la altura que ocupa desde el tope del nombre hasta
+// el pie de la ultima linea (el correo, si lo hay); con dibujar=false solo mide.
+function bloqueEmpresa(doc, { nombreEmpresa, datosEmpresa, x, anchoTexto, dibujar }) {
+  doc.setFont('helvetica', 'bold')
+  doc.setFontSize(15)
+  doc.setTextColor(...COLOR_PRIMARIO)
+  const lineasNombre = doc.splitTextToSize(nombreEmpresa, anchoTexto)
+  if (dibujar) doc.text(lineasNombre, x, Y_NOMBRE)
+
+  doc.setFont('helvetica', 'normal')
+  doc.setFontSize(8)
+  doc.setTextColor(...COLOR_TEXTO)
+  // si el nombre ocupa varias lineas, los datos bajan para no encimarse
+  let yEmpresa = Y_DATOS + (lineasNombre.length - 1) * ALTO_LINEA_NOMBRE
+  let ultimaBase = Y_NOMBRE + (lineasNombre.length - 1) * ALTO_LINEA_NOMBRE
+  let descenso = mmDeFuente(15) * 0.22
+  datosEmpresa.forEach((linea) => {
+    const lineas = doc.splitTextToSize(linea, anchoTexto)
+    if (dibujar) doc.text(lineas, x, yEmpresa)
+    ultimaBase = yEmpresa + (lineas.length - 1) * 4
+    descenso = mmDeFuente(8) * 0.22
+    yEmpresa += lineas.length * 4
+  })
+
+  return { yEmpresa, alto: ultimaBase + descenso - TOPE_NOMBRE }
+}
+
+// Dibuja la imagen dentro de un cuadrado de `lado`, sin deformarla (centrada).
+function dibujarLogo(doc, logo, x, y, lado) {
+  const propiedades = doc.getImageProperties(logo)
+  const escala = Math.min(lado / propiedades.width, lado / propiedades.height)
+  const anchoImg = propiedades.width * escala
+  const altoImg = propiedades.height * escala
+  doc.addImage(
+    logo,
+    propiedades.fileType,
+    x + (lado - anchoImg) / 2,
+    y + (lado - altoImg) / 2,
+    anchoImg,
+    altoImg
+  )
+}
+
+export async function generarPdfVenta({ venta, empresa }) {
+  const logo = await obtenerLogo(empresa?.Id)
   const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'letter' })
   const codigo = codigoImpresionVenta(venta)
   const ventaAnulada = venta.ventaEstado === false ||
@@ -62,15 +126,7 @@ export function generarPdfVenta({ venta, empresa }) {
   doc.setFillColor(...COLOR_PRIMARIO)
   doc.rect(0, 0, ancho, 5, 'F')
 
-  doc.setFont('helvetica', 'bold')
-  doc.setFontSize(15)
-  doc.setTextColor(...COLOR_PRIMARIO)
   const nombreEmpresa = dato(empresa?.Nombre, 'Empresa')
-  doc.text(doc.splitTextToSize(nombreEmpresa, 112), margen, 17)
-
-  doc.setFont('helvetica', 'normal')
-  doc.setFontSize(8)
-  doc.setTextColor(...COLOR_TEXTO)
   const documentoEmpresa = [empresa?.TipoDocumento, empresa?.NumeroDocumento]
     .filter(Boolean)
     .join(' ')
@@ -82,14 +138,32 @@ export function generarPdfVenta({ venta, empresa }) {
       : '',
     empresa?.Email ? `Correo: ${empresa.Email}` : ''
   ].filter(Boolean)
-  let yEmpresa = 25
-  datosEmpresa.forEach((linea) => {
-    const lineas = doc.splitTextToSize(linea, 112)
-    doc.text(lineas, margen, yEmpresa)
-    yEmpresa += lineas.length * 4
-  })
 
   const cajaX = ancho - margen - 65
+  const bloque = { nombreEmpresa, datosEmpresa, x: margen, anchoTexto: 112, dibujar: false }
+  let ladoLogo = 0
+  if (logo) {
+    // El logo es cuadrado y mide de alto lo que el bloque de texto (nombre hasta correo); el
+    // texto pasa a su derecha. Como el ancho del texto depende del lado del logo y el lado del
+    // alto del texto, se ajusta unas veces hasta que se estabiliza.
+    const gap = 4
+    const anchoDisponible = cajaX - gap - margen
+    for (let intento = 0; intento < 4; intento++) {
+      const lado = bloqueEmpresa(doc, bloque).alto
+      if (Math.abs(lado - ladoLogo) < 0.01) break
+      ladoLogo = lado
+      bloque.x = margen + ladoLogo + gap
+      bloque.anchoTexto = Math.min(112, anchoDisponible - ladoLogo - gap)
+    }
+  }
+  const { yEmpresa } = bloqueEmpresa(doc, { ...bloque, dibujar: true })
+  if (logo) {
+    try {
+      dibujarLogo(doc, logo, margen, TOPE_NOMBRE, ladoLogo)
+    } catch {
+      // una imagen que jsPDF no puede leer no debe impedir la factura
+    }
+  }
   doc.setFillColor(...COLOR_SUAVE)
   doc.setDrawColor(...COLOR_PRIMARIO)
   doc.roundedRect(cajaX, 12, 65, 35, 2, 2, 'FD')

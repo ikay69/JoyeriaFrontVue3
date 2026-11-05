@@ -687,7 +687,6 @@ export default {
           return
         }
         this.venta = respuesta.data
-        console.log(respuesta.data)
         this.lineas = Array.isArray(respuesta.data.lineas) ? respuesta.data.lineas : []
         this.pagos = Array.isArray(respuesta.data.pagos) ? respuesta.data.pagos : []
         this.cuotas = Array.isArray(respuesta.data.cuotas) ? respuesta.data.cuotas : []
@@ -944,7 +943,7 @@ export default {
         } else if (this.tipoImpresion === 'tirilla') {
           generarTirilla({ ...parametros, anchoMm: this.anchoTirilla })
         } else {
-          generarPdfVenta(parametros)
+          await generarPdfVenta(parametros)
         }
       } catch (error) {
         const mensaje = error.response?.data?.msg || error.message ||
