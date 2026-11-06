@@ -22,6 +22,8 @@ const ANCHO_VALOR = 36
 const FILAS_MINIMAS = 5
 const ALTO_FILA = 8
 
+const mmDeFuente = (puntos) => puntos * 0.3528
+
 const TEXTO_LEGAL =
   'Esta factura de venta por sí sola surte los efectos de título valor, en razón del cumplimiento de lo establecido en la ley 1231 del 2008. Estatuto tributario. Código de comercio y demás normas.'
 
@@ -89,6 +91,7 @@ function dibujarLogo(doc, logo, x, y, lado) {
   const anchoImg = propiedades.width * escala
   const altoImg = propiedades.height * escala
   doc.addImage(logo, propiedades.fileType, x, y + (lado - altoImg) / 2, anchoImg, altoImg)
+  return anchoImg
 }
 
 function lineaFina(doc) {
@@ -166,25 +169,35 @@ export async function generarPdfVenta({ venta, empresa }) {
   const margen = 12
   const anchoUtil = ancho - margen * 2
 
-  // ---- Encabezado: logo (o nombre) a la izquierda, contacto a la derecha ----
+  // ---- Encabezado: logo y nombre a la izquierda, contacto a la derecha ----
   const ladoLogo = 32
-  let logoDibujado = false
+  const yLogo = 9
+  let anchoLogo = 0
   if (logo) {
     try {
-      dibujarLogo(doc, logo, margen, 9, ladoLogo)
-      logoDibujado = true
+      anchoLogo = dibujarLogo(doc, logo, margen, yLogo, ladoLogo)
     } catch {
       // una imagen que jsPDF no puede leer no debe impedir la factura
     }
   }
-  let yFinEncabezado = 9 + ladoLogo
-  if (!logoDibujado) {
-    doc.setFont('times', 'bold')
-    doc.setFontSize(20)
-    doc.setTextColor(...DORADO_TEXTO)
-    const lineasNombre = doc.splitTextToSize(dato(empresa?.Nombre, 'Empresa'), 105)
-    doc.text(lineasNombre, margen, 22)
-    yFinEncabezado = 22 + (lineasNombre.length - 1) * 8
+  // El nombre va a la derecha del logo, centrado en vertical con el; sin logo, arriba a la
+  // izquierda. No pasa de donde empiezan los datos de contacto (hasta 70 mm a la derecha).
+  const xNombre = anchoLogo ? margen + anchoLogo + 5 : margen
+  const anchoNombre = ancho - margen - 75 - xNombre
+  doc.setFont('times', 'bold')
+  doc.setFontSize(20)
+  doc.setTextColor(...DORADO_TEXTO)
+  const lineasNombre = doc.splitTextToSize(dato(empresa?.Nombre, 'Empresa'), anchoNombre)
+  const altoLineaNombre = 8
+  let yFinEncabezado
+  if (anchoLogo) {
+    const altoNombre = lineasNombre.length * altoLineaNombre
+    const yPrimera = yLogo + (ladoLogo - altoNombre) / 2 + altoLineaNombre / 2
+    doc.text(lineasNombre, xNombre, yPrimera, { baseline: 'middle', lineHeightFactor: altoLineaNombre / mmDeFuente(20) })
+    yFinEncabezado = Math.max(yLogo + ladoLogo, yPrimera + altoNombre - altoLineaNombre / 2)
+  } else {
+    doc.text(lineasNombre, margen, 22, { lineHeightFactor: altoLineaNombre / mmDeFuente(20) })
+    yFinEncabezado = 22 + (lineasNombre.length - 1) * altoLineaNombre
   }
 
   const telefonos = [empresa?.Celular, empresa?.Telefono].filter(Boolean).join(' / ')
