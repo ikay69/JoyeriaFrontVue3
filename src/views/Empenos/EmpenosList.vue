@@ -3,13 +3,7 @@
     <div class="d-flex align-center justify-space-between mb-4">
       <h1 class="text-h5">Empeños</h1>
       <div class="d-flex ga-2">
-        <v-btn
-          variant="tonal"
-          prepend-icon="mdi-calendar-refresh"
-          :loading="actualizando"
-          :disabled="actualizando"
-          @click="actualizarPeriodos"
-        >
+        <v-btn  variant="tonal" prepend-icon="mdi-calendar-refresh" :loading="actualizando" :disabled="actualizando" @click="actualizarPeriodos" >
           Actualizar periodos
         </v-btn>
         <v-btn variant="tonal" prepend-icon="mdi-alert-circle-outline" @click="dialogMora = true">
@@ -190,13 +184,7 @@
                 <span v-else>-</span>
               </td>
               <td class="text-center">
-                <v-btn
-                  icon="mdi-pencil"
-                  size="small"
-                  variant="text"
-                  title="Ver detalle del empeño"
-                  @click="irDetalle(empeno)"
-                />
+                <v-btn icon="mdi-pencil" size="small"  variant="text" title="Ver detalle del empeño"  @click="irDetalle(empeno)"/>
               </td>
             </tr>
           </tbody>
@@ -214,11 +202,7 @@
       </div>
     </v-card>
 
-    <ClientesSeleccionar
-      v-model="dialogCliente"
-      :id-empresa="idEmpresa"
-      @seleccionar="onClienteSeleccionado"
-    />
+    <ClientesSeleccionar  v-model="dialogCliente" :id-empresa="idEmpresa"  @seleccionar="onClienteSeleccionado" />
 
     <EmpenosMoraDialog v-model="dialogMora" :id-empresa="idEmpresa" />
   </v-container>
@@ -371,6 +355,7 @@ export default {
           idTercero,
           estadoEmpeno: this.filtros.estadoEmpeno || null
         })
+        console.log(data.data)
         this.empenos = data.data || []
         this.cantData = data.cantData || 0
         this.pagina = pagina
