@@ -663,14 +663,23 @@ export default {
     },
 
     async anular() {
+      // Desde el 2026-11-08, si el inventario ya ingreso (COMPLETO) anular lo DEVUELVE todo o nada,
+      // al costo de la compra; si sigue PENDIENTE no hay nada que devolver. La caja nunca se revierte.
+      const inventarioIngresado =
+        String(this.compra?.compraEstadoInventario || '').trim().toUpperCase() === 'COMPLETO'
+      const textoInventario = inventarioIngresado
+        ? 'Como el inventario ya ingresó, <b>se devuelven todas las líneas</b> de la bodega donde ' +
+          'entraron (bolsa Disponible), al costo de esta compra. Si a alguna no le alcanza la ' +
+          'existencia (por ejemplo, ya se vendió parte), <b>no se anula nada</b>.'
+        : 'El inventario de esta compra no ha ingresado, así que no se mueven existencias.'
       const { value: motivo } = await Swal.fire({
         title: '¿Anular esta compra?',
-        // Decirlo aqui no es cortesia: sin esto el usuario supone que el inventario se corrige
-        // solo, y no se corrige.
+        // Decirlo aqui no es cortesia: el usuario tiene que saber que pasa con el inventario y
+        // que la caja se corrige aparte.
         html:
-          '<p style="text-align:left">Anular <b>no revierte el inventario ni la caja</b>. Sólo marca la compra ' +
-          'y guarda el motivo, quién anuló y cuándo. El ajuste de existencias es manual, por el ' +
-          'módulo de Ajustes.</p>' +
+          `<p style="text-align:left">${textoInventario}</p>` +
+          '<p style="text-align:left"><b>La caja no se revierte</b>: si corresponde, ajústela ' +
+          'manualmente.</p>' +
           '<p style="text-align:left">Escriba el motivo (entre 5 y 300 caracteres):</p>',
         input: 'textarea',
         inputAttributes: { maxlength: 300 },

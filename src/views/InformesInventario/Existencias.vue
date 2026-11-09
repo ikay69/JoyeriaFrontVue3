@@ -151,7 +151,7 @@
               :class="{ 'fila-perdida': utilidad(ex) < 0 }"
             >
               <td v-if="esAdministrador" class="text-center">
-                <!-- Solo las bolsas que llevan costo admiten el cambio -->
+                <!-- Solo las bolsas que acepta /updatecostoexistencia admiten el cambio -->
                 <v-btn
                   icon="mdi-cash"
                   size="small"
@@ -271,8 +271,9 @@ const RESUMEN_BOLSAS = [
   { valor: 'EN_REPARACION', texto: 'En reparación' }
 ]
 
-// Las unicas bolsas que guardan costo y que acepta /updatecostoexistencia
-const BOLSAS_CON_COSTO = ['DISPONIBLE', 'RECIBIDO_DE_TALLER', 'EN_GARANTIA_EMPENO']
+// Bolsas que acepta /updatecostoexistencia: las tres que guardan costo y, desde el 2026-11-08,
+// RESERVADO (la pieza que deja un cliente, cuyo costo real no se conoce al reservarla).
+const BOLSAS_CON_COSTO = ['DISPONIBLE', 'RECIBIDO_DE_TALLER', 'EN_GARANTIA_EMPENO', 'RESERVADO']
 
 export default {
   name: 'Existencias',
@@ -478,7 +479,7 @@ export default {
           idBodega: ex.existBodegaId,
           idArticulo: ex.existArticuloId,
           BolsaEstado: bolsa,
-          // DISPONIBLE va sin propietario; las otras dos lo exigen
+          // DISPONIBLE va sin propietario; las otras tres lo exigen (en RESERVADO es el cliente)
           idPropietario: bolsa === 'DISPONIBLE' ? null : ex.existPropietarioId,
           CostoUnitario: costo,
           Observaciones: observaciones

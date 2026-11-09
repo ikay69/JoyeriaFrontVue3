@@ -292,6 +292,15 @@
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
           <v-btn
+            variant="tonal"
+            prepend-icon="mdi-eye"
+            :loading="generandoVistaPrevia"
+            :disabled="generandoVistaPrevia"
+            @click="vistaPrevia"
+          >
+            Vista previa
+          </v-btn>
+          <v-btn
             color="primary"
             prepend-icon="mdi-content-save"
             :loading="guardando"
@@ -340,6 +349,9 @@
 <script>
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
+import empresaService from '@/services/empresaService'
+import terceroService from '@/services/terceroService'
+import { generarPdfEmpeno } from '@/utils/empenoPdf'
 import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
@@ -375,6 +387,7 @@ export default {
       lineas: [],
       bodegas: [],
       guardando: false,
+      generandoVistaPrevia: false,
       siguienteKey: 1,
       opcionesMetodoPago: [
         { valor: 'EFECTIVO', texto: 'Efectivo' },
@@ -425,6 +438,47 @@ export default {
   },
 
   methods: {
+    // El contrato armado con lo que hay en el formulario, sin guardar. No exige el formulario
+    // completo: lo que falte sale como "-".
+    async vistaPrevia() {
+      if (this.generandoVistaPrevia) return
+      const tasa = String(this.tasaInteresPeriodo ?? '').trim()
+      const empeno = {
+        empCodigoContrato: String(this.codigoContrato || '').trim() || 'SIN CÓDIGO',
+        empFechaInicio: this.fechaInicio || this.hoy(),
+        empMontoInicial: this.montoInicial,
+        // Sin tasa el backend usa 10
+        empTasa: tasa === '' ? 10 : Number(tasa),
+        empTerceroId: this.clienteSeleccionado?.Id ?? null,
+        empTerceroTipoDoc: '',
+        empTerceroNumeroDoc: this.clienteSeleccionado?.identificacion || '',
+        empTerceroNombre: this.clienteSeleccionado?.Nombre || '',
+        empTerceroCiudadDoc: String(this.terceroCiudadDoc || '').trim(),
+        articulos: this.lineas
+          .filter((fila) => fila.articuloNombre)
+          .map((fila) => ({
+            // El backend guarda el nombre del articulo nuevo en mayusculas
+            empartArticuloNombre: fila.articuloNuevo ? String(fila.articuloNombre).trim().toUpperCase() : fila.articuloNombre,
+            empartPropiedades: fila.articuloNuevo ? null : fila.artPropiedades || null,
+            empartCantidadGramos: fila.articuloNuevo
+              ? fila.articuloNuevo.CantidadGramos ?? null
+              : fila.artCantidadGramos ?? null,
+            empartCantidad: fila.Cantidad,
+            empartValorAvaluo: fila.ValorAvaluo,
+            empartObservacion: String(fila.Observacion || '').trim() || null
+          }))
+      }
+
+      this.generandoVistaPrevia = true
+      try {
+        await this.imprimirContrato(empeno, { vistaPrevia: true })
+      } catch (error) {
+        Swal.fire('Error', `No se pudo generar la vista previa: ${error.message || 'Error desconocido'}`, 'error')
+      } finally {
+        this.generandoVistaPrevia = false
+      }
+    },
+
     redondear(valor) {
       return Math.round((Number(valor) || 0) * 100) / 100
     },
@@ -459,6 +513,9 @@ export default {
         articuloNombre: '',
         articuloSKU: '',
         articuloNuevo: null,
+        // Solo para la vista previa del contrato; no se mandan al backend
+        artPropiedades: null,
+        artCantidadGramos: null,
         Cantidad: 1,
         ValorAvaluo: null,
         Observacion: ''
@@ -519,6 +576,8 @@ export default {
       fila.articuloNombre = articulo.artNombre
       fila.articuloSKU = articulo.artSKU || ''
       fila.articuloNuevo = null
+      fila.artPropiedades = articulo.artPropiedades || null
+      fila.artCantidadGramos = articulo.artCantidadGramos ?? null
       this.filaActiva = null
     },
 
@@ -536,6 +595,8 @@ export default {
       fila.articuloNombre = articuloNuevo.Nombre
       fila.articuloSKU = ''
       fila.idArticulo = null
+      fila.artPropiedades = null
+      fila.artCantidadGramos = null
       this.filaActiva = null
     },
 
@@ -717,8 +778,29 @@ export default {
 
       this.guardando = true
       try {
+        // Desde el 2026-11-08 /newempeno responde { data } con el empeño completo (igual que
+        // /getidempeno), como /newventa: con eso se imprime el contrato.
         const { data } = await empenoService.create(payload)
-        await Swal.fire('Éxito', data.msg || 'Empeño registrado', 'success')
+        const empeno = data?.data
+        if (!empeno) {
+          await Swal.fire('Éxito', data?.msg || 'Empeño registrado', 'success')
+          this.$router.back()
+          return
+        }
+
+        try {
+          await this.imprimirContrato(empeno)
+        } catch (errorPdf) {
+          await Swal.fire(
+            'Empeño registrado',
+            `El empeño se guardó, pero no se pudo generar el contrato: ${errorPdf.message || 'Error desconocido'}`,
+            'warning'
+          )
+          this.$router.back()
+          return
+        }
+
+        await Swal.fire('Éxito', 'Empeño registrado', 'success')
         this.$router.back()
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'Ocurrió un error al registrar el empeño'
@@ -726,6 +808,35 @@ export default {
       } finally {
         this.guardando = false
       }
+    },
+
+    // Empresa completa (logo, NIT, redes) y, del cliente, el telefono y la direccion, que el empeño
+    // no trae. Si alguna consulta falla, el contrato sale igual con lo que haya.
+    async imprimirContrato(empeno, { vistaPrevia = false } = {}) {
+      const idEmpresa = Number(this.idEmpresa)
+      let empresa = this.authStore.empresaActual || {}
+      try {
+        const { data } = await empresaService.getById({ idEmpresa })
+        empresa = data?.data || empresa
+      } catch {
+        // se usan los datos de la sesion
+      }
+
+      let cliente = { Celular: this.clienteSeleccionado?.Celular || '', Direccion: '' }
+      const idTercero = Number(empeno.empTerceroId)
+      if (Number.isInteger(idTercero) && idTercero > 0) {
+        try {
+          const { data } = await terceroService.getById({ idEmpresa, idTercero })
+          cliente = {
+            Celular: data?.data?.terCelular || cliente.Celular,
+            Direccion: data?.data?.terDireccion || ''
+          }
+        } catch {
+          // sin direccion; el celular queda el del selector
+        }
+      }
+
+      await generarPdfEmpeno({ empeno, empresa, cliente, vistaPrevia })
     },
 
     formatearMoneda(valor) {
