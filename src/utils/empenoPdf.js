@@ -5,14 +5,14 @@ import { useLogoEmpresaStore } from '@/stores/logoEmpresa'
 // Contrato de compraventa con pacto de retroventa (empeño). Recibe el empeño tal como lo devuelven
 // /newempeno y /getidempeno: cabecera emp*, articulos[] con empart*.
 
-const DORADO = [228, 190, 100]
-const DORADO_SUAVE = [250, 240, 214]
-const CREMA = [252, 248, 238]
-const DORADO_TEXTO = [176, 140, 50]
-const COLOR_LINEA = [40, 40, 40]
-const COLOR_TEXTO = [30, 30, 30]
-const COLOR_SUAVE = [110, 110, 110]
-const GROSOR_LINEA = 0.3
+export const DORADO = [228, 190, 100]
+export const DORADO_SUAVE = [250, 240, 214]
+export const CREMA = [252, 248, 238]
+export const DORADO_TEXTO = [176, 140, 50]
+export const COLOR_LINEA = [40, 40, 40]
+export const COLOR_TEXTO = [30, 30, 30]
+export const COLOR_SUAVE = [110, 110, 110]
+export const GROSOR_LINEA = 0.3
 
 const ANCHO_CANT = 20
 const ANCHO_PESO = 36
@@ -23,7 +23,7 @@ const ALTO_FILA = 8
 const PLAZO_MESES = 4
 const PLAZO_DIAS = 120
 
-const mmDeFuente = (puntos) => puntos * 0.3528
+export const mmDeFuente = (puntos) => puntos * 0.3528
 
 const formatearMoneda = (valor) => {
   const numero = Number(valor)
@@ -34,7 +34,7 @@ const formatearMoneda = (valor) => {
   })}`
 }
 
-const formatearNumero = (valor, decimales) =>
+export const formatearNumero = (valor, decimales) =>
   (Number(valor) || 0).toLocaleString('es-CO', { maximumFractionDigits: decimales })
 
 // empFechaInicio llega como 'aaaa-mm-dd'. Se corta la cadena: pasar por new Date() la correria un
@@ -46,7 +46,7 @@ const formatearFechaCorta = (valor) => {
   return `${partes[2]}/${partes[1]}/${partes[0]}`
 }
 
-const dato = (valor, alternativo = '-') => {
+export const dato = (valor, alternativo = '-') => {
   if (valor === null || valor === undefined || String(valor).trim() === '') return alternativo
   return String(valor)
 }
@@ -69,14 +69,14 @@ const descripcionLinea = (articulo) => {
 }
 
 // Las redes pueden venir como URL completa; en el pie solo se muestra el usuario o el numero.
-const limpiarRed = (valor) =>
+export const limpiarRed = (valor) =>
   String(valor || '')
     .trim()
     .replace(/^https?:\/\/(www\.)?/i, '')
     .replace(/^(instagram\.com|facebook\.com|twitter\.com|x\.com|youtube\.com|wa\.me|tiktok\.com)\//i, '')
     .replace(/\/+$/, '')
 
-async function obtenerLogo(idEmpresa) {
+export async function obtenerLogo(idEmpresa) {
   if (!idEmpresa) return null
   try {
     return await useLogoEmpresaStore().getLogo(idEmpresa)
@@ -85,7 +85,7 @@ async function obtenerLogo(idEmpresa) {
   }
 }
 
-function dibujarLogo(doc, logo, x, y, lado) {
+export function dibujarLogo(doc, logo, x, y, lado) {
   const propiedades = doc.getImageProperties(logo)
   const escala = Math.min(lado / propiedades.width, lado / propiedades.height)
   const anchoImg = propiedades.width * escala
@@ -94,12 +94,12 @@ function dibujarLogo(doc, logo, x, y, lado) {
   return anchoImg
 }
 
-function lineaFina(doc) {
+export function lineaFina(doc) {
   doc.setDrawColor(...COLOR_LINEA)
   doc.setLineWidth(GROSOR_LINEA)
 }
 
-function celda(doc, x, y, w, h, texto, { estilo = 'normal', tamano = 9.5, align = 'left', relleno = null, color = COLOR_TEXTO } = {}) {
+export function celda(doc, x, y, w, h, texto, { estilo = 'normal', tamano = 9.5, align = 'left', relleno = null, color = COLOR_TEXTO } = {}) {
   lineaFina(doc)
   if (relleno) {
     doc.setFillColor(...relleno)
@@ -116,7 +116,7 @@ function celda(doc, x, y, w, h, texto, { estilo = 'normal', tamano = 9.5, align 
   doc.text(linea, xTexto, y + h / 2, { align, baseline: 'middle' })
 }
 
-function datosContacto(doc, filas, xDerecha, yInicio) {
+export function datosContacto(doc, filas, xDerecha, yInicio) {
   let y = yInicio
   filas.forEach(([etiqueta, valor]) => {
     doc.setFontSize(8)
@@ -134,7 +134,7 @@ function datosContacto(doc, filas, xDerecha, yInicio) {
 
 // Parrafo con tramos en negrita y normal mezclados, partido por palabras. Con dibujar=false solo
 // mide. Devuelve la altura que ocupa.
-function parrafoMixto(doc, tramos, x, y, ancho, { tamano = 8.5, interlineado = 3.7, dibujar = true } = {}) {
+export function parrafoMixto(doc, tramos, x, y, ancho, { tamano = 8.5, interlineado = 3.7, dibujar = true } = {}) {
   doc.setFontSize(tamano)
   doc.setTextColor(...COLOR_TEXTO)
   const palabras = []
@@ -147,7 +147,10 @@ function parrafoMixto(doc, tramos, x, y, ancho, { tamano = 8.5, interlineado = 3
   let yActual = y
   palabras.forEach((palabra) => {
     doc.setFont('helvetica', palabra.negrita ? 'bold' : 'normal')
-    const anchoPalabra = doc.getTextWidth(palabra.espacio ? ' ' : palabra.texto)
+    let anchoPalabra = doc.getTextWidth(palabra.espacio ? ' ' : palabra.texto)
+    // Una raya para llenar a mano (solo guiones bajos): jsPDF la mide un poco mas corta de lo que
+    // la dibuja el visor, y en una raya larga se come el espacio y pega la palabra siguiente.
+    if (!palabra.espacio && /^_+$/.test(palabra.texto)) anchoPalabra *= 1.03
     if (palabra.espacio) {
       if (xActual > x) xActual += anchoPalabra
       return
@@ -162,7 +165,7 @@ function parrafoMixto(doc, tramos, x, y, ancho, { tamano = 8.5, interlineado = 3
   return yActual - y + interlineado
 }
 
-function pieRedes(doc, redes, margen, anchoUtil, y) {
+export function pieRedes(doc, redes, margen, anchoUtil, y) {
   if (!redes.length) return
   const anchoRanura = anchoUtil / redes.length
   redes.forEach(({ inicial, color, valor }, indice) => {
@@ -454,7 +457,7 @@ export async function generarPdfEmpeno({ empeno, empresa, cliente = null, vistaP
   doc.save(`contrato-empeno-${codigo}.pdf`)
 }
 
-function marcaDeAgua(doc, ancho, alto) {
+export function marcaDeAgua(doc, ancho, alto) {
   doc.saveGraphicsState()
   doc.setGState(new doc.GState({ opacity: 0.13 }))
   doc.setFont('helvetica', 'bold')

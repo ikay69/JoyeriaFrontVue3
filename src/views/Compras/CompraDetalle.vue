@@ -29,6 +29,7 @@
             v-if="compra"
             variant="tonal"
             prepend-icon="mdi-printer"
+            :loading="imprimiendo"
             @click="imprimir"
           >
             Imprimir
@@ -512,7 +513,7 @@
 <script>
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
-import { generarPdfCompra } from '@/utils/compraPdf'
+import { imprimirContratoCompra } from '@/utils/contratoCompraPdf'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
@@ -522,6 +523,7 @@ export default {
     return {
       cargando: false,
       anulando: false,
+      imprimiendo: false,
       compra: null,
       lineas: [],
       cuotas: [],
@@ -566,13 +568,6 @@ export default {
   computed: {
     authStore() {
       return useAuthStore()
-    },
-
-    // La empresa del detalle sale de la URL y puede NO ser la seleccionada en la barra superior,
-    // asi que el nombre se busca por ese Id en vez de usar empresaActual.
-    nombreEmpresa() {
-      const empresa = this.authStore.empresas.find((emp) => emp.Id === this.idEmpresa)
-      return empresa ? empresa.Nombre : ''
     },
 
     idEmpresa() {
@@ -1001,16 +996,22 @@ export default {
       }
     },
 
-    imprimir() {
+    async imprimir() {
+      if (this.imprimiendo || !this.compra) return
+      this.imprimiendo = true
       try {
-        generarPdfCompra({
-          cabecera: this.compra,
-          lineas: this.lineas,
-          cuotas: this.cuotas,
-          nombreEmpresa: this.nombreEmpresa
+        // La empresa del detalle sale de la URL y puede NO ser la seleccionada en la barra
+        // superior: el respaldo se busca por ese Id en vez de usar empresaActual.
+        const empresaRespaldo = this.authStore.empresas.find((emp) => emp.Id === this.idEmpresa) || null
+        await imprimirContratoCompra({
+          compra: { ...this.compra, lineas: this.lineas },
+          idEmpresa: this.idEmpresa,
+          empresaRespaldo
         })
       } catch (error) {
-        Swal.fire('Error', error.message || 'No se pudo generar el PDF de la compra', 'error')
+        Swal.fire('Error', error.message || 'No se pudo generar el contrato de la compra', 'error')
+      } finally {
+        this.imprimiendo = false
       }
     },
 

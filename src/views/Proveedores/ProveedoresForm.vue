@@ -47,6 +47,15 @@
         />
 
         <v-text-field
+          v-model="ciudadDocumento"
+          label="Ciudad de expedición del documento"
+          maxlength="70"
+          counter="70"
+          variant="outlined"
+          class="mb-2"
+        />
+
+        <v-text-field
           v-model="celular"
           label="Celular"
           maxlength="10"
@@ -68,8 +77,8 @@
         <v-text-field
           v-model="direccion"
           label="Dirección"
-          maxlength="20"
-          counter="20"
+          maxlength="200"
+          counter="200"
           variant="outlined"
           class="mb-2"
         />
@@ -148,6 +157,7 @@ export default {
       apellidos: '',
       idTipoDocumento: '',
       numeroDocumento: '',
+      ciudadDocumento: '',
       celular: '',
       email: '',
       direccion: '',
@@ -264,6 +274,7 @@ export default {
         this.apellidos = data.data.terApellidos
         this.idTipoDocumento = data.data.terTipDocId ?? ''
         this.numeroDocumento = data.data.terNumDoc ?? ''
+        this.ciudadDocumento = data.data.terCiudadDoc ?? ''
         this.celular = data.data.terCelular
         this.email = data.data.terEmail
         this.direccion = data.data.terDireccion
@@ -347,6 +358,7 @@ export default {
             Nombre: this.nombre,
             Apellidos: this.apellidos,
             ...this.normalizarDocumento(),
+            CiudadDocumento: String(this.ciudadDocumento ?? '').trim() || null,
             Estado: this.estado,
             Celular: this.celular,
             Email: this.email,
@@ -360,6 +372,7 @@ export default {
             Nombre: this.nombre,
             Apellidos: this.apellidos,
             ...this.normalizarDocumento(),
+            CiudadDocumento: String(this.ciudadDocumento ?? '').trim() || null,
             Celular: this.celular,
             Email: this.email,
             Direccion: this.direccion

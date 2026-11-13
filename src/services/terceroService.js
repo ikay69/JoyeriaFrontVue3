@@ -18,7 +18,7 @@ export default {
     return http.post('/tercero/getalltallertercero', payload)
   },
   create(payload) {
-    // payload: { idEmpresa, tipoTercero, Nombre, Apellidos, idTipoDocumento, NumeroDocumento, Celular, Email, Direccion }
+    // payload: { idEmpresa, tipoTercero, Nombre, Apellidos, idTipoDocumento, NumeroDocumento, CiudadDocumento, Celular, Email, Direccion }
     return http.post('/tercero/newtercero', payload)
   },
   getById(payload) {
@@ -26,7 +26,7 @@ export default {
     return http.post('/tercero/getidtercero', payload)
   },
   update(payload) {
-    // payload: { idEmpresa, idTercero, Nombre, Apellidos, idTipoDocumento, NumeroDocumento, Estado, Celular, Email, Direccion }
+    // payload: { idEmpresa, idTercero, Nombre, Apellidos, idTipoDocumento, NumeroDocumento, CiudadDocumento, Estado, Celular, Email, Direccion }
     return http.put('/tercero/updatetercero', payload)
   },
   getActivas(payload) {
