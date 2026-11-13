@@ -451,6 +451,7 @@
 <script>
 import Swal from 'sweetalert2'
 import compraService from '@/services/compraService'
+import { imprimirContratoCompra } from '@/utils/contratoCompraPdf'
 import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ProveedoresFormDialog from '@/views/Proveedores/ProveedoresFormDialog.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
@@ -998,8 +999,38 @@ export default {
 
       this.guardando = true
       try {
+        // Desde el 2026-11-11 /newcompra responde la compra completa en data (misma forma que
+        // /getidcompra), como al registrar una venta: con eso se imprime el contrato enseguida.
         const { data } = await compraService.create(payload)
-        await Swal.fire('Éxito', data.msg || 'Compra registrada', 'success')
+        const compra = data?.data
+
+        if (!compra) {
+          await Swal.fire(
+            'Compra registrada',
+            data?.msg || 'La compra se guardó, pero no se recibieron los datos para generar el contrato.',
+            'warning'
+          )
+          this.$router.back()
+          return
+        }
+
+        try {
+          await imprimirContratoCompra({
+            compra,
+            idEmpresa: this.idEmpresa,
+            empresaRespaldo: this.authStore.empresaActual
+          })
+        } catch (errorPdf) {
+          await Swal.fire(
+            'Compra registrada',
+            `La compra se guardó, pero no se pudo generar el contrato: ${errorPdf.message || 'Error desconocido'}`,
+            'warning'
+          )
+          this.$router.back()
+          return
+        }
+
+        await Swal.fire('Éxito', data.msg || 'Compra registrada y contrato generado', 'success')
         this.$router.back()
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'Ocurrió un error al guardar la compra'

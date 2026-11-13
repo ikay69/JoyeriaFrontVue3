@@ -146,6 +146,7 @@
           <v-list-item :to="{ name: 'AsignacionUsuario' }" title="Asignación de usuario" />
           <v-list-item :to="{ name: 'TiposDocumento' }" title="Tipos de documento" />
           <v-list-item :to="{ name: 'TiposGastos' }" title="Tipos de gastos" />
+          <v-list-item :to="{ name: 'Promociones' }" title="Promociones" />
         </v-list-group>
       </v-list>
     </v-navigation-drawer>

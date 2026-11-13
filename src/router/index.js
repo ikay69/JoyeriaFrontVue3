@@ -273,6 +273,10 @@ const routes = [
         component: () => import('@/views/Ventas/VentasForm.vue')
       },
       {
+        path: 'ventas/nueva2',  name: 'VentasNuevo2',
+        component: () => import('@/views/Ventas/VentasForm2.vue')
+      },
+      {
         path: 'ventas/:EmpId/:VentaId/detalle', name: 'VentasDetalle',
         component: () => import('@/views/Ventas/VentasDetalle.vue'),
         props: true
@@ -498,6 +502,23 @@ const routes = [
         path: 'administracion/tipos-gastos/:EmpId/:TipGasId/editar',
         name: 'TiposGastosEditar',
         component: () => import('@/views/Administracion/TiposGastos/TiposGastosForm.vue'),
+        props: true
+      },
+      //promociones
+      {
+        path: 'administracion/promociones',
+        name: 'Promociones',
+        component: () => import('@/views/Administracion/Promociones/PromocionesList.vue')
+      },
+      {
+        path: 'administracion/promociones/nuevo',
+        name: 'PromocionesNuevo',
+        component: () => import('@/views/Administracion/Promociones/PromocionesForm.vue')
+      },
+      {
+        path: 'administracion/promociones/:EmpId/:PromoId/editar',
+        name: 'PromocionesEditar',
+        component: () => import('@/views/Administracion/Promociones/PromocionesForm.vue'),
         props: true
       }
     ]

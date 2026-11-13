@@ -2,9 +2,14 @@
   <v-container fluid class="pa-6">
     <div class="d-flex align-center justify-space-between mb-4 flex-wrap ga-2">
       <h1 class="text-h5">Ventas</h1>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="irANueva">
-        Agregar
-      </v-btn>
+      <div class="d-flex ga-2 flex-wrap">
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="irANueva">
+          Agregar
+        </v-btn>
+        <v-btn color="primary" variant="tonal" prepend-icon="mdi-plus" @click="irANueva2">
+          Agregar 2
+        </v-btn>
+      </div>
     </div>
 
     <v-card class="pa-4 mb-4" elevation="1">
@@ -386,6 +391,10 @@ export default {
 
     irANueva() {
       this.$router.push({ name: 'VentasNuevo' })
+    },
+
+    irANueva2() {
+      this.$router.push({ name: 'VentasNuevo2' })
     },
 
     irADetalle(ventaId) {

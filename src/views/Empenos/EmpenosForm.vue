@@ -553,6 +553,7 @@ export default {
     onClienteGuardado({ creado, cliente }) {
       if (cliente) {
         this.clienteSeleccionado = cliente
+        this.cargarCiudadDocumentoCliente(cliente.Id)
       } else if (creado) {
         this.clienteSeleccionado = null
       }
@@ -561,6 +562,23 @@ export default {
 
     onTerceroSeleccionado(cliente) {
       this.clienteSeleccionado = cliente
+      this.cargarCiudadDocumentoCliente(cliente?.Id)
+    },
+
+    // Precarga la ciudad del documento desde la ficha del tercero (terCiudadDoc).
+    // Si el tercero no la tiene, el campo queda vacío para escribirla a mano.
+    async cargarCiudadDocumentoCliente(id) {
+      const idEmpresa = Number(this.idEmpresa)
+      const idTercero = Number(id)
+      if (!Number.isInteger(idEmpresa) || idEmpresa <= 0 || !Number.isInteger(idTercero) || idTercero <= 0) return
+      try {
+        const { data } = await terceroService.getById({ idEmpresa, idTercero })
+        // Si mientras respondía se eligió otro cliente, no pisar su ciudad
+        if (Number(this.clienteSeleccionado?.Id) !== idTercero) return
+        this.terceroCiudadDoc = String(data?.data?.terCiudadDoc ?? '').trim()
+      } catch {
+        // sin ciudad precargada; se escribe a mano
+      }
     },
 
     abrirSelectorArticulo(index) {

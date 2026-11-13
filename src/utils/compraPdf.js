@@ -89,7 +89,7 @@ export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
       ]
     }),
     styles: { fontSize: 8 },
-    headStyles: { fillColor: [106, 122, 239] },
+    headStyles: { fillColor: [192, 165, 60] },
     columnStyles: {
       2: { halign: 'right' },
       3: { halign: 'right' },
@@ -148,7 +148,7 @@ export function generarPdfCompra({ cabecera, lineas, cuotas, nombreEmpresa }) {
           etiquetaEstadoCuota(cuota.cuoEstado)
         ]),
         styles: { fontSize: 8 },
-        headStyles: { fillColor: [106, 122, 239] },
+        headStyles: { fillColor: [192, 165, 60] },
         columnStyles: { 1: { halign: 'right' } }
       })
       y = doc.lastAutoTable.finalY + 8
