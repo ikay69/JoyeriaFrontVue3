@@ -449,7 +449,6 @@ import Swal from 'sweetalert2'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import ventasService from '@/services/ventasService'
-import empresaService from '@/services/empresaService'
 import { generarPdfVenta } from '@/utils/ventaPdf'
 import { generarTirillaPDF } from '@/utils/tirillaPDF'
 import { generarTirilla } from '@/utils/tirilla'
@@ -1060,10 +1059,7 @@ export default {
         let empresa = this.authStore.empresaActual || {}
         let mensajeEmpresa = ''
         try {
-          const { data: respuestaEmpresa } = await empresaService.getById({
-            idEmpresa: Number(this.idEmpresa)
-          })
-          empresa = respuestaEmpresa?.data || empresa
+          empresa = await this.authStore.obtenerDatosEmpresa(Number(this.idEmpresa))
         } catch (errorEmpresa) {
           mensajeEmpresa = errorEmpresa.response?.data?.msg ||
             'No se pudieron cargar los datos completos de la empresa; se usaron los disponibles en la sesión.'

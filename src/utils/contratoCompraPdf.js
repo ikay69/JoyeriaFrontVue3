@@ -1,7 +1,7 @@
 import { jsPDF } from 'jspdf'
 import { codigoImpresionVenta } from '@/utils/codigoImpresionVenta'
 import autoTable from 'jspdf-autotable'
-import empresaService from '@/services/empresaService'
+import { useAuthStore } from '@/stores/auth'
 import terceroService from '@/services/terceroService'
 import {
   DORADO,
@@ -84,8 +84,8 @@ export async function imprimirContratoCompra({ compra, idEmpresa, empresaRespald
 
   let empresa = empresaRespaldo || {}
   try {
-    const { data } = await empresaService.getById({ idEmpresa: id })
-    empresa = data?.data || empresa
+    // Datos publicos de la empresa guardados en la sesion (o pedidos a /getdatosempresa)
+    empresa = await useAuthStore().obtenerDatosEmpresa(id)
   } catch {
     // se usan los datos de respaldo
   }

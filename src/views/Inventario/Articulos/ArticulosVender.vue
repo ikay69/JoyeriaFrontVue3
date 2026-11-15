@@ -10,7 +10,7 @@
 
       <v-card-text class="pt-4">
         <v-row dense align="center" class="mb-2">
-          <v-col cols="12" sm="4">
+          <v-col cols="12" sm="3">
             <v-text-field
               v-model="filtros.textoFiltro"
               label="Buscar"
@@ -24,7 +24,22 @@
               hide-details="auto"
             />
           </v-col>
-          <v-col cols="6" sm="4">
+          <v-col cols="12" sm="3">
+            <!-- Si quien invoca manda la bodega, el combo queda bloqueado en ese valor -->
+            <v-select
+              v-model="filtros.idBodega"
+              :items="opcionesBodega"
+              item-title="Nombre"
+              item-value="Id"
+              label="Bodega"
+              :loading="cargandoBodegas"
+              :disabled="bodegaFija !== null"
+              density="compact"
+              variant="outlined"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="6" sm="2">
             <v-select
               v-model="filtros.campoOrdenar"
               :items="opcionesCampoOrdenar"
@@ -123,6 +138,7 @@
 <script>
 import Swal from 'sweetalert2'
 import articuloService from '@/services/articuloService'
+import { useCatalogosStore } from '@/stores/catalogos'
 
 export default {
   name: 'ArticulosVender',
@@ -138,8 +154,8 @@ export default {
       type: [Number, String],
       required: true
     },
-    // igual que idEmpresa: lo manda quien invoca el dialogo, no se elige aqui.
-    // null = buscar en todas las bodegas; numero = restringir a esa bodega.
+    // null/0 = el usuario elige la bodega en el combo (por defecto "Todas").
+    // numero > 0 = el combo queda bloqueado en esa bodega.
     idBodega: {
       type: [Number, String],
       default: null
@@ -154,7 +170,10 @@ export default {
       articulos: [],
       cantData: 0,
       pagina: 1,
+      bodegas: [],
+      cargandoBodegas: false,
       filtros: {
+        idBodega: 0, // 0 = Todas
         textoFiltro: '',
         campoOrdenar: 2, // 2:SKU
         orden: 'ASC'
@@ -183,6 +202,23 @@ export default {
     },
     totalPaginas() {
       return Math.max(1, Math.ceil(this.cantData / 50))
+    },
+    catalogosStore() {
+      return useCatalogosStore()
+    },
+    // Bodega recibida por parametro, como entero (> 0), o null si no se recibio
+    bodegaFija() {
+      const bodega = Number(this.idBodega)
+      return Number.isInteger(bodega) && bodega > 0 ? bodega : null
+    },
+    opcionesBodega() {
+      const opciones = [{ Id: 0, Nombre: 'Todas' }, ...this.bodegas]
+      // /getvendiblesarticulo acepta bodegas inactivas: si la fija no esta en la lista de
+      // activas, se agrega para que el combo no quede mostrando solo el numero.
+      if (this.bodegaFija !== null && !opciones.some(b => Number(b.Id) === this.bodegaFija)) {
+        opciones.push({ Id: this.bodegaFija, Nombre: `Bodega ${this.bodegaFija}` })
+      }
+      return opciones
     }
   },
 
@@ -190,12 +226,40 @@ export default {
     // cada vez que se abre el dialogo, consulta (por si cambio la empresa o es la primera vez)
     modelValue(visible) {
       if (visible) {
-        this.consultar()
+        this.abrir()
       }
     }
   },
 
   methods: {
+    async abrir() {
+      // Con bodega por parametro se bloquea en ese valor; sin ella se conserva la ultima elegida
+      if (this.bodegaFija !== null) {
+        this.filtros.idBodega = this.bodegaFija
+      }
+      await this.cargarBodegas()
+      this.consultar()
+    },
+
+    async cargarBodegas() {
+      if (!this.idEmpresa) return
+      this.cargandoBodegas = true
+      try {
+        this.bodegas = await this.catalogosStore.getBodegas(Number(this.idEmpresa))
+      } catch (error) {
+        this.bodegas = []
+        const mensaje = error.response?.data?.msg || 'No se pudo cargar la lista de bodegas'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.cargandoBodegas = false
+      }
+      // si la bodega elegida ya no esta (p. ej. cambio la empresa), vuelve a "Todas"
+      if (this.bodegaFija === null &&
+          !this.bodegas.some(b => Number(b.Id) === Number(this.filtros.idBodega))) {
+        this.filtros.idBodega = 0
+      }
+    },
+
     consultar() {
       this.buscar(1)
     },
@@ -211,7 +275,8 @@ export default {
       }
 
       // idBodega tiene que ir como entero: un "2" en texto lo rechaza el backend. null = todas.
-      const bodega = Number(this.idBodega)
+      // La del parametro manda sobre la del combo.
+      const bodega = this.bodegaFija !== null ? this.bodegaFija : Number(this.filtros.idBodega)
       const idBodega = Number.isInteger(bodega) && bodega > 0 ? bodega : null
 
       this.cargando = true

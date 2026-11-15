@@ -10,8 +10,15 @@ export default {
     return http.post('/empresa/ajvd845mda93n23lm3x')
   },
   getById(payload) {
-    // payload: { idEmpresa }
+    // payload: { idEmpresa } -- SOLO ADMINISTRADOR (trae la Clave de login)
     return http.post('/empresa/getempresaid', payload)
+  },
+  getDatos(payload) {
+    // payload: { idEmpresa } -- ADMINISTRADOR y VENDEDOR. Los 12 datos publicos (Nombre,
+    // TipoDocumento, NumeroDocumento, Celular, Telefono, Email, Direccion, Whatsapp,
+    // Instagram, Twitter, Facebook, Youtube); NO trae Id, Clave ni foto.
+    // 400 "Empresa invalida" si la empresa esta desactivada.
+    return http.post('/empresa/getdatosempresa', payload)
   },
   update(payload) {
     // payload: { idEmpresa, passEmpresa, Nombre, TipoDocumento, NumeroDocumento, Celular, Telefono, Email, Direccion,

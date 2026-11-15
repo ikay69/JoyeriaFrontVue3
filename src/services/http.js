@@ -20,7 +20,13 @@ http.interceptors.request.use((config) => {
 http.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response && error.response.status === 401) {
+    // El backend responde 401 tanto por sesion invalida (token malo, usuario/empresa
+    // desactivados) como por "rol sin permiso". Este ultimo NO invalida la sesion: el
+    // token sigue sirviendo, solo esa ruta esta reservada al ADMINISTRADOR. Cerrar sesion
+    // ahi sacaba al VENDEDOR del sistema (ej. al imprimir el contrato de una compra, que
+    // consulta /empresa/getempresaid).
+    const rolSinPermiso = error.response?.data?.msg === 'Usuario actual no está autorizado.'
+    if (error.response && error.response.status === 401 && !rolSinPermiso) {
       const authStore = useAuthStore()
       authStore.logout()
       if (window.location.pathname !== '/login') {

@@ -55,7 +55,8 @@
       <v-list density="compact" nav>
         <v-list-item :to="{ name: 'Inicio' }" prepend-icon="mdi-home" title="Inicio" />
 
-        <v-list-group value="inventario">
+        <!-- Solo ADMINISTRADOR: los listados usan getall*, reservados al administrador -->
+        <v-list-group v-if="esAdministrador" value="inventario">
           <template #activator="{ props }">
             <v-list-item
               v-bind="props"
@@ -94,7 +95,7 @@
               title="Inf Ventas"
             />
           </template>
-          <v-list-item :to="{ name: 'Vendedores' }" title="Vendedores" />
+          <v-list-item v-if="esAdministrador" :to="{ name: 'Vendedores' }" title="Vendedores" />
           <v-list-item :to="{ name: 'Ventas' }" title="Ventas" />
         </v-list-group>
 
@@ -109,7 +110,7 @@
           <v-list-item :to="{ name: 'ComprasList' }" title="Compras" />
         </v-list-group>
         
-        <v-list-item :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Fundir materiales" />
+        <v-list-item v-if="esAdministrador" :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Fundir materiales" />
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
         <v-list-group value="informesEmpenos"  class="bg-red text-white">
           <template #activator="{ props }">
@@ -124,20 +125,20 @@
         </v-list-group>
         <v-list-item :to="{ name: 'PagosList' }" prepend-icon="mdi-cash-plus" title="Pagos de clientes" />
         <v-list-item :to="{ name: 'Gastos' }" prepend-icon="mdi-cash-minus" title="Gastos"/>
-        <v-list-item :to="{ name: 'Informes' }" prepend-icon="mdi-file-chart" title="Informes" />
+        <v-list-item v-if="esAdministrador" :to="{ name: 'Informes' }" prepend-icon="mdi-file-chart" title="Informes" />
 
         <v-list-group value="contabilidad">
           <template #activator="{ props }">
             <v-list-item v-bind="props" prepend-icon="mdi-book-open-variant" title="Contabilidad" />
           </template>
-          <v-list-item :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" />
+          <v-list-item v-if="esAdministrador" :to="{ name: 'MovimientoCaja' }" title="Movimiento en caja" />
           <v-list-item :to="{ name: 'CuentasPorCobrar' }" title="Cuentas por cobrar" />
           <v-list-item :to="{ name: 'CuentasPorPagar' }" title="Cuentas por pagar" />
           <v-list-item :to="{ name: 'CuentasPorCobrarSistema' }" title="Cuentas por cobrar sistema" />
           <v-list-item :to="{ name: 'CuentasPorPagarSistema' }" title="Cuentas por pagar sistema" />
         </v-list-group>
 
-        <v-list-group value="administracion">
+        <v-list-group v-if="esAdministrador" value="administracion">
           <template #activator="{ props }">
             <v-list-item v-bind="props" prepend-icon="mdi-cog" title="Administración" />
           </template>
@@ -179,6 +180,9 @@ export default {
     },
     rol() {
       return this.authStore.rol
+    },
+    esAdministrador() {
+      return this.rol === 'ADMINISTRADOR'
     },
     empresas() {
       return this.authStore.empresas

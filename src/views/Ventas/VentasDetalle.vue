@@ -561,7 +561,7 @@
 <script>
 import Swal from 'sweetalert2'
 import ventasService from '@/services/ventasService'
-import empresaService from '@/services/empresaService'
+import { useAuthStore } from '@/stores/auth'
 import { generarPdfVenta } from '@/utils/ventaPdf'
 import { generarTirillaPDF } from '@/utils/tirillaPDF'
 import { generarTirilla } from '@/utils/tirilla'
@@ -924,18 +924,8 @@ export default {
       if (this.imprimiendo || !this.venta) return
       this.imprimiendo = true
       try {
-        const { data: respuestaEmpresa } = await empresaService.getById({
-          idEmpresa: this.idEmpresa
-        })
-        const empresa = respuestaEmpresa?.data
-        if (!empresa) {
-          await Swal.fire(
-            'Error',
-            respuestaEmpresa?.msg || 'No se recibieron los datos de la empresa para imprimir',
-            'error'
-          )
-          return
-        }
+        // Datos publicos de la empresa guardados en la sesion (o pedidos a /getdatosempresa)
+        const empresa = await useAuthStore().obtenerDatosEmpresa(Number(this.idEmpresa))
 
         const parametros = { venta: this.venta, empresa }
         if (this.tipoImpresion === 'tirillaPdf') {

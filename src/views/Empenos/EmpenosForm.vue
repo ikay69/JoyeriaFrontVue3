@@ -349,7 +349,6 @@
 <script>
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
-import empresaService from '@/services/empresaService'
 import terceroService from '@/services/terceroService'
 import { generarPdfEmpeno } from '@/utils/empenoPdf'
 import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
@@ -834,8 +833,7 @@ export default {
       const idEmpresa = Number(this.idEmpresa)
       let empresa = this.authStore.empresaActual || {}
       try {
-        const { data } = await empresaService.getById({ idEmpresa })
-        empresa = data?.data || empresa
+        empresa = await this.authStore.obtenerDatosEmpresa(idEmpresa)
       } catch {
         // se usan los datos de la sesion
       }

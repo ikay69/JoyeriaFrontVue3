@@ -106,6 +106,13 @@ export default {
           clave: this.clave
         })
         this.authStore.setSession(data)
+        // Datos publicos de la empresa (NIT, direccion, redes) para imprimir. Si fallan, la
+        // sesion sigue: se vuelven a pedir la primera vez que se imprima algo.
+        try {
+          await this.authStore.cargarDatosEmpresa()
+        } catch {
+          // sin datos en sesion por ahora
+        }
         this.$router.push({ name: 'Inicio' })
       } catch (error) {
         // los campos vacios llegan con la forma de express-validator: errors[0].msg
