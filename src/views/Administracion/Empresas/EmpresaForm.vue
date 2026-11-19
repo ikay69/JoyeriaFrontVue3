@@ -9,12 +9,13 @@
     <v-alert v-else-if="!esEmpresaEnSesion" type="info" variant="tonal" class="mb-4" max-width="760">
       Los datos generales, la clave y la contraseña solo se pueden editar en la empresa que
       tienes seleccionada actualmente en la barra superior. Aquí puedes consultarlos y, si lo
-      necesitas, cambiar el estado de esta empresa.
+      necesitas, cambiar el estado de esta empresa o eliminarla.
     </v-alert>
 
     <v-alert v-else type="info" variant="tonal" class="mb-4" max-width="760">
-      El estado de la empresa en sesión no se puede cambiar desde ella misma. Para activarla o
-      desactivarla, selecciona otra empresa en la barra superior.
+      El estado de la empresa en sesión no se puede cambiar desde ella misma, ni se puede
+      eliminar. Para activarla, desactivarla o eliminarla, selecciona otra empresa en la barra
+      superior.
     </v-alert>
 
     <v-progress-linear v-if="cargando" indeterminate color="primary" class="mb-4" style="max-width: 760px;" />
@@ -375,6 +376,66 @@
       </v-form>
     </v-card>
 
+    <!-- ELIMINAR EMPRESA: solo OTRA empresa con relacion activa (la del token responde
+         "no se puede eliminar así misma"). Borra todo y NO se puede deshacer -->
+    <v-card
+      v-if="esAdministrador && !esEmpresaEnSesion"
+      class="pa-6 mb-4 border-error"
+      max-width="760"
+      elevation="1"
+      border
+    >
+      <h2 class="text-subtitle-1 text-error mb-2">Eliminar empresa</h2>
+      <v-alert type="error" variant="tonal" density="compact" class="mb-4">
+        Se eliminarán la empresa y <strong>todos</strong> sus datos: ventas, compras, caja,
+        inventario, terceros, empeños, gastos, etc. Los usuarios que solo pertenecen a esta
+        empresa también se eliminan. <strong>Esta acción no se puede deshacer.</strong>
+      </v-alert>
+      <v-form ref="formEliminar" @submit.prevent="eliminarEmpresa">
+        <v-row dense align="center">
+          <v-col cols="12" sm="5">
+            <v-text-field
+              v-model="passUsuarioEliminar"
+              label="Tu contraseña de usuario"
+              :type="mostrarPassUsuarioEliminar ? 'text' : 'password'"
+              :append-inner-icon="mostrarPassUsuarioEliminar ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="mostrarPassUsuarioEliminar = !mostrarPassUsuarioEliminar"
+              maxlength="15"
+              autocomplete="new-password"
+              :rules="[reglas.requerido, reglas.maxPass15, reglas.passPermitida]"
+              variant="outlined"
+              hide-details="auto"
+            />
+          </v-col>
+          <v-col cols="12" sm="5">
+            <v-text-field
+              v-model="passEmpresaEliminar"
+              label="Contraseña de esta empresa"
+              :type="mostrarPassEmpresaEliminar ? 'text' : 'password'"
+              :append-inner-icon="mostrarPassEmpresaEliminar ? 'mdi-eye-off' : 'mdi-eye'"
+              @click:append-inner="mostrarPassEmpresaEliminar = !mostrarPassEmpresaEliminar"
+              maxlength="15"
+              autocomplete="new-password"
+              :rules="[reglas.requerido, reglas.maxPass15, reglas.passPermitida]"
+              variant="outlined"
+              hide-details="auto"
+            />
+          </v-col>
+          <v-col cols="12" sm="2" class="d-flex justify-end">
+            <v-btn
+              color="error"
+              prepend-icon="mdi-delete-forever"
+              :loading="eliminandoEmpresa"
+              :disabled="cargando"
+              type="submit"
+            >
+              Eliminar
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-form>
+    </v-card>
+
     <div class="d-flex justify-end" style="max-width: 760px;">
       <v-btn variant="outlined" @click="cancelar">Volver</v-btn>
     </div>
@@ -435,6 +496,13 @@ export default {
       passEmpresaEstado: '',
       mostrarPassEstado: false,
       guardandoEstado: false,
+
+      // eliminar empresa
+      passUsuarioEliminar: '',
+      mostrarPassUsuarioEliminar: false,
+      passEmpresaEliminar: '',
+      mostrarPassEmpresaEliminar: false,
+      eliminandoEmpresa: false,
 
       // logo de la empresa
       fotoUrl: null, // object URL de la foto guardada en el servidor
@@ -670,6 +738,68 @@ export default {
       } finally {
         this.guardandoEstado = false
       }
+    },
+
+    async eliminarEmpresa() {
+      const { valid } = await this.$refs.formEliminar.validate()
+      if (!valid) return
+
+      // no se puede deshacer: se pide escribir el nombre exacto de la empresa
+      const nombreEmpresa = this.nombre
+      const confirmacion = await Swal.fire({
+        title: 'Eliminar empresa',
+        html:
+          'Se eliminará <strong>' + this.escaparHtml(nombreEmpresa) + '</strong> con todos sus datos. ' +
+          'Esta acción <strong>no se puede deshacer</strong>.<br><br>' +
+          'Escribe el nombre de la empresa para confirmar:',
+        icon: 'warning',
+        input: 'text',
+        inputPlaceholder: nombreEmpresa,
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar definitivamente',
+        confirmButtonColor: '#d33',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true,
+        inputValidator: (valor) =>
+          (valor || '').trim() !== nombreEmpresa.trim()
+            ? 'El nombre no coincide'
+            : undefined
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.eliminandoEmpresa = true
+      try {
+        const idEliminada = this.idEmpresaObjetivo
+        const { data } = await empresaService.eliminar({
+          idEmpresa: idEliminada,
+          passUsuario: this.passUsuarioEliminar,
+          passEmpresa: this.passEmpresaEliminar
+        })
+        // la empresa ya no existe: se quita de la barra superior y de la cache del logo
+        this.authStore.empresas = this.authStore.empresas.filter((e) => e.Id !== idEliminada)
+        this.authStore.persistir()
+        useLogoEmpresaStore().invalidar(idEliminada)
+        await Swal.fire(
+          'Empresa eliminada',
+          data.msg || 'Empresa y todos sus datos eliminados correctamente',
+          'success'
+        )
+        this.$router.push({ name: 'Empresas' })
+      } catch (error) {
+        const mensaje = this.mensajeError(error, 'No se pudo eliminar la empresa')
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.passUsuarioEliminar = ''
+        this.passEmpresaEliminar = ''
+        this.$refs.formEliminar?.resetValidation()
+        this.eliminandoEmpresa = false
+      }
+    },
+
+    escaparHtml(texto) {
+      const div = document.createElement('div')
+      div.textContent = texto || ''
+      return div.innerHTML
     },
 
     // getfotoempresa responde la imagen (blob); 404 = la empresa no tiene foto

@@ -37,7 +37,7 @@ export default {
   data() {
     return {
       accesos: [
-        { texto: 'Venta', ruta: 'VentasNuevo', icono: 'mdi-cash-register' },
+        { texto: 'Venta', ruta: 'VentasNuevo2', icono: 'mdi-cash-register' },
         { texto: 'Pago de cliente', ruta: 'PagosNuevo', icono: 'mdi-cash-multiple' },
         { texto: 'Compra', ruta: 'CompraNueva', icono: 'mdi-cart-plus' },
         { texto: 'Gasto', ruta: 'GastosNuevo', icono: 'mdi-receipt-text-plus' }

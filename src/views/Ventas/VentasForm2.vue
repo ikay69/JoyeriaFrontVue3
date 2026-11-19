@@ -7,6 +7,28 @@
 
     <v-card class="pa-6 mt-4" elevation="1">
       <v-form @submit.prevent="confirmar">
+        <!-- Promociones vigentes hoy: solo informan al vendedor; si aplican o no a este cliente
+             lo decide el backend despues (/aplicacionpromo). -->
+        <div class="promociones-venta mb-4 pa-3 rounded">
+          <div class="text-subtitle-2 font-weight-bold text-primary">
+            <v-icon start size="small" icon="mdi-tag-multiple" />PROMOCIONES
+          </div>
+          <div v-if="cargandoPromociones" class="text-body-2 text-medium-emphasis">
+            Cargando promociones...
+          </div>
+          <div v-else-if="errorPromociones" class="text-body-2 text-error">
+            {{ errorPromociones }}
+          </div>
+          <div v-else-if="!promociones.length" class="text-body-2 text-medium-emphasis">
+            No hay promociones vigentes hoy
+          </div>
+          <template v-else>
+            <div v-for="(promo, indice) in promociones" :key="indice" class="text-body-2">
+              <v-icon size="small" color="primary" icon="mdi-tag" class="mr-1" />{{ textoPromocion(promo) }}
+            </div>
+          </template>
+        </div>
+
         <v-row dense>
           <v-col cols="12" md="4" class="d-flex ga-2">
             <v-select
@@ -336,7 +358,20 @@
               <span class="totales-venta__valor">{{ formatearMoneda(subtotal) }}</span>
             </div>
             <div class="totales-venta__fila">
-              <label for="venta-descuento">Descuento</label>
+              <div class="d-flex align-center ga-1">
+                <label for="venta-descuento">Descuento</label>
+                <v-btn
+                  icon="mdi-tag"
+                  size="x-small"
+                  variant="text"
+                  color="primary"
+                  :loading="aplicandoPromociones"
+                  :disabled="!promociones.length || aplicandoPromociones"
+                  :title="promociones.length ? 'Aplicar promociones' : 'No hay promociones vigentes'"
+                  aria-label="Aplicar promociones"
+                  @click="aplicarPromociones"
+                />
+              </div>
               <v-number-input
                 id="venta-descuento"
                 v-model.number="descuento"
@@ -404,6 +439,56 @@
             Guardar
           </v-btn>
         </div>
+
+        <!-- Promociones que aplicaron a esta venta (resultado de /aplicacionpromo) -->
+        <div v-if="aplicacionPromo" class="mt-6">
+          <div class="text-subtitle-2 font-weight-bold text-primary mb-2">
+            <v-icon start size="small" icon="mdi-tag-multiple" />Promociones aplicadas
+          </div>
+          <v-alert
+            v-if="promocionesDesactualizadas"
+            type="warning"
+            variant="tonal"
+            density="compact"
+            class="mb-2"
+          >
+            El cliente o el subtotal cambiaron después de aplicar las promociones. Vuelva a
+            aplicarlas con el icono junto a Descuento.
+          </v-alert>
+          <div v-if="!aplicacionPromo.promociones.length" class="text-body-2 text-medium-emphasis">
+            Ninguna promoción aplicó a esta venta.
+          </div>
+          <v-table v-else density="compact" class="tabla-listado">
+            <thead>
+              <tr>
+                <th>Promoción</th>
+                <th>Descuento de la promoción</th>
+                <th class="text-end">Tope</th>
+                <th class="text-end">Valor descontado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(promo, indice) in aplicacionPromo.promociones" :key="indice">
+                <td>
+                  <v-icon size="small" color="primary" icon="mdi-tag" class="mr-1" />{{ promo.promoNombre }}
+                </td>
+                <td>{{ textoDescuentoPromo(promo) }}</td>
+                <td class="text-end">
+                  {{ promo.promoTope === null || promo.promoTope === undefined ? 'Sin tope' : formatearMoneda(promo.promoTope) }}
+                </td>
+                <td class="text-end">{{ formatearMoneda(promo.promoMonto) }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" class="text-end font-weight-bold">Total descuento</td>
+                <td class="text-end font-weight-bold">
+                  {{ formatearMoneda(aplicacionPromo.descuentoTotal) }}
+                </td>
+              </tr>
+            </tfoot>
+          </v-table>
+        </div>
       </v-form>
     </v-card>
 
@@ -434,6 +519,7 @@ import Swal from 'sweetalert2'
 import { useAuthStore } from '@/stores/auth'
 import { useCatalogosStore } from '@/stores/catalogos'
 import ventasService from '@/services/ventasService'
+import promocionService from '@/services/promocionService'
 import { generarPdfVenta } from '@/utils/ventaPdf'
 import { generarTirillaPDF } from '@/utils/tirillaPDF'
 import { generarTirilla } from '@/utils/tirilla'
@@ -497,6 +583,13 @@ export default {
       lineas: [],
       ordenNombre: null,
       cargandoVendedores: false,
+      promociones: [],
+      cargandoPromociones: false,
+      errorPromociones: '',
+      aplicandoPromociones: false,
+      // Resultado de /aplicacionpromo + con que cliente y subtotal se calculo:
+      // { idTercero, subtotal, descuentoTotal, promociones: [...] } o null si no se ha aplicado
+      aplicacionPromo: null,
       guardando: false
     }
   },
@@ -542,6 +635,14 @@ export default {
     },
     esCredito() {
       return this.tipoVenta === 'CREDITO'
+    },
+    // Las promociones se calcularon con otro cliente u otro subtotal: hay que volver a aplicarlas
+    promocionesDesactualizadas() {
+      if (!this.aplicacionPromo) return false
+      return (
+        this.aplicacionPromo.idTercero !== Number(this.terceroSeleccionado?.Id) ||
+        this.aplicacionPromo.subtotal !== this.subtotal
+      )
     },
     // Con varias cuotas el backend ignora FechaCompromiso: las fechas van en el detalle
     fechaCompromisoDeshabilitada() {
@@ -614,9 +715,161 @@ export default {
     async cargarCatalogos() {
       if (!this.idEmpresa) {
         this.vendedores = []
+        this.promociones = []
         return
       }
-      await this.cargarVendedores()
+      await Promise.all([this.cargarVendedores(), this.cargarPromociones()])
+    },
+
+    // /getvigentespromocion: activas y con hoy dentro de su vigencia, la que vence primero
+    // va primero. Un fallo no bloquea la venta: solo se avisa en el recuadro.
+    async cargarPromociones() {
+      this.cargandoPromociones = true
+      this.errorPromociones = ''
+      try {
+        const { data } = await promocionService.getVigentes({ idEmpresa: Number(this.idEmpresa) })
+        this.promociones = Array.isArray(data?.data) ? data.data : []
+      } catch (error) {
+        this.promociones = []
+        this.errorPromociones =
+          error.response?.data?.msg || 'No se pudieron cargar las promociones vigentes'
+      } finally {
+        this.cargandoPromociones = false
+      }
+    },
+
+    // "NAVIDAD 2026 hasta el 31/12/2026 con descuento de 10%; monto mínimo $ 50.000,00"
+    // El monto minimo solo se muestra si la promocion lo tiene.
+    textoPromocion(promo) {
+      const partes = [promo.promoNombre || 'Promoción']
+
+      const fechaFin = this.formatearFechaPromo(promo.promoFechaFin)
+      if (fechaFin) partes.push(`hasta el ${fechaFin}`)
+
+      const porcentaje = promo.promoPorcentaje
+      const valor = promo.promoValor
+      if (porcentaje !== null && porcentaje !== undefined && porcentaje !== '') {
+        const numero = Number(porcentaje).toLocaleString('es-CO', { maximumFractionDigits: 2 })
+        partes.push(`con descuento de ${numero}%`)
+      } else if (valor !== null && valor !== undefined && valor !== '') {
+        partes.push(`con descuento de ${this.formatearMoneda(valor)}`)
+      }
+
+      let texto = partes.join(' ')
+      const minimo = Number(promo.montoMinVenta)
+      if (promo.montoMinVenta !== null && promo.montoMinVenta !== undefined && minimo > 0) {
+        texto += `; monto mínimo ${this.formatearMoneda(minimo)}`
+      }
+      return texto
+    },
+
+    // "10%" o "$ 20.000,00" segun el tipo de descuento de la promocion
+    textoDescuentoPromo(promo) {
+      if (promo.promoPorcentaje !== null && promo.promoPorcentaje !== undefined) {
+        return Number(promo.promoPorcentaje).toLocaleString('es-CO', { maximumFractionDigits: 2 }) + '%'
+      }
+      if (promo.promoValor !== null && promo.promoValor !== undefined) {
+        return this.formatearMoneda(promo.promoValor)
+      }
+      return '-'
+    },
+
+    // /aplicacionpromo: el backend evalua las condiciones contra el historial del cliente (que el
+    // vendedor no puede ver) y devuelve cuales aplican y cuanto descuenta cada una. El front no
+    // calcula nada: solo pone el descuentoTotal en el campo Descuento.
+    async aplicarPromociones() {
+      if (this.aplicandoPromociones) return
+
+      const idTercero = Number(this.terceroSeleccionado?.Id)
+      if (!Number.isInteger(idTercero) || idTercero <= 0) {
+        await Swal.fire('Atención', 'Seleccione el cliente antes de aplicar las promociones', 'warning')
+        return
+      }
+      const subtotal = this.subtotal
+      if (!(subtotal > 0)) {
+        await Swal.fire('Atención', 'Agregue artículos a la venta antes de aplicar las promociones', 'warning')
+        return
+      }
+
+      this.aplicandoPromociones = true
+      try {
+        const { data } = await promocionService.aplicar({
+          idEmpresa: Number(this.idEmpresa),
+          idTercero,
+          Subtotal: subtotal
+        })
+        const resultado = data?.data || {}
+        const promociones = Array.isArray(resultado.promociones) ? resultado.promociones : []
+        const descuentoTotal = this.redondear(resultado.descuentoTotal)
+
+        this.aplicacionPromo = { idTercero, subtotal, descuentoTotal, promociones }
+
+        if (!promociones.length) {
+          await Swal.fire('Promociones', 'Ninguna promoción aplica a esta venta', 'info')
+          return
+        }
+
+        // newventa rechaza un descuento mayor que el subtotal: se deja en el subtotal
+        if (descuentoTotal > subtotal) {
+          this.descuento = subtotal
+          await Swal.fire(
+            'Descuento ajustado',
+            `Las promociones suman ${this.formatearMoneda(descuentoTotal)}, más que el subtotal. ` +
+              `El descuento se dejó en ${this.formatearMoneda(subtotal)}.`,
+            'warning'
+          )
+          return
+        }
+
+        this.descuento = descuentoTotal
+      } catch (error) {
+        const mensaje = error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'No se pudieron aplicar las promociones'
+        await Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.aplicandoPromociones = false
+      }
+    },
+
+    // Con promociones vigentes, antes de guardar se pregunta siempre si se aplicaron, para que al
+    // vendedor no se le olviden. Devuelve true si se sigue guardando.
+    async confirmarPromociones() {
+      if (!this.promociones.length) return true
+
+      let titulo = '¿Aplicó las promociones?'
+      let texto
+      let icono = 'question'
+      if (!this.aplicacionPromo) {
+        texto = `Hay ${this.promociones.length} promoción(es) vigente(s) y no se han aplicado a esta venta.`
+        icono = 'warning'
+      } else if (this.promocionesDesactualizadas) {
+        texto = 'El cliente o el subtotal cambiaron después de aplicar las promociones; el descuento puede no corresponder.'
+        icono = 'warning'
+      } else if (!this.aplicacionPromo.promociones.length) {
+        texto = 'Se revisaron las promociones y ninguna aplica a esta venta.'
+      } else {
+        titulo = 'Promociones aplicadas'
+        texto = `Se aplicaron ${this.aplicacionPromo.promociones.length} promoción(es) por ` +
+          `${this.formatearMoneda(this.aplicacionPromo.descuentoTotal)}. ` +
+          `Descuento de la venta: ${this.formatearMoneda(this.descuento)}.`
+      }
+
+      const resultado = await Swal.fire({
+        title: titulo,
+        text: texto,
+        icon: icono,
+        showCancelButton: true,
+        confirmButtonText: 'Guardar venta',
+        cancelButtonText: 'Volver y ajustar'
+      })
+      return resultado.isConfirmed
+    },
+
+    // 'YYYY-MM-DD' -> 'DD/MM/YYYY' sin pasar por Date (evita el corrimiento de zona horaria)
+    formatearFechaPromo(fecha) {
+      const coincide = String(fecha || '').match(/^(\d{4})-(\d{2})-(\d{2})/)
+      return coincide ? `${coincide[3]}/${coincide[2]}/${coincide[1]}` : ''
     },
 
     async cargarVendedores() {
@@ -636,6 +889,7 @@ export default {
       this.idVendedor = null
       this.terceroSeleccionado = null
       this.descuento = 0
+      this.aplicacionPromo = null
       this.efectivo = 0
       this.transaccion = 0
       this.retiraInventario = false
@@ -985,6 +1239,8 @@ export default {
         return
       }
 
+      if (!(await this.confirmarPromociones())) return
+
       const payload = {
         idEmpresa: Number(this.idEmpresa),
         idTercero: Number(this.terceroSeleccionado.Id),
@@ -1064,6 +1320,11 @@ export default {
 </script>
 
 <style scoped>
+/* Fondo del recuadro de promociones: cambiar aqui el gris */
+.promociones-venta {
+  background-color: #d7d7d7;
+}
+
 /* El encabezado toma el mismo primary del tema definido en src/plugins/vuetify.js */
 .tabla-listado :deep(.v-table__wrapper > table > thead > tr > th) {
   background-color: rgb(var(--v-theme-primary));

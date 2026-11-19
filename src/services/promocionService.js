@@ -28,5 +28,12 @@ export default {
   getVigentes(payload) {
     // payload: { idEmpresa }. Promociones activas cuya vigencia incluye hoy (ADMIN y VENDEDOR).
     return http.post('/promocion/getvigentespromocion', payload)
+  },
+  aplicar(payload) {
+    // payload: { idEmpresa, idTercero, Subtotal } (Subtotal = venta ANTES de descuentos, > 0).
+    // Responde { data: { descuentoTotal, promociones: [{ promoNombre, promoMonto,
+    //   promoPorcentaje, promoValor, promoTope }] } }. NO guarda nada (ADMIN y VENDEDOR).
+    // descuentoTotal puede pasar del Subtotal: newventa lo rechaza, el front debe ajustarlo.
+    return http.post('/promocion/aplicacionpromo', payload)
   }
 }

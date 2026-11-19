@@ -52,5 +52,11 @@ export default {
     // ADMINISTRADOR y VENDEDOR; cualquier empresa con la que el usuario tenga relacion activa
     // (no solo la del token)
     return http.post('/empresa/getfotoempresa', payload, { responseType: 'blob' })
+  },
+  eliminar(payload) {
+    // payload: { idEmpresa, passUsuario, passEmpresa } -- SOLO ADMINISTRADOR. Es POST (no DELETE).
+    // Borra la empresa con TODOS sus datos en una transaccion; NO se puede deshacer.
+    // idEmpresa: relacion activa con el usuario y NUNCA la del token ("no se puede eliminar así misma")
+    return http.post('/empresa/musadfrsdfljsdlf3535k4lfmlsfmk344kmfqeemp', payload)
   }
 }
