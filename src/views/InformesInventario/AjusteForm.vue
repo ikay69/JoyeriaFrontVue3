@@ -145,6 +145,16 @@
             title="Seleccionar un artículo"
             @click="dialogArticulo = true"
           />
+          <!-- /newarticulo es SOLO ADMINISTRADOR -->
+          <v-btn
+            v-if="esAdministrador"
+            icon="mdi-plus"
+            variant="tonal"
+            color="primary"
+            title="Crear un artículo nuevo"
+            :loading="buscandoArticuloNuevo"
+            @click="dialogArticuloNuevo = true"
+          />
           <v-text-field
             :model-value="articuloSeleccionado ? articuloSeleccionado.artNombre : ''"
             readonly
@@ -242,14 +252,29 @@
       :id-empresa="idEmpresa"
       @seleccionar="onArticuloSeleccionado"
     />
+
+    <!-- crear un articulo sin salir del ajuste (no se pierde lo ya llenado). El v-if remonta el
+         formulario en cada apertura para que empiece vacio. -->
+    <v-dialog v-model="dialogArticuloNuevo" max-width="900" scrollable persistent>
+      <v-card>
+        <ArticulosForm
+          v-if="dialogArticuloNuevo"
+          en-dialogo
+          @creado="onArticuloCreado"
+          @cancelar="dialogArticuloNuevo = false"
+        />
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script>
 import Swal from 'sweetalert2'
 import movimientoService from '@/services/movimientoService'
+import articuloService from '@/services/articuloService'
 import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ArticulosSeleccionar from '@/components/common/ArticulosSeleccionar.vue'
+import ArticulosForm from '@/views/Inventario/Articulos/ArticulosForm.vue'
 import VentasSeleccionarDevolucion from '@/views/Ventas/VentasSeleccionarDevolucion.vue'
 import CompraSeleccionarDevolucion from '@/views/Compras/CompraSeleccionarDevolucion.vue'
 import { useAuthStore } from '@/stores/auth'
@@ -258,13 +283,21 @@ import { useCatalogosStore } from '@/stores/catalogos'
 export default {
   name: 'AjusteForm',
 
-  components: { TercerosSeleccionar, ArticulosSeleccionar, VentasSeleccionarDevolucion, CompraSeleccionarDevolucion },
+  components: {
+    TercerosSeleccionar,
+    ArticulosSeleccionar,
+    ArticulosForm,
+    VentasSeleccionarDevolucion,
+    CompraSeleccionarDevolucion
+  },
 
   data() {
     return {
       guardando: false,
       dialogTercero: false,
       dialogArticulo: false,
+      dialogArticuloNuevo: false,
+      buscandoArticuloNuevo: false,
       dialogVenta: false,
       ventaSeleccionada: null,
       dialogCompra: false,
@@ -313,6 +346,9 @@ export default {
   computed: {
     authStore() {
       return useAuthStore()
+    },
+    esAdministrador() {
+      return this.authStore.rol === 'ADMINISTRADOR'
     },
     catalogosStore() {
       return useCatalogosStore()
@@ -428,6 +464,36 @@ export default {
 
     onArticuloSeleccionado(art) {
       this.articuloSeleccionado = art
+    },
+
+    // /newarticulo no devuelve el Id ni el SKU: se buscan los activos mas nuevos (campoOrdenar 4,
+    // DESC) y se toma el primero con el mismo nombre. Si no aparece, se abre el selector para que
+    // el usuario lo elija a mano.
+    async onArticuloCreado({ Nombre }) {
+      this.dialogArticuloNuevo = false
+      const buscado = String(Nombre || '').trim().toUpperCase()
+      this.buscandoArticuloNuevo = true
+      try {
+        const { data } = await articuloService.getActivas({
+          idEmpresa: Number(this.idEmpresa),
+          campoOrdenar: 4,
+          orden: 'DESC',
+          pagina: 1,
+          textoFiltro: null
+        })
+        const encontrado = (data.data || []).find(
+          (art) => String(art.artNombre || '').trim().toUpperCase() === buscado
+        )
+        if (encontrado) {
+          this.onArticuloSeleccionado({ ...encontrado })
+          return
+        }
+      } catch {
+        // si falla la busqueda se cae al selector manual
+      } finally {
+        this.buscandoArticuloNuevo = false
+      }
+      this.dialogArticulo = true
     },
 
     async confirmar() {

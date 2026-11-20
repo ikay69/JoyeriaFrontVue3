@@ -20,5 +20,21 @@ export default {
   getActivas(payload){
     // payload: { idEmpresa }
     return http.post('/tipogasto/getactivostipogasto', payload)
+  },
+  eliminar(payload) {
+    // payload: { idEmpresa, idTipoGasto } -- SOLO ADMINISTRADOR. Es POST (no DELETE).
+    // Borra de verdad; si algun gasto (activo o anulado) lo usa responde 400 {"data":"Tipo de gasto en uso"}.
+    // OJO: sus 400 de negocio vienen en "data", no en "msg".
+    return http.post('/tipogasto/deletetipogasto', payload)
+  },
+  // Lee el mensaje de error de este modulo: {msg}, {errors:[{msg}]} o {data:"..."}
+  mensajeError(error, porDefecto) {
+    const datos = error.response?.data
+    return (
+      datos?.msg ||
+      datos?.errors?.[0]?.msg ||
+      (typeof datos?.data === 'string' ? datos.data : '') ||
+      porDefecto
+    )
   }
 }

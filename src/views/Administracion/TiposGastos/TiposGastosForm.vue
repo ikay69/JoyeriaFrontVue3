@@ -46,6 +46,18 @@
         </div>
 
         <div class="d-flex justify-end ga-2 mt-4">
+          <v-btn
+            v-if="esEdicion"
+            color="error"
+            variant="outlined"
+            prepend-icon="mdi-delete"
+            class="me-auto"
+            :loading="eliminando"
+            :disabled="guardando || cargando"
+            @click="eliminar"
+          >
+            Eliminar
+          </v-btn>
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
           <v-btn color="primary" :loading="guardando" type="submit">Confirmar</v-btn>
         </div>
@@ -72,6 +84,7 @@ export default {
 
       cargando: false,
       guardando: false,
+      eliminando: false,
       opcionesEstado: [
         { valor: true, texto: 'Activo' },
         { valor: false, texto: 'Inactivo' }
@@ -185,6 +198,43 @@ export default {
         Swal.fire('Error', mensaje, 'error')
       } finally {
         this.guardando = false
+      }
+    },
+
+    async eliminar() {
+      if (this.eliminando) return
+      const confirmacion = await Swal.fire({
+        title: 'Eliminar tipo de gasto',
+        text: `¿Seguro que deseas eliminar "${this.nombre}"? Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        confirmButtonColor: '#d33',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.eliminando = true
+      try {
+        const { data } = await tipoGastoService.eliminar({
+          idEmpresa: this.idEmpresa,
+          idTipoGasto: this.idTipoGasto
+        })
+        await Swal.fire('Éxito', data.msg || 'Tipo de gasto eliminado', 'success')
+        this.$router.back()
+      } catch (error) {
+        const mensaje = tipoGastoService.mensajeError(error, 'No se pudo eliminar el tipo de gasto')
+        const enUso = mensaje === 'Tipo de gasto en uso'
+        Swal.fire(
+          enUso ? 'No se puede eliminar' : 'Error',
+          enUso
+            ? 'Hay gastos (activos o anulados) que usan este tipo. Si ya no lo necesitas, cambia su estado a Inactivo y guarda.'
+            : mensaje,
+          enUso ? 'warning' : 'error'
+        )
+      } finally {
+        this.eliminando = false
       }
     },
 

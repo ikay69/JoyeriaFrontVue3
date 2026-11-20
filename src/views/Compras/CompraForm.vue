@@ -225,6 +225,21 @@
           </div>
         </div>
 
+        <!-- EntroInventario (desde 2026-11-19): true = la mercancia ya llego y se ingresa al
+             inventario en el mismo registro (la compra nace COMPLETO). false = queda PENDIENTE y se
+             ingresa despues desde el detalle de la compra. -->
+        <v-checkbox
+          v-model="entroInventario"
+          label="La mercancía ya llegó: ingresar al inventario al registrar la compra"
+          color="primary"
+          density="compact"
+          :hint="entroInventario
+            ? 'Las existencias se suman en cada bodega al guardar la compra.'
+            : 'La compra queda con inventario PENDIENTE; se ingresa después desde el detalle.'"
+          persistent-hint
+          class="mb-3"
+        />
+
         <div style="overflow-x: auto;">
           <v-table density="compact" class="mb-2 tabla-listado">
             <thead>
@@ -491,6 +506,9 @@ export default {
       // true en cuanto el usuario edita el valor de UNA fila: a partir de ahi la cabecera deja de
       // ser "el valor comun" y se manda ValorCuota: null con el desglose (escenario 3).
       cuotasEditadas: false,
+
+      // por defecto la compra NO mueve inventario (EstadoInventario PENDIENTE)
+      entroInventario: false,
 
       lineas: [],
       bodegas: [],
@@ -981,6 +999,8 @@ export default {
         idEmpresa: this.idEmpresa,
         idTercero: this.terceroSeleccionado.Id,
         TipoCompra: this.tipoCompra,
+        // booleano REAL: el backend rechaza "true"/"false" en texto, 1 o 0
+        EntroInventario: this.entroInventario === true,
         NumeroDocumentoSoporte: this.documentoSoporte.trim() || null,
         ValorDescuento: Number(this.descuento) || 0,
         ValorEfectivo: Number(this.efectivo) || 0,

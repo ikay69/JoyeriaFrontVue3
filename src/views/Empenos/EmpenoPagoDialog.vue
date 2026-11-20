@@ -17,8 +17,12 @@
         </div>
 
         <v-alert type="info" variant="tonal" density="compact" class="mb-4">
-          El pago cubre primero los intereses, periodo por periodo y completos, y lo que sobre baja capital.
-          No se puede pagar medio periodo.
+          El pago cubre primero los intereses pendientes, periodo por periodo y completos, y lo que
+          sobre baja capital. No se puede pagar medio periodo.
+          <div class="mt-1">
+            Si el cliente está <strong>al día</strong> (ya pagó el interés del periodo actual), el pago
+            completo se abona a capital, sin descuento de pronto pago.
+          </div>
         </v-alert>
 
         <v-form ref="form" @submit.prevent="guardar">
@@ -41,15 +45,14 @@
             variant="outlined"
             density="comfortable"
           />
+          <!-- desde 2026-11-19 el pago solo se registra con la fecha de hoy: no se puede elegir -->
           <v-text-field
-            v-model="fechaPago"
+            :model-value="fechaHoyTexto"
             label="Fecha de pago"
-            type="date"
-            :min="fechaMinima"
-            :max="hoy()"
-            hint="Vacío = hoy. No puede ser futura ni anterior al inicio del contrato."
+            prepend-inner-icon="mdi-calendar"
+            readonly
+            hint="El pago se registra siempre con la fecha de hoy."
             persistent-hint
-            clearable
             variant="outlined"
             density="comfortable"
           />
@@ -88,7 +91,6 @@ export default {
     return {
       monto: '',
       metodoPago: 'EFECTIVO',
-      fechaPago: null,
       guardando: false,
       opcionesMetodoPago: [
         { valor: 'EFECTIVO', texto: 'Efectivo' },
@@ -116,8 +118,9 @@ export default {
         this.$emit('update:modelValue', valor)
       }
     },
-    fechaMinima() {
-      return this.empeno?.empFechaInicio ? String(this.empeno.empFechaInicio).slice(0, 10) : undefined
+    fechaHoyTexto() {
+      const [anio, mes, dia] = this.hoy().split('-')
+      return `${dia}/${mes}/${anio}`
     }
   },
 
@@ -131,7 +134,6 @@ export default {
     limpiar() {
       this.monto = ''
       this.metodoPago = 'EFECTIVO'
-      this.fechaPago = null
     },
 
     cerrar() {
@@ -150,18 +152,6 @@ export default {
         return
       }
 
-      const fechaPago = this.fechaPago || null
-      if (fechaPago) {
-        if (fechaPago > this.hoy()) {
-          Swal.fire('Atención', 'La fecha de pago no puede ser futura', 'warning')
-          return
-        }
-        if (this.fechaMinima && fechaPago < this.fechaMinima) {
-          Swal.fire('Atención', 'La fecha de pago no puede ser anterior al inicio del contrato', 'warning')
-          return
-        }
-      }
-
       this.guardando = true
       try {
         const { data } = await empenoService.newPago({
@@ -169,13 +159,18 @@ export default {
           idEmpeno: Number(this.empeno.empId),
           MontoTotalPagado: Number(this.monto),
           MetodoPago: this.metodoPago,
-          FechaPago: fechaPago
+          // null = hoy segun el servidor: asi un reloj del equipo desfasado no provoca
+          // "anterior a hoy" / "futura"
+          FechaPago: null
         })
         await Swal.fire('Éxito', data.msg || 'Pago registrado', 'success')
         this.$emit('guardado')
         this.cerrar()
       } catch (error) {
-        const mensaje = error.response?.data?.msg || 'Ocurrió un error al registrar el pago'
+        const mensaje =
+          error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          'Ocurrió un error al registrar el pago'
         await Swal.fire('Error', mensaje, 'error')
       } finally {
         this.guardando = false

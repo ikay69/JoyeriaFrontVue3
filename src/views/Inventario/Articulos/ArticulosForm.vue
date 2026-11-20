@@ -1,7 +1,12 @@
 <template>
-  <v-container fluid class="pa-6">
+  <v-container fluid :class="enDialogo ? 'pa-4' : 'pa-6'">
     <div class="d-flex align-center ga-3 mb-1">
-      <v-btn icon="mdi-arrow-left" variant="tonal" size="small" @click="cancelar" />
+      <v-btn
+        :icon="enDialogo ? 'mdi-close' : 'mdi-arrow-left'"
+        variant="tonal"
+        size="small"
+        @click="cancelar"
+      />
       <div>
         <h1 class="text-h5">{{ esEdicion ? 'Editar artículo' : 'Nuevo artículo' }}</h1>
         <p class="text-body-2 text-medium-emphasis mb-0">
@@ -10,7 +15,7 @@
       </div>
     </div>
 
-    <v-card class="pa-6 mt-4" max-width="820" elevation="1">
+    <v-card class="pa-6 mt-4" max-width="820" :elevation="enDialogo ? 0 : 1">
       <v-form ref="form" @submit.prevent="confirmar">
         <div class="mb-1 text-subtitle-2">Producto</div>
         <div class="d-flex ga-2 mb-4">
@@ -237,6 +242,14 @@ export default {
 
   components: { ProductosSeleccionar },
 
+  props: {
+    // true cuando se abre dentro de un v-dialog desde otra pantalla (p. ej. AjusteForm): en vez de
+    // volver con el router, emite 'creado' / 'cancelar' y el padre cierra el dialogo.
+    enDialogo: { type: Boolean, default: false }
+  },
+
+  emits: ['creado', 'cancelar'],
+
   data() {
     return {
       productoSeleccionado: null,
@@ -298,7 +311,8 @@ export default {
     },
 
     esEdicion() {
-      return this.$route.name === 'ArticulosEditar'
+      // en dialogo siempre es creacion, aunque la ruta del padre sea otra
+      return !this.enDialogo && this.$route.name === 'ArticulosEditar'
     },
 
     idArticulo() {
@@ -488,6 +502,11 @@ export default {
             Propiedades: propiedadesEnviar
           })
           await Swal.fire('Éxito', data.msg || 'Artículo creado', 'success')
+          if (this.enDialogo) {
+            // /newarticulo no devuelve el Id: el padre lo busca por nombre
+            this.$emit('creado', { Nombre: this.nombre })
+            return
+          }
         }
         this.$router.back()
       } catch (error) {
@@ -499,6 +518,10 @@ export default {
     },
 
     cancelar() {
+      if (this.enDialogo) {
+        this.$emit('cancelar')
+        return
+      }
       this.$router.back()
     }
   }

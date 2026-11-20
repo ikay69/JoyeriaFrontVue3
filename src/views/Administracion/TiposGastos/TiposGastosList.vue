@@ -76,7 +76,7 @@
             <th>Estado</th>
             <th>Fecha de creación</th>
             <th>Usuario</th>
-            <th class="text-center">Editar</th>
+            <th class="text-center">Acciones</th>
           </tr>
         </thead>
         <tbody>
@@ -100,12 +100,23 @@
             </td>
             <td>{{ formatearFecha(tg.tipgasFecCreacion) }}</td>
             <td>{{ tg.tipgasUsuario }}</td>
-            <td class="text-center">
+            <td class="text-center text-no-wrap">
               <v-btn
                 icon="mdi-pencil"
                 size="small"
                 variant="text"
+                title="Editar"
                 @click="irAEditar(tg.tipgasEmp, tg.tipgasId)"
+              />
+              <v-btn
+                icon="mdi-delete"
+                size="small"
+                variant="text"
+                color="error"
+                title="Eliminar"
+                :loading="eliminandoId === tg.tipgasId"
+                :disabled="eliminandoId !== null"
+                @click="eliminar(tg)"
               />
             </td>
           </tr>
@@ -135,6 +146,7 @@ export default {
   data() {
     return {
       cargando: false,
+      eliminandoId: null,
       tiposGastos: [],
       cantData: 0,
       pagina: 1,
@@ -219,6 +231,44 @@ export default {
 
     irAEditar(EmpId, TipGasId) {
       this.$router.push({ name: 'TiposGastosEditar', params: { EmpId, TipGasId } })
+    },
+
+    async eliminar(tg) {
+      const confirmacion = await Swal.fire({
+        title: 'Eliminar tipo de gasto',
+        text: `¿Seguro que deseas eliminar "${tg.tipgasNombre}"? Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Eliminar',
+        confirmButtonColor: '#d33',
+        cancelButtonText: 'Cancelar',
+        focusCancel: true
+      })
+      if (!confirmacion.isConfirmed) return
+
+      this.eliminandoId = tg.tipgasId
+      try {
+        const { data } = await tipoGastoService.eliminar({
+          idEmpresa: tg.tipgasEmp,
+          idTipoGasto: tg.tipgasId
+        })
+        await Swal.fire('Éxito', data.msg || 'Tipo de gasto eliminado', 'success')
+        // si era el ultimo de la pagina, se vuelve a la anterior para no mostrar una tabla vacia
+        const pagina = this.tiposGastos.length === 1 && this.pagina > 1 ? this.pagina - 1 : this.pagina
+        await this.buscar(pagina)
+      } catch (error) {
+        const mensaje = tipoGastoService.mensajeError(error, 'No se pudo eliminar el tipo de gasto')
+        const enUso = mensaje === 'Tipo de gasto en uso'
+        Swal.fire(
+          enUso ? 'No se puede eliminar' : 'Error',
+          enUso
+            ? 'Hay gastos (activos o anulados) que usan este tipo. Si ya no lo necesitas, desactívalo desde Editar.'
+            : mensaje,
+          enUso ? 'warning' : 'error'
+        )
+      } finally {
+        this.eliminandoId = null
+      }
     },
 
     formatearFecha(fecha) {

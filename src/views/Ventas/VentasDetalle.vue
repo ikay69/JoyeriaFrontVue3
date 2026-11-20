@@ -115,6 +115,11 @@
               <span class="campo-rotulo">Usuario:</span>
               <span>{{ venta.ventaUsuario || '-' }}</span>
             </div>
+            <!-- solo si la venta tiene financiador; si viene vacio no se muestra ni la etiqueta -->
+            <div v-if="financiador" class="campo">
+              <span class="campo-rotulo">Financiado por:</span>
+              <span>{{ financiador }}</span>
+            </div>
           </v-col>
           <v-col cols="12" md="6">
             <div class="campo">
@@ -626,6 +631,13 @@ export default {
     },
     esCredito() {
       return this.venta?.ventaTipoVenta === 'CREDITO'
+    },
+    // /getidventa trae ventaFinanciado (booleano) y ventaFinanciador; api-ventas.txt los nombra
+    // ventaEsFinanciado / ventaFinanciadoPor, por eso se aceptan los dos nombres.
+    // Vacio, null o solo espacios -> '' (no se muestra el campo).
+    financiador() {
+      const valor = this.venta?.ventaFinanciador ?? this.venta?.ventaFinanciadoPor
+      return typeof valor === 'string' ? valor.trim() : ''
     },
     // Las cuotas pactadas. Las ventas a credito anteriores al 2026-11-04 lo traen null: cuentan 0.
     cuotasPactadas() {
