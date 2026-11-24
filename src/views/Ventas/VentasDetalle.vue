@@ -632,11 +632,10 @@ export default {
     esCredito() {
       return this.venta?.ventaTipoVenta === 'CREDITO'
     },
-    // /getidventa trae ventaFinanciado (booleano) y ventaFinanciador; api-ventas.txt los nombra
-    // ventaEsFinanciado / ventaFinanciadoPor, por eso se aceptan los dos nombres.
-    // Vacio, null o solo espacios -> '' (no se muestra el campo).
+    // /getidventa trae ventaFinanciado (booleano) y ventaFinanciador (confirmado en api-ventas.txt
+    // el 2026-11-23). Vacio, null o solo espacios -> '' (no se muestra el campo).
     financiador() {
-      const valor = this.venta?.ventaFinanciador ?? this.venta?.ventaFinanciadoPor
+      const valor = this.venta?.ventaFinanciador
       return typeof valor === 'string' ? valor.trim() : ''
     },
     // Las cuotas pactadas. Las ventas a credito anteriores al 2026-11-04 lo traen null: cuentan 0.

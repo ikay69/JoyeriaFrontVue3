@@ -67,6 +67,33 @@
           </v-col>
         </v-row>
 
+        <!-- Venta financiada por una plataforma (Sistecredito, Addi...). Solo informativo: no cambia
+             caja, saldo, estado de pago, inventario ni cuotas. Vale en los tres tipos de venta. -->
+        <v-row dense align="center" class="mt-1">
+          <v-col cols="12" md="4">
+            <v-checkbox
+              v-model="esFinanciado"
+              label="Venta financiada"
+              density="comfortable"
+              hide-details
+            />
+          </v-col>
+          <v-col cols="12" md="8">
+            <v-text-field
+              v-model="financiadoPor"
+              label="Financiado por"
+              placeholder="Sistecredito, Addi..."
+              maxlength="100"
+              counter="100"
+              :disabled="!esFinanciado"
+              :rules="esFinanciado ? [reglaFinanciadoPor] : []"
+              variant="outlined"
+              density="comfortable"
+              hide-details="auto"
+            />
+          </v-col>
+        </v-row>
+
         <template v-if="esCredito">
           <v-divider class="my-4" />
           <div class="mb-2 text-subtitle-2">Condiciones del crédito</div>
@@ -493,6 +520,9 @@ export default {
       efectivo: 0,
       transaccion: 0,
       retiraInventario: false,
+      // ventaFinanciado / ventaFinanciador en el payload: solo informativos
+      esFinanciado: false,
+      financiadoPor: '',
 
       // datos de la venta a CREDITO (POR_ABONO y CONTADO no llevan cuotas)
       MAX_CUOTAS,
@@ -671,6 +701,8 @@ export default {
       this.efectivo = 0
       this.transaccion = 0
       this.retiraInventario = false
+      this.esFinanciado = false
+      this.financiadoPor = ''
       this.limpiarCredito()
       this.lineas = []
       this.siguienteClaveLinea = 1
@@ -967,6 +999,14 @@ export default {
       return null
     },
 
+    // ventaFinanciador: obligatorio (sin contar espacios) y maximo 100 cuando la venta es financiada
+    reglaFinanciadoPor(valor) {
+      const texto = (valor || '').trim()
+      if (!texto) return 'Indique quién financia la venta (Sistecredito, Addi...)'
+      if (texto.length > 100) return 'Financiado por no puede superar los 100 caracteres'
+      return true
+    },
+
     validarCabecera() {
       if (!Number.isInteger(Number(this.idEmpresa)) || Number(this.idEmpresa) <= 0) {
         return 'Seleccione una empresa en la barra superior'
@@ -979,6 +1019,10 @@ export default {
       if (this.idVendedor !== null && this.idVendedor !== undefined &&
           (!Number.isInteger(Number(this.idVendedor)) || Number(this.idVendedor) <= 0)) {
         return 'Seleccione un vendedor válido'
+      }
+      if (this.esFinanciado) {
+        const errorFinanciado = this.reglaFinanciadoPor(this.financiadoPor)
+        if (errorFinanciado !== true) return errorFinanciado
       }
       if (!this.esDecimal12_2(this.descuento)) {
         return 'El descuento debe ser un valor no negativo con máximo dos decimales'
@@ -1034,6 +1078,10 @@ export default {
         idVendedor: this.idVendedor ? Number(this.idVendedor) : null,
         TipoVenta: this.tipoVenta,
         RetiraInventario: Boolean(this.retiraInventario),
+        // booleano real (el backend rechaza "true", 1 o 0). Desde 2026-11-23 solo lee estos nombres:
+        // EsFinanciado / FinanciadoPor se ignoran y la venta quedaria NO financiada
+        ventaFinanciado: this.esFinanciado === true,
+        ventaFinanciador: this.esFinanciado ? this.financiadoPor.trim() : null,
         ValorDescuento: Number(this.descuento),
         ValorEfectivo: Number(this.efectivo),
         ValorTransaccion: Number(this.transaccion),

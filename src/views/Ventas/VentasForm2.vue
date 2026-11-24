@@ -597,7 +597,7 @@ export default {
       efectivo: 0,
       transaccion: 0,
       retiraInventario: false,
-      // EsFinanciado / FinanciadoPor (desde 2026-11-19): solo informativos
+      // ventaFinanciado / ventaFinanciador en el payload: solo informativos
       esFinanciado: false,
       financiadoPor: '',
 
@@ -1298,8 +1298,10 @@ export default {
         TipoVenta: this.tipoVenta,
         RetiraInventario: Boolean(this.retiraInventario),
         // booleano real: el backend rechaza "true" en texto, 1 o 0
-        EsFinanciado: this.esFinanciado === true,
-        FinanciadoPor: this.esFinanciado ? this.financiadoPor.trim() : null,
+        // desde 2026-11-23 el backend solo lee ventaFinanciado / ventaFinanciador: los nombres
+        // viejos EsFinanciado / FinanciadoPor se ignoran en silencio y la venta queda NO financiada
+        ventaFinanciado: this.esFinanciado === true,
+        ventaFinanciador: this.esFinanciado ? this.financiadoPor.trim() : null,
         ValorDescuento: Number(this.descuento),
         ValorEfectivo: Number(this.efectivo),
         ValorTransaccion: Number(this.transaccion),
