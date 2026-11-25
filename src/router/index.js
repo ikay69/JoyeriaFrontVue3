@@ -520,6 +520,23 @@ const routes = [
         name: 'PromocionesEditar',
         component: () => import('@/views/Administracion/Promociones/PromocionesForm.vue'),
         props: true
+      },
+      //configuraciones
+      {
+        path: 'administracion/configuraciones',
+        name: 'Configuraciones',
+        component: () => import('@/views/Administracion/Configuraciones/ConfiguracionesList.vue')
+      },
+      {
+        path: 'administracion/configuraciones/nuevo',
+        name: 'ConfiguracionesNuevo',
+        component: () => import('@/views/Administracion/Configuraciones/ConfiguracionesForm.vue')
+      },
+      {
+        path: 'administracion/configuraciones/:EmpId/:ConfId/editar',
+        name: 'ConfiguracionesEditar',
+        component: () => import('@/views/Administracion/Configuraciones/ConfiguracionesForm.vue'),
+        props: true
       }
     ]
   },

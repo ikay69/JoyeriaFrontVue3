@@ -183,8 +183,17 @@
                 </v-chip>
                 <span v-else>-</span>
               </td>
-              <td class="text-center">
+              <td class="text-center text-no-wrap">
                 <v-btn icon="mdi-pencil" size="small"  variant="text" title="Ver detalle del empeño"  @click="irDetalle(empeno)"/>
+                <v-btn
+                  icon="mdi-printer"
+                  size="small"
+                  variant="text"
+                  title="Imprimir contrato"
+                  :loading="imprimiendoId === empeno.empId"
+                  :disabled="imprimiendoId !== null"
+                  @click="imprimirContrato(empeno)"
+                />
               </td>
             </tr>
           </tbody>
@@ -211,6 +220,8 @@
 <script>
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
+import terceroService from '@/services/terceroService'
+import { generarPdfEmpeno } from '@/utils/empenoPdf'
 import { useAuthStore } from '@/stores/auth'
 import ClientesSeleccionar from '@/views/Clientes/ClientesSeleccionar.vue'
 import EmpenosMoraDialog from '@/views/Empenos/EmpenosMoraDialog.vue'
@@ -224,6 +235,7 @@ export default {
     return {
       cargando: false,
       actualizando: false,
+      imprimiendoId: null,
       empenos: [],
       cantData: 0,
       pagina: 1,
@@ -391,6 +403,52 @@ export default {
           EmpenoId: empeno.empId
         }
       })
+    },
+
+    // Reimprime el contrato igual que al crearlo (EmpenosForm.imprimirContrato): /getidempeno trae
+    // el empeño con la misma forma que la respuesta de /newempeno, mas la empresa completa y, del
+    // cliente, el celular y la direccion. Si esas dos consultas fallan, el contrato sale igual.
+    async imprimirContrato(fila) {
+      if (this.imprimiendoId !== null) return
+      const idEmpresa = Number(this.idEmpresa)
+      this.imprimiendoId = fila.empId
+      try {
+        const { data } = await empenoService.getById({ idEmpresa, idEmpeno: Number(fila.empId) })
+        const empeno = data?.data
+        if (!empeno) throw new Error('No se recibieron los datos del empeño')
+
+        let empresa = this.authStore.empresaActual || {}
+        try {
+          empresa = await this.authStore.obtenerDatosEmpresa(idEmpresa)
+        } catch {
+          // se usan los datos de la sesion
+        }
+
+        let cliente = { Celular: '', Direccion: '' }
+        const idTercero = Number(empeno.empTerceroId)
+        if (Number.isInteger(idTercero) && idTercero > 0) {
+          try {
+            const { data: datosTercero } = await terceroService.getById({ idEmpresa, idTercero })
+            cliente = {
+              Celular: datosTercero?.data?.terCelular || '',
+              Direccion: datosTercero?.data?.terDireccion || ''
+            }
+          } catch {
+            // sin celular ni direccion
+          }
+        }
+
+        await generarPdfEmpeno({ empeno, empresa, cliente })
+      } catch (error) {
+        const mensaje =
+          error.response?.data?.msg ||
+          error.response?.data?.errors?.[0]?.msg ||
+          error.message ||
+          'No se pudo generar el contrato'
+        Swal.fire('Error', mensaje, 'error')
+      } finally {
+        this.imprimiendoId = null
+      }
     },
 
     formatearFecha(valor) {
