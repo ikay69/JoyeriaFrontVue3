@@ -29,8 +29,9 @@
           class="mb-2"
         />
 
+        <!-- Tipo de valor y Estado en la misma fila; Estado solo existe al editar (al crear nace activa). -->
         <v-row dense>
-          <v-col cols="12" sm="5">
+          <v-col cols="12" :sm="esEdicion ? 6 : 5">
             <v-select
               :model-value="tipoValor"
               :items="opcionesTipoValor"
@@ -42,50 +43,21 @@
               @update:model-value="cambiarTipo"
             />
           </v-col>
-          <v-col cols="12" sm="7">
-            <v-text-field
-              v-if="tipoValor === 'NUMERO'"
-              v-model="valor"
-              label="Valor"
-              inputmode="decimal"
-              hint="Entero o decimal con punto, ej. 18 o -2.5"
-              :rules="[reglas.requerido, reglas.numero]"
-              variant="outlined"
-            />
-            <v-text-field
-              v-else-if="tipoValor === 'FECHA'"
-              v-model="valor"
-              label="Valor"
-              type="date"
-              :rules="[reglas.requerido]"
-              variant="outlined"
-            />
-            <v-textarea
-              v-else
-              v-model="valor"
-              label="Valor"
-              rows="1"
-              auto-grow
-              :rules="[reglas.requerido]"
+          <v-col v-if="esEdicion" cols="12" sm="6">
+            <v-select
+              v-model="estado"
+              :items="opcionesEstado"
+              item-title="texto"
+              item-value="valor"
+              label="Estado"
+              hint="Una configuración inactiva no se aplica en el sistema."
+              persistent-hint
               variant="outlined"
             />
           </v-col>
         </v-row>
 
-        <v-select
-          v-if="esEdicion"
-          v-model="estado"
-          :items="opcionesEstado"
-          item-title="texto"
-          item-value="valor"
-          label="Estado"
-          hint="Una configuración inactiva no se aplica en el sistema."
-          persistent-hint
-          variant="outlined"
-          class="mt-2 mb-4"
-        />
-
-        <div v-if="esEdicion && (usuario || usuarioActualizador)" class="mb-4">
+        <div v-if="esEdicion && (usuario || usuarioActualizador)" class="mt-2 mb-4">
           <div v-if="usuario" class="text-caption text-medium-emphasis">
             Creado por: <strong>{{ usuario }}</strong> · {{ formatearFechaHora(fechaCreacion) }}
           </div>
@@ -93,6 +65,40 @@
             Última modificación: <strong>{{ usuarioActualizador }}</strong> · {{ formatearFechaHora(fechaModificacion) }}
           </div>
         </div>
+
+        <!-- Valor va al final y ocupa toda la fila, como Descripcion. -->
+        <v-text-field
+          v-if="tipoValor === 'NUMERO'"
+          v-model="valor"
+          label="Valor (opcional)"
+          inputmode="decimal"
+          hint="Entero o decimal con punto, ej. 18 o -2.5"
+          :rules="[reglas.numero]"
+          variant="outlined"
+          class="mt-2"
+        />
+        <v-text-field
+          v-else-if="tipoValor === 'FECHA'"
+          v-model="valor"
+          label="Valor (opcional)"
+          type="date"
+          clearable
+          variant="outlined"
+          class="mt-2"
+        />
+        <!-- Para textos largos (condiciones, listas, parrafos): Enter hace salto de linea
+             y el campo crece hacia abajo a medida que se llena. -->
+        <v-textarea
+          v-else
+          v-model="valor"
+          label="Valor (opcional)"
+          rows="4"
+          auto-grow
+          maxlength="50000"
+          counter="50000"
+          variant="outlined"
+          class="mt-2"
+        />
 
         <div class="d-flex justify-end ga-2 mt-4">
           <v-btn variant="outlined" @click="cancelar">Cancelar</v-btn>
@@ -217,8 +223,9 @@ export default {
     },
 
     // Editar REEMPLAZA todos los campos: se arma siempre el cuerpo completo.
+    // Valor es opcional: vacio se manda "" y el backend lo guarda vacio (no revisa formato).
     armarCuerpo() {
-      const valor = String(this.valor).trim()
+      const valor = String(this.valor ?? '').trim()
       return {
         Codigo: this.codigo.trim().toUpperCase(),
         Descripcion: this.descripcion.trim(),

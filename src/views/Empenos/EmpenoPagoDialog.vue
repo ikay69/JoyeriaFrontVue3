@@ -75,6 +75,8 @@
 <script>
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
+import { generarReciboPagoEmpeno } from '@/utils/empenoPagosPdf'
+import { useAuthStore } from '@/stores/auth'
 
 export default {
   name: 'EmpenoPagoDialog',
@@ -163,6 +165,23 @@ export default {
           // "anterior a hoy" / "futura"
           FechaPago: null
         })
+        // Desde el 2026-11-26 la respuesta trae data.pagos: TODOS los pagos del contrato, el
+        // nuevo siempre de ultimo. Con eso se imprime el historial; si falla, el pago ya quedo.
+        const pagos = data?.data?.pagos
+        if (Array.isArray(pagos) && pagos.length) {
+          try {
+            await this.imprimirPagos(idEmpresa, pagos)
+          } catch (errorPdf) {
+            await Swal.fire(
+              'Pago registrado',
+              `El pago se guardó, pero no se pudo generar el PDF: ${errorPdf.message || 'Error desconocido'}`,
+              'warning'
+            )
+            this.$emit('guardado')
+            this.cerrar()
+            return
+          }
+        }
         await Swal.fire('Éxito', data.msg || 'Pago registrado', 'success')
         this.$emit('guardado')
         this.cerrar()
@@ -175,6 +194,33 @@ export default {
       } finally {
         this.guardando = false
       }
+    },
+
+    // Recibo del pago (tablilla de pagos). /newpago trae los pagos pero no la cabecera ni los
+    // periodos (para la fecha limite): se pide el empeño ya actualizado. Si esa consulta falla,
+    // el recibo sale con el empeño de la pantalla, los pagos de la respuesta y sin fecha limite.
+    async imprimirPagos(idEmpresa, pagos) {
+      const authStore = useAuthStore()
+      let empresa = authStore.empresaActual || {}
+      try {
+        empresa = await authStore.obtenerDatosEmpresa(idEmpresa)
+      } catch {
+        // se usan los datos de la sesion
+      }
+
+      let empeno = this.empeno
+      let periodos = []
+      try {
+        const { data } = await empenoService.getById({ idEmpresa, idEmpeno: Number(this.empeno.empId) })
+        if (data?.data) {
+          empeno = data.data
+          periodos = Array.isArray(data.data.periodos) ? data.data.periodos : []
+        }
+      } catch {
+        // sin periodos: la fecha limite sale con "-"
+      }
+
+      await generarReciboPagoEmpeno({ empeno, pagos, periodos, empresa })
     },
 
     hoy() {

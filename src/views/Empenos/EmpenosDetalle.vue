@@ -27,6 +27,25 @@
       </div>
       <div v-if="empeno" class="d-flex flex-wrap ga-2">
         <v-btn
+          variant="tonal"
+          prepend-icon="mdi-printer"
+          :loading="imprimiendo"
+          :disabled="imprimiendo"
+          @click="imprimirContrato"
+        >
+          Imprimir contrato
+        </v-btn>
+        <v-btn
+          variant="tonal"
+          prepend-icon="mdi-receipt-text"
+          :loading="imprimiendoReciboId !== null && imprimiendoReciboId === ultimoPagoId"
+          :disabled="!pagos.length || imprimiendoReciboId !== null"
+          :title="pagos.length ? 'Recibo del último pago' : 'El empeño no tiene pagos'"
+          @click="imprimirRecibo(pagos.length - 1)"
+        >
+          Imprimir recibo
+        </v-btn>
+        <v-btn
           v-if="esVivo"
           color="primary"
           prepend-icon="mdi-cash"
@@ -290,15 +309,16 @@
                 <th class="text-end">Saldo posterior</th>
                 <th>Descuento</th>
                 <th>Usuario</th>
+                <th class="text-center">Recibo</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="!pagos.length">
-                <td colspan="9" class="text-center text-medium-emphasis py-5">
+                <td colspan="10" class="text-center text-medium-emphasis py-5">
                   No hay pagos registrados.
                 </td>
               </tr>
-              <tr v-for="pago in pagos" :key="pago.emppagoId">
+              <tr v-for="(pago, indice) in pagos" :key="pago.emppagoId">
                 <td>{{ formatearFecha(pago.emppagoFechaPago) }}</td>
                 <td>{{ formatearFechaHora(pago.emppagoFechaRegistro) }}</td>
                 <td>{{ pago.emppagoMetodoPago || '-' }}</td>
@@ -308,10 +328,27 @@
                 <td class="text-end">{{ formatearMoneda(pago.emppagoSaldoPosterior) }}</td>
                 <td>{{ Number(pago.emppagoConDescuento) ? 'Sí' : 'No' }}</td>
                 <td>{{ pago.emppagoUsuario || '-' }}</td>
+                <td class="text-center">
+                  <v-btn
+                    icon="mdi-printer"
+                    size="small"
+                    variant="text"
+                    title="Imprimir recibo de este pago"
+                    :loading="imprimiendoReciboId === pago.emppagoId"
+                    :disabled="imprimiendoReciboId !== null"
+                    @click="imprimirRecibo(indice)"
+                  />
+                </td>
               </tr>
             </tbody>
           </v-table>
         </div>
+      </v-card>
+
+      <!-- Copia congelada de las clausulas con que se creo el empeño; null en los anteriores al 2026-11-25 -->
+      <v-card v-if="clausulas" class="mt-5 pa-5" elevation="1">
+        <div class="text-subtitle-1 font-weight-medium mb-2">Cláusulas del contrato</div>
+        <div class="clausulas text-body-2">{{ clausulas }}</div>
       </v-card>
     </template>
 
@@ -341,6 +378,10 @@
 <script>
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
+import terceroService from '@/services/terceroService'
+import { generarPdfEmpeno } from '@/utils/empenoPdf'
+import { generarReciboPagoEmpeno } from '@/utils/empenoPagosPdf'
+import { useAuthStore } from '@/stores/auth'
 import EmpenoPagoDialog from '@/views/Empenos/EmpenoPagoDialog.vue'
 import EmpenoRetiroDialog from '@/views/Empenos/EmpenoRetiroDialog.vue'
 import EmpenoAdjudicarDialog from '@/views/Empenos/EmpenoAdjudicarDialog.vue'
@@ -354,6 +395,8 @@ export default {
     return {
       cargando: false,
       entregando: false,
+      imprimiendo: false,
+      imprimiendoReciboId: null,
       empeno: null,
       dialogPago: false,
       dialogRetiro: false,
@@ -362,6 +405,9 @@ export default {
   },
 
   computed: {
+    authStore() {
+      return useAuthStore()
+    },
     idEmpresaRuta() {
       return Number(this.$route.params.EmpId)
     },
@@ -383,6 +429,12 @@ export default {
     },
     pagos() {
       return Array.isArray(this.empeno?.pagos) ? this.empeno.pagos : []
+    },
+    ultimoPagoId() {
+      return this.pagos.length ? this.pagos[this.pagos.length - 1].emppagoId : null
+    },
+    clausulas() {
+      return String(this.empeno?.empClausulas ?? '').trim()
     }
   },
 
@@ -442,6 +494,73 @@ export default {
         await Swal.fire('Error', mensaje, 'error')
       } finally {
         this.entregando = false
+      }
+    },
+
+    // Reimprime el contrato con el empeño ya cargado (/getidempeno, misma forma que /newempeno).
+    // Las clausulas son las del empeño (empClausulas, copia congelada al crearlo), NO las de la
+    // configuracion CLAUCONTEMPENO. Empresa completa y celular/direccion del cliente se consultan
+    // aparte; si fallan, el contrato sale igual con lo que haya.
+    async imprimirContrato() {
+      if (this.imprimiendo || !this.empeno) return
+      const idEmpresa = this.idEmpresaRuta
+      const empeno = this.empeno
+      this.imprimiendo = true
+      try {
+        let empresa = this.authStore.empresaActual || {}
+        try {
+          empresa = await this.authStore.obtenerDatosEmpresa(idEmpresa)
+        } catch {
+          // se usan los datos de la sesion
+        }
+
+        let cliente = { Celular: '', Direccion: '' }
+        const idTercero = Number(empeno.empTerceroId)
+        if (Number.isInteger(idTercero) && idTercero > 0) {
+          try {
+            const { data } = await terceroService.getById({ idEmpresa, idTercero })
+            cliente = {
+              Celular: data?.data?.terCelular || '',
+              Direccion: data?.data?.terDireccion || ''
+            }
+          } catch {
+            // sin celular ni direccion
+          }
+        }
+
+        await generarPdfEmpeno({ empeno, empresa, cliente })
+      } catch (error) {
+        Swal.fire('Error', `No se pudo generar el contrato: ${error.message || 'Error desconocido'}`, 'error')
+      } finally {
+        this.imprimiendo = false
+      }
+    },
+
+    // Reimprime el recibo de un pago (la misma tablilla que sale al pagar). El recibo es del
+    // ULTIMO pago de la lista que recibe, asi que se pasan los pagos hasta ese: la tabla de cuotas
+    // y el saldo quedan como estaban cuando se hizo ese pago.
+    async imprimirRecibo(indice) {
+      const pago = this.pagos[indice]
+      if (!pago || this.imprimiendoReciboId !== null) return
+      const idEmpresa = this.idEmpresaRuta
+      this.imprimiendoReciboId = pago.emppagoId
+      try {
+        let empresa = this.authStore.empresaActual || {}
+        try {
+          empresa = await this.authStore.obtenerDatosEmpresa(idEmpresa)
+        } catch {
+          // se usan los datos de la sesion
+        }
+        await generarReciboPagoEmpeno({
+          empeno: this.empeno,
+          pagos: this.pagos.slice(0, indice + 1),
+          periodos: this.periodos,
+          empresa
+        })
+      } catch (error) {
+        Swal.fire('Error', `No se pudo generar el recibo: ${error.message || 'Error desconocido'}`, 'error')
+      } finally {
+        this.imprimiendoReciboId = null
       }
     },
 
@@ -527,6 +646,11 @@ export default {
 
 .tabla-contenedor {
   overflow-x: auto;
+}
+
+.clausulas {
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .tabla-detalle :deep(.v-table__wrapper > table > thead > tr > th) {

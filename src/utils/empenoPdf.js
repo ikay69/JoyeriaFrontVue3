@@ -427,6 +427,12 @@ export async function generarPdfEmpeno({ empeno, empresa, cliente = null, vistaP
     }
   })
 
+  // ---- Clausulas del contrato (empClausulas): en hoja(s) nueva(s), solo si vienen llenas ----
+  const clausulas = String(empeno.empClausulas ?? '').trim()
+  if (clausulas) {
+    dibujarClausulas(doc, clausulas, { codigo, margen, anchoUtil, limiteInferior: alto - 22 })
+  }
+
   // ---- Pie: redes de la empresa y numero de pagina ----
   const redes = [
     empresa?.Whatsapp ? { inicial: 'W', color: [37, 211, 102], valor: limpiarRed(empresa.Whatsapp) } : null,
@@ -455,6 +461,46 @@ export async function generarPdfEmpeno({ empeno, empresa, cliente = null, vistaP
     return
   }
   doc.save(`contrato-empeno-${codigo}.pdf`)
+}
+
+// Texto libre de varias lineas (clausulas) desde una hoja nueva. Respeta los saltos de linea del
+// texto, parte las lineas largas al ancho util y agrega hojas si no cabe. El pie de cada hoja lo
+// dibuja despues generarPdfEmpeno, por eso no se escribe por debajo de limiteInferior.
+export function dibujarClausulas(doc, texto, { codigo, margen, anchoUtil, limiteInferior }) {
+  const tamano = 9
+  const interlineado = mmDeFuente(tamano) * 1.35
+  const espacioParrafo = interlineado * 0.5
+
+  const encabezado = () => {
+    doc.addPage()
+    celda(doc, margen, 12, anchoUtil, 9, `CLÁUSULAS DEL CONTRATO N.º ${codigo}`, {
+      estilo: 'bold',
+      tamano: 11,
+      align: 'center',
+      relleno: DORADO
+    })
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(tamano)
+    doc.setTextColor(...COLOR_TEXTO)
+    return 12 + 9 + 6
+  }
+
+  let y = encabezado()
+  const parrafos = texto.replace(/\r\n?/g, '\n').split('\n')
+  parrafos.forEach((parrafo) => {
+    // Una linea vacia en el texto se respeta como separacion entre parrafos
+    if (!parrafo.trim()) {
+      y += interlineado
+      return
+    }
+    const lineas = doc.splitTextToSize(parrafo, anchoUtil)
+    lineas.forEach((linea) => {
+      if (y > limiteInferior) y = encabezado()
+      doc.text(linea, margen, y)
+      y += interlineado
+    })
+    y += espacioParrafo
+  })
 }
 
 export function marcaDeAgua(doc, ancho, alto) {

@@ -48,6 +48,8 @@ export default {
 
   newPago(payload) {
     // payload: { idEmpresa, idEmpeno, MontoTotalPagado, MetodoPago, FechaPago }
+    // Responde { msg, data: { pagos: [...] } } (desde 2026-11-26): TODOS los pagos del contrato,
+    // mismo arreglo que /getidempeno, orden FechaPago ASC e Id ASC (el nuevo es el ultimo).
     return http.post('/empeno/newpago', payload)
   },
 }

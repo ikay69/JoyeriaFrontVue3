@@ -112,7 +112,7 @@
         
         <v-list-item v-if="esAdministrador" :to="{ name: 'OrdenProduccionList' }" prepend-icon="mdi-hammer-wrench" title="Fundir materiales" />
         <v-list-item :to="{ name: 'Prestamos' }" prepend-icon="mdi-hand-coin" title="Préstamos" class="bg-red text-white"/>
-        <v-list-group value="informesEmpenos"  class="bg-red text-white">
+        <v-list-group value="informesEmpenos" >
           <template #activator="{ props }">
             <v-list-item
               v-bind="props"
@@ -120,7 +120,7 @@
               title="Inf Empeños"
             />
           </template>
-          <v-list-item :to="{ name: 'Empenos' }" title="Empeños"  class="bg-red text-white"/>
+          <v-list-item :to="{ name: 'Empenos' }" title="Empeños" />
           <v-list-item :to="{ name: 'EmpenosPagos' }" title="Pagos"  class="bg-red text-white"/>
         </v-list-group>
         <v-list-item :to="{ name: 'PagosList' }" prepend-icon="mdi-cash-plus" title="Pagos de clientes" />

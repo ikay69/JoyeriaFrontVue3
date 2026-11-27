@@ -313,6 +313,24 @@
       </v-form>
     </v-card>
 
+    <!-- Clausulas del contrato: salen de la configuracion CLAUCONTEMPENO. Solo se muestran si
+         tienen valor; se guardan como copia en el empeño y se imprimen en hoja aparte del PDF. -->
+    <v-alert
+      v-if="errorClausulas"
+      type="warning"
+      variant="tonal"
+      class="mt-4"
+    >
+      No se pudieron cargar las cláusulas del contrato. Si guarda así, el empeño queda sin cláusulas.
+      <template #append>
+        <v-btn variant="text" :loading="cargandoClausulas" @click="cargarClausulas">Reintentar</v-btn>
+      </template>
+    </v-alert>
+    <v-card v-else-if="clausulas" class="pa-6 mt-4" elevation="1">
+      <div class="text-subtitle-2 mb-2">Cláusulas del contrato</div>
+      <div class="clausulas text-body-2">{{ clausulas }}</div>
+    </v-card>
+
     <TercerosSeleccionar
       v-model="dialogTercero"
       :id-empresa="idEmpresa"
@@ -350,6 +368,7 @@
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
 import terceroService from '@/services/terceroService'
+import configuracionService from '@/services/configuracionService'
 import { generarPdfEmpeno } from '@/utils/empenoPdf'
 import TercerosSeleccionar from '@/components/common/TercerosSeleccionar.vue'
 import ClientesFormDialog from '@/views/Clientes/ClientesFormDialog.vue'
@@ -361,6 +380,8 @@ import { useCatalogosStore } from '@/stores/catalogos'
 
 const MAXIMO_DECIMAL_12_2 = 9999999999.99
 const MAXIMO_CANTIDAD_12_4 = 99999999.9999
+// Configuracion (Administracion > Configuraciones) con el texto de las clausulas del contrato
+const CODIGO_CLAUSULAS = 'CLAUCONTEMPENO'
 
 export default {
   name: 'EmpenosForm',
@@ -385,6 +406,10 @@ export default {
       metodoPago: 'EFECTIVO',
       lineas: [],
       bodegas: [],
+      // '' = la configuracion no existe, esta inactiva o esta vacia: el empeño va sin clausulas
+      clausulas: '',
+      cargandoClausulas: false,
+      errorClausulas: false,
       guardando: false,
       generandoVistaPrevia: false,
       siguienteKey: 1,
@@ -428,15 +453,38 @@ export default {
     idEmpresa() {
       this.limpiarFormulario()
       this.cargarBodegas()
+      this.cargarClausulas()
     }
   },
 
   created() {
     this.agregarLinea()
     this.cargarBodegas()
+    this.cargarClausulas()
   },
 
   methods: {
+    // getvalorconfiguracion nunca da error por no encontrarla: si no existe, esta inactiva o
+    // vacia responde confValor ''. Lo pueden llamar ADMINISTRADOR y VENDEDOR.
+    async cargarClausulas() {
+      const idEmpresa = Number(this.idEmpresa)
+      this.clausulas = ''
+      this.errorClausulas = false
+      if (!Number.isInteger(idEmpresa) || idEmpresa <= 0) return
+
+      this.cargandoClausulas = true
+      try {
+        const { data } = await configuracionService.getValor({ idEmpresa, Codigo: CODIGO_CLAUSULAS })
+        // Si mientras respondia se cambio de empresa, no pisar las de la nueva
+        if (Number(this.idEmpresa) !== idEmpresa) return
+        this.clausulas = String(data?.data?.confValor ?? '').trim()
+      } catch {
+        if (Number(this.idEmpresa) === idEmpresa) this.errorClausulas = true
+      } finally {
+        this.cargandoClausulas = false
+      }
+    },
+
     // El contrato armado con lo que hay en el formulario, sin guardar. No exige el formulario
     // completo: lo que falte sale como "-".
     async vistaPrevia() {
@@ -453,6 +501,7 @@ export default {
         empTerceroNumeroDoc: this.clienteSeleccionado?.identificacion || '',
         empTerceroNombre: this.clienteSeleccionado?.Nombre || '',
         empTerceroCiudadDoc: String(this.terceroCiudadDoc || '').trim(),
+        empClausulas: this.clausulas || null,
         articulos: this.lineas
           .filter((fila) => fila.articuloNombre)
           .map((fila) => ({
@@ -790,6 +839,8 @@ export default {
         MetodoPago: this.metodoPago,
         MontoInicial: this.montoInicial,
         idEmpenoOrigen: String(this.idEmpenoOrigen ?? '').trim() === '' ? null : Number(this.idEmpenoOrigen),
+        // El backend guarda una copia congelada; null = sin clausulas.
+        Clausulas: this.clausulas || null,
         Articulos: this.armarArticulos()
       }
 
@@ -911,6 +962,11 @@ export default {
 
 .tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
   border-top-right-radius: 4px;
+}
+
+.clausulas {
+  white-space: pre-line;
+  word-break: break-word;
 }
 
 .tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {

@@ -25,15 +25,33 @@
           {{ acceso.texto }}
         </v-btn>
       </v-col>
+      <!-- Apartar joya abre una ventana, no una ruta. /movimiento/newajuste es SOLO ADMINISTRADOR. -->
+      <v-col v-if="esAdministrador" cols="12" sm="6" md="3">
+        <v-btn
+          block
+          size="x-large"
+          color="primary"
+          variant="tonal"
+          prepend-icon="mdi-diamond-stone"
+          @click="abrirApartarJoya"
+        >
+          Apartar joya
+        </v-btn>
+      </v-col>
     </v-row>
+
+    <ApartarJoyaDialog v-model="dialogApartarJoya" :id-empresa="idEmpresa" />
   </v-container>
 </template>
 
 <script>
+import Swal from 'sweetalert2'
 import { useAuthStore } from '@/stores/auth'
+import ApartarJoyaDialog from '@/views/Inicio/ApartarJoyaDialog.vue'
 
 export default {
   name: 'Inicio',
+  components: { ApartarJoyaDialog },
   data() {
     return {
       accesos: [
@@ -41,7 +59,8 @@ export default {
         { texto: 'Pago de cliente', ruta: 'PagosNuevo', icono: 'mdi-cash-multiple' },
         { texto: 'Compra', ruta: 'CompraNueva', icono: 'mdi-cart-plus' },
         { texto: 'Gasto', ruta: 'GastosNuevo', icono: 'mdi-receipt-text-plus' }
-      ]
+      ],
+      dialogApartarJoya: false
     }
   },
   computed: {
@@ -53,6 +72,21 @@ export default {
     },
     empresaActual() {
       return this.authStore.empresaActual
+    },
+    idEmpresa() {
+      return this.authStore.empresaSeleccionada
+    },
+    esAdministrador() {
+      return this.authStore.rol === 'ADMINISTRADOR'
+    }
+  },
+  methods: {
+    abrirApartarJoya() {
+      if (!this.idEmpresa) {
+        Swal.fire('Atención', 'Seleccione una empresa en la barra superior', 'warning')
+        return
+      }
+      this.dialogApartarJoya = true
     }
   }
 }

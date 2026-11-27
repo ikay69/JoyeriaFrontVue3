@@ -12,10 +12,10 @@
         <v-col cols="12" sm="3">
           <v-text-field
             v-model="filtros.textoFiltro"
-            label="Buscar por código"
-            maxlength="15"
-            :disabled="filtros.campoOrdenar !== 1"
-            :hint="filtros.campoOrdenar !== 1 ? 'Solo aplica al ordenar por código' : ''"
+            :label="filtros.campoOrdenar === 4 ? 'Buscar por descripción' : 'Buscar por código'"
+            :maxlength="filtros.campoOrdenar === 4 ? 255 : 15"
+            :disabled="!permiteTexto"
+            :hint="!permiteTexto ? 'Solo aplica al ordenar por código o descripción' : ''"
             persistent-hint
             clearable
             density="compact"
@@ -94,7 +94,7 @@
           <template v-else>
             <tr v-for="conf in configuraciones" :key="conf.confId">
               <td class="font-weight-medium text-no-wrap">{{ conf.confCodigo }}</td>
-              <td>{{ conf.confDescripcion }}</td>
+              <td class="descripcion">{{ conf.confDescripcion }}</td>
               <td>
                 <v-chip :color="conf.confEstado === 1 ? 'success' : 'error'" size="small">
                   {{ conf.confEstado === 1 ? 'Activa' : 'Inactiva' }}
@@ -161,7 +161,8 @@ export default {
       opcionesCampoOrdenar: [
         { valor: 1, texto: 'Código' },
         { valor: 2, texto: 'Fecha de creación' },
-        { valor: 3, texto: 'Fecha de modificación' }
+        { valor: 3, texto: 'Fecha de modificación' },
+        { valor: 4, texto: 'Descripción' }
       ],
       opcionesOrden: [
         { valor: 'ASC', texto: 'Ascendente' },
@@ -180,6 +181,10 @@ export default {
     },
     idEmpresa() {
       return this.authStore.empresaSeleccionada
+    },
+    // textoFiltro filtra el mismo campo que ordena: 1 Codigo, 4 Descripcion; con 2 y 3 se ignora.
+    permiteTexto() {
+      return this.filtros.campoOrdenar === 1 || this.filtros.campoOrdenar === 4
     },
     totalPaginas() {
       // El backend pagina de 50 en 50: este 50 no es arbitrario.
@@ -219,9 +224,13 @@ export default {
           pagina,
           estadoFiltro: this.filtros.estadoFiltro
         }
-        // textoFiltro solo filtra con campoOrdenar 1; con los otros el backend lo ignora.
-        if (this.filtros.campoOrdenar === 1) {
-          payload.textoFiltro = String(this.filtros.textoFiltro || '').trim()
+        // textoFiltro solo se manda con campoOrdenar 1 o 4. Con 2 y 3 se omite: el backend lo
+        // ignora pero igual valida maximo 15, y el texto pudo quedar largo desde Descripcion.
+        if (this.permiteTexto) {
+          let texto = String(this.filtros.textoFiltro || '').trim()
+          // Al pasar de Descripcion a Codigo el texto puede superar los 15 que acepta Codigo.
+          if (this.filtros.campoOrdenar === 1) texto = texto.slice(0, 15)
+          payload.textoFiltro = texto
         }
         const { data } = await configuracionService.getAll(payload)
         this.configuraciones = data.data || []
@@ -314,6 +323,14 @@ export default {
 
 .tabla-listado :deep(.v-table__wrapper > table > thead > tr > th:last-child) {
   border-top-right-radius: 4px;
+}
+
+/* La descripcion se muestra completa, respetando los saltos de linea. */
+.tabla-listado .descripcion {
+  white-space: pre-line;
+  word-break: break-word;
+  padding-top: 8px;
+  padding-bottom: 8px;
 }
 
 .tabla-listado :deep(.v-table__wrapper > table > tbody > tr:hover > td) {
