@@ -35,16 +35,29 @@
         >
           Imprimir contrato
         </v-btn>
-        <v-btn
-          variant="tonal"
-          prepend-icon="mdi-receipt-text"
-          :loading="imprimiendoReciboId !== null && imprimiendoReciboId === ultimoPagoId"
-          :disabled="!pagos.length || imprimiendoReciboId !== null"
-          :title="pagos.length ? 'Recibo del último pago' : 'El empeño no tiene pagos'"
-          @click="imprimirRecibo(pagos.length - 1)"
-        >
-          Imprimir recibo
-        </v-btn>
+        <v-menu>
+          <template #activator="{ props }">
+            <v-btn
+              v-bind="props"
+              variant="tonal"
+              prepend-icon="mdi-receipt-text"
+              append-icon="mdi-menu-down"
+              :loading="imprimiendoReciboId !== null && imprimiendoReciboId === ultimoPagoId"
+              :disabled="!pagos.length || imprimiendoReciboId !== null"
+              :title="pagos.length ? 'Recibo del último pago' : 'El empeño no tiene pagos'"
+            >
+              Imprimir recibo
+            </v-btn>
+          </template>
+          <v-list density="compact">
+            <v-list-item
+              v-for="formato in formatosRecibo"
+              :key="formato.valor"
+              :title="formato.texto"
+              @click="imprimirRecibo(pagos.length - 1, formato.valor)"
+            />
+          </v-list>
+        </v-menu>
         <v-btn
           v-if="esVivo"
           color="primary"
@@ -329,15 +342,27 @@
                 <td>{{ Number(pago.emppagoConDescuento) ? 'Sí' : 'No' }}</td>
                 <td>{{ pago.emppagoUsuario || '-' }}</td>
                 <td class="text-center">
-                  <v-btn
-                    icon="mdi-printer"
-                    size="small"
-                    variant="text"
-                    title="Imprimir recibo de este pago"
-                    :loading="imprimiendoReciboId === pago.emppagoId"
-                    :disabled="imprimiendoReciboId !== null"
-                    @click="imprimirRecibo(indice)"
-                  />
+                  <v-menu>
+                    <template #activator="{ props }">
+                      <v-btn
+                        v-bind="props"
+                        icon="mdi-printer"
+                        size="small"
+                        variant="text"
+                        title="Imprimir recibo de este pago"
+                        :loading="imprimiendoReciboId === pago.emppagoId"
+                        :disabled="imprimiendoReciboId !== null"
+                      />
+                    </template>
+                    <v-list density="compact">
+                      <v-list-item
+                        v-for="formato in formatosRecibo"
+                        :key="formato.valor"
+                        :title="formato.texto"
+                        @click="imprimirRecibo(indice, formato.valor)"
+                      />
+                    </v-list>
+                  </v-menu>
                 </td>
               </tr>
             </tbody>
@@ -381,6 +406,7 @@ import empenoService from '@/services/empenoService'
 import terceroService from '@/services/terceroService'
 import { generarPdfEmpeno } from '@/utils/empenoPdf'
 import { generarReciboPagoEmpeno } from '@/utils/empenoPagosPdf'
+import { generarTirillaPagoEmpeno } from '@/utils/tirillaPagoEmpeno'
 import { useAuthStore } from '@/stores/auth'
 import EmpenoPagoDialog from '@/views/Empenos/EmpenoPagoDialog.vue'
 import EmpenoRetiroDialog from '@/views/Empenos/EmpenoRetiroDialog.vue'
@@ -397,6 +423,11 @@ export default {
       entregando: false,
       imprimiendo: false,
       imprimiendoReciboId: null,
+      formatosRecibo: [
+        { valor: 'carta', texto: 'Recibo (carta)' },
+        { valor: 80, texto: 'Tirilla 80 mm' },
+        { valor: 50, texto: 'Tirilla 50 mm' }
+      ],
       empeno: null,
       dialogPago: false,
       dialogRetiro: false,
@@ -539,7 +570,8 @@ export default {
     // Reimprime el recibo de un pago (la misma tablilla que sale al pagar). El recibo es del
     // ULTIMO pago de la lista que recibe, asi que se pasan los pagos hasta ese: la tabla de cuotas
     // y el saldo quedan como estaban cuando se hizo ese pago.
-    async imprimirRecibo(indice) {
+    // formato: 'carta' (tablilla de pagos) o 80 / 50 (tirilla de ese ancho en mm)
+    async imprimirRecibo(indice, formato = 'carta') {
       const pago = this.pagos[indice]
       if (!pago || this.imprimiendoReciboId !== null) return
       const idEmpresa = this.idEmpresaRuta
@@ -551,12 +583,14 @@ export default {
         } catch {
           // se usan los datos de la sesion
         }
-        await generarReciboPagoEmpeno({
+        const parametros = {
           empeno: this.empeno,
           pagos: this.pagos.slice(0, indice + 1),
           periodos: this.periodos,
           empresa
-        })
+        }
+        if (formato === 'carta') await generarReciboPagoEmpeno(parametros)
+        else generarTirillaPagoEmpeno({ ...parametros, anchoMm: formato })
       } catch (error) {
         Swal.fire('Error', `No se pudo generar el recibo: ${error.message || 'Error desconocido'}`, 'error')
       } finally {

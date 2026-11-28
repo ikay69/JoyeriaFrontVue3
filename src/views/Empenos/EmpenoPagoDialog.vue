@@ -45,6 +45,15 @@
             variant="outlined"
             density="comfortable"
           />
+          <v-select
+            v-model="formatoImpresion"
+            :items="opcionesImpresion"
+            item-title="texto"
+            item-value="valor"
+            label="Imprimir"
+            variant="outlined"
+            density="comfortable"
+          />
           <!-- desde 2026-11-19 el pago solo se registra con la fecha de hoy: no se puede elegir -->
           <v-text-field
             :model-value="fechaHoyTexto"
@@ -76,6 +85,7 @@
 import Swal from 'sweetalert2'
 import empenoService from '@/services/empenoService'
 import { generarReciboPagoEmpeno } from '@/utils/empenoPagosPdf'
+import { generarTirillaPagoEmpeno } from '@/utils/tirillaPagoEmpeno'
 import { useAuthStore } from '@/stores/auth'
 
 export default {
@@ -94,6 +104,13 @@ export default {
       monto: '',
       metodoPago: 'EFECTIVO',
       guardando: false,
+      // se conserva entre pagos: cada caja suele imprimir siempre en el mismo formato
+      formatoImpresion: 'carta',
+      opcionesImpresion: [
+        { valor: 'carta', texto: 'Recibo (carta)' },
+        { valor: 80, texto: 'Tirilla 80 mm' },
+        { valor: 50, texto: 'Tirilla 50 mm' }
+      ],
       opcionesMetodoPago: [
         { valor: 'EFECTIVO', texto: 'Efectivo' },
         { valor: 'TRANSACCION', texto: 'Transacción' }
@@ -220,7 +237,9 @@ export default {
         // sin periodos: la fecha limite sale con "-"
       }
 
-      await generarReciboPagoEmpeno({ empeno, pagos, periodos, empresa })
+      const parametros = { empeno, pagos, periodos, empresa }
+      if (this.formatoImpresion === 'carta') await generarReciboPagoEmpeno(parametros)
+      else generarTirillaPagoEmpeno({ ...parametros, anchoMm: this.formatoImpresion })
     },
 
     hoy() {

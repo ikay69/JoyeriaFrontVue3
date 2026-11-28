@@ -47,18 +47,9 @@
         </div>
 
         <v-row dense>
-          <v-col cols="12" sm="6">
-            <v-text-field
-              v-model="codigoContrato"
-              label="Código de contrato"
-              maxlength="50"
-              counter="50"
-              :rules="[reglas.requerido, reglas.maximo50]"
-              variant="outlined"
-              density="comfortable"
-            />
-          </v-col>
-          <v-col cols="12" sm="6">
+          <!-- Desde el 2026-11-27 el codigo de contrato lo genera el servidor (FechaInicio AAAAMMDD
+               + Id con ceros hasta 5 cifras): ya no se digita. -->
+          <v-col cols="12">
             <v-text-field
               v-model="terceroCiudadDoc"
               label="Ciudad del documento del tercero"
@@ -398,7 +389,6 @@ export default {
       dialogProductoNuevo: false,
       filaActiva: null,
       clienteSeleccionado: null,
-      codigoContrato: '',
       terceroCiudadDoc: '',
       fechaInicio: '',
       tasaInteresPeriodo: '',
@@ -491,7 +481,8 @@ export default {
       if (this.generandoVistaPrevia) return
       const tasa = String(this.tasaInteresPeriodo ?? '').trim()
       const empeno = {
-        empCodigoContrato: String(this.codigoContrato || '').trim() || 'SIN CÓDIGO',
+        // el codigo real lo asigna el servidor al guardar
+        empCodigoContrato: 'SE ASIGNA AL GUARDAR',
         empFechaInicio: this.fechaInicio || this.hoy(),
         empMontoInicial: this.montoInicial,
         // Sin tasa el backend usa 10
@@ -739,10 +730,6 @@ export default {
       const idTercero = Number(this.clienteSeleccionado?.Id)
       if (!Number.isInteger(idTercero) || idTercero <= 0) return 'Seleccione un cliente'
 
-      const codigoContrato = String(this.codigoContrato || '').trim()
-      if (!codigoContrato) return 'El código de contrato es obligatorio'
-      if (codigoContrato.length > 50) return 'El código de contrato no puede superar 50 caracteres'
-
       const ciudad = String(this.terceroCiudadDoc || '').trim()
       if (!ciudad) return 'La ciudad del documento del tercero es obligatoria'
       if (ciudad.length > 50) return 'La ciudad del documento no puede superar 50 caracteres'
@@ -832,7 +819,6 @@ export default {
       const payload = {
         idEmpresa: Number(this.idEmpresa),
         idTercero: Number(this.clienteSeleccionado.Id),
-        CodigoContrato: this.codigoContrato.trim(),
         TerceroCiudadDoc: this.terceroCiudadDoc.trim(),
         FechaInicio: this.fechaInicio,
         TasaInteresPeriodo: String(this.tasaInteresPeriodo ?? '').trim() === '' ? null : Number(this.tasaInteresPeriodo),
@@ -868,7 +854,11 @@ export default {
           return
         }
 
-        await Swal.fire('Éxito', 'Empeño registrado', 'success')
+        await Swal.fire(
+          'Éxito',
+          empeno.empCodigoContrato ? `Empeño registrado con el contrato N.º ${empeno.empCodigoContrato}` : 'Empeño registrado',
+          'success'
+        )
         this.$router.back()
       } catch (error) {
         const mensaje = error.response?.data?.msg || 'Ocurrió un error al registrar el empeño'
@@ -923,7 +913,6 @@ export default {
       this.dialogArticuloNuevo = false
       this.filaActiva = null
       this.clienteSeleccionado = null
-      this.codigoContrato = ''
       this.terceroCiudadDoc = ''
       this.fechaInicio = ''
       this.tasaInteresPeriodo = ''

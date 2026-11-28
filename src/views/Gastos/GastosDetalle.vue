@@ -72,24 +72,24 @@
         </v-row>
         <v-row dense align="center">
           <v-col cols="12" sm="3" class="text-caption text-medium-emphasis">origen:</v-col>
-          <v-col cols="12" :sm="gasto.gasTipoOrigen === 'CUOTA_COMPRA' ? 5 : 9" class="font-weight-medium">
-            <template v-if="gasto.gasTipoOrigen === 'CUOTA_COMPRA'">
-              Compra #{{ gasto.gasOrigenId || '-' }}
+          <v-col cols="12" :sm="origenEnlace ? 5 : 9" class="font-weight-medium">
+            <template v-if="origenEnlace">
+              {{ origenEnlace.etiqueta }} #{{ gasto.gasOrigenId || '-' }}
             </template>
             <template v-else>
               {{ gasto.gasOrigenId }} (id de origen)
             </template>
           </v-col>
-          <v-col v-if="gasto.gasTipoOrigen === 'CUOTA_COMPRA'" cols="12" sm="4" class="text-sm-right">
+          <v-col v-if="origenEnlace" cols="12" sm="4" class="text-sm-right">
             <v-btn
               variant="tonal"
               size="small"
-              prepend-icon="mdi-file-document-outline"
-              :disabled="!origenCompraDisponible"
-              :title="origenCompraDisponible ? '' : motivoOrigenNoDisponible"
+              :prepend-icon="origenEnlace.icono"
+              :disabled="!origenDisponible"
+              :title="origenDisponible ? '' : origenEnlace.motivoNoDisponible"
               @click="irAlOrigen"
             >
-              Ver compra
+              {{ origenEnlace.boton }}
             </v-btn>
           </v-col>
         </v-row>
@@ -120,6 +120,41 @@
 import Swal from 'sweetalert2'
 import gastosService from '@/services/gastosService'
 
+const ORIGENES_CON_DETALLE = {
+  CUOTA_COMPRA: {
+    etiqueta: 'Compra',
+    boton: 'Ver compra',
+    icono: 'mdi-file-document-outline',
+    ruta: 'CompraDetalle',
+    parametro: 'ComId',
+    motivoNoDisponible: 'No hay una compra de origen válida para abrir'
+  },
+  COMPRA: {
+    etiqueta: 'Compra',
+    boton: 'Ver compra',
+    icono: 'mdi-file-document-outline',
+    ruta: 'CompraDetalle',
+    parametro: 'ComId',
+    motivoNoDisponible: 'No hay una compra de origen válida para abrir'
+  },
+  VENTA: {
+    etiqueta: 'Venta',
+    boton: 'Ver venta',
+    icono: 'mdi-cart-outline',
+    ruta: 'VentasDetalle',
+    parametro: 'VentaId',
+    motivoNoDisponible: 'No hay una venta de origen válida para abrir'
+  },
+  PRODUCCION: {
+    etiqueta: 'Orden de producción',
+    boton: 'Ver orden de producción',
+    icono: 'mdi-hammer-wrench',
+    ruta: 'OrdenProduccionDetalle',
+    parametro: 'OrdId',
+    motivoNoDisponible: 'No hay una orden de producción de origen válida para abrir'
+  }
+}
+
 export default {
   name: 'GastosDetalle',
 
@@ -144,16 +179,13 @@ export default {
       return this.gasto ? this.gasto.gasEstado === 1 : false
     },
 
-    origenCompraDisponible() {
-      return Boolean(
-        this.gasto &&
-        this.gasto.gasTipoOrigen === 'CUOTA_COMPRA' &&
-        Number(this.gasto.gasOrigenId) > 0
-      )
+    // Tipos de origen con pantalla de detalle propia
+    origenEnlace() {
+      return ORIGENES_CON_DETALLE[this.gasto?.gasTipoOrigen] || null
     },
 
-    motivoOrigenNoDisponible() {
-      return 'No hay una compra de origen válida para abrir'
+    origenDisponible() {
+      return Boolean(this.origenEnlace && Number(this.gasto.gasOrigenId) > 0)
     }
   },
 
@@ -180,13 +212,13 @@ export default {
     },
 
     irAlOrigen() {
-      if (!this.origenCompraDisponible) return
+      if (!this.origenDisponible) return
 
       this.$router.push({
-        name: 'CompraDetalle',
+        name: this.origenEnlace.ruta,
         params: {
           EmpId: this.idEmpresa,
-          ComId: Number(this.gasto.gasOrigenId)
+          [this.origenEnlace.parametro]: Number(this.gasto.gasOrigenId)
         }
       })
     },

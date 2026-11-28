@@ -145,8 +145,9 @@ import movimientoService from '@/services/movimientoService'
 import existenciaService from '@/services/existenciaService'
 import bodegaService from '@/services/bodegaService'
 import terceroService from '@/services/terceroService'
+import empenoService from '@/services/empenoService'
 import { useAuthStore } from '@/stores/auth'
-import { descargarCsv } from '@/utils/descargarCsv'
+import { descargarCsv, nombreDesdeContentDisposition, conSufijoAleatorio } from '@/utils/descargarCsv'
 import ProductosSeleccionar from '@/views/Inventario/Productos/ProductosSeleccionar.vue'
 
 function aFechaIso(fecha) {
@@ -203,8 +204,34 @@ const INFORMES = [
       compraService.exportarArticulosCsv({ idEmpresa, fechaInicio, fechaFin }),
     nombreArchivo: ({ fechaInicio, fechaFin }) => `compras_articulos_${fechaInicio}_${fechaFin}.csv`
   },
-  { valor: 'EMPENOS', texto: 'Empeños', usaFechas: true, usaProducto: false, descargar: null },
-  { valor: 'EMPENOSARTICULOS', texto: 'Empeños artículos', usaFechas: true, usaProducto: false, descargar: null },
+  {
+    valor: 'EMPENOS',
+    texto: 'Empeños',
+    usaFechas: true,
+    usaProducto: false,
+    // El informe solo lee: sin poner al dia los periodos los intereses pendientes salen bajos
+    antesDeDescargar: ({ idEmpresa }) => empenoService.actualizarPeriodos({ idEmpresa }),
+    descargar: ({ idEmpresa, fechaInicio, fechaFin }) =>
+      empenoService.exportarCsv({ idEmpresa, fechaInicio, fechaFin }),
+    nombreArchivo: ({ fechaInicio, fechaFin }) => `empenos_${fechaInicio}_${fechaFin}.csv`
+  },
+  {
+    valor: 'EMPENOSARTICULOS',
+    texto: 'Empeños artículos',
+    usaFechas: true,
+    usaProducto: false,
+    descargar: ({ idEmpresa, fechaInicio, fechaFin }) =>
+      empenoService.exportarArticulosCsv({ idEmpresa, fechaInicio, fechaFin }),
+    nombreArchivo: ({ fechaInicio, fechaFin }) => `empenos_articulos_${fechaInicio}_${fechaFin}.csv`
+  },
+  {
+    valor: 'EMPENOSCUSTODIA',
+    texto: 'En custodia',
+    usaFechas: false,
+    usaProducto: false,
+    descargar: ({ idEmpresa }) => empenoService.exportarCustodiaCsv({ idEmpresa }),
+    nombreArchivo: () => `empenos_custodia_${aFechaIso(new Date())}.csv`
+  },
   {
     valor: 'PAGOS',
     texto: 'Pagos',
@@ -406,6 +433,21 @@ export default {
       }
 
       this.descargando = true
+      if (informe.antesDeDescargar) {
+        try {
+          await informe.antesDeDescargar(parametros)
+        } catch (error) {
+          const respuesta = error.response?.data
+          const detalle = respuesta?.msg || respuesta?.errors?.[0]?.msg
+          Swal.fire(
+            'Error',
+            `No se pudieron actualizar los periodos antes del informe${detalle ? `: ${detalle}` : ''}`,
+            'error'
+          )
+          this.descargando = false
+          return
+        }
+      }
       try {
         const resp = await informe.descargar(parametros)
         // Los errores de validacion llegan como JSON aunque se pida un blob
@@ -414,7 +456,11 @@ export default {
           Swal.fire('Error', error.msg || 'No se pudo generar el informe', 'error')
           return
         }
-        descargarCsv(informe.nombreArchivo(parametros), resp.data)
+        // El nombre lo pone el backend; si el CORS no deja leer la cabecera, el del front + 4 cifras
+        const nombre =
+          nombreDesdeContentDisposition(resp.headers['content-disposition']) ||
+          conSufijoAleatorio(informe.nombreArchivo(parametros))
+        descargarCsv(nombre, resp.data)
       } catch (error) {
         let mensaje = 'No se pudo generar el informe'
         try {
